@@ -17,7 +17,12 @@
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "jest --config ./test/jest-e2e.json"
+    "test:e2e": "jest --config ./test/jest-e2e.json",
+    "typeorm": "node scripts/typeorm-wrapper.js",
+    "typeorm:migration:generate": "node scripts/generate-migration.js",
+    "typeorm:migration:create": "node scripts/create-migration.js",
+    "typeorm:migration:run": "node scripts/run-migrations.js",
+    "typeorm:migration:revert": "node scripts/revert-migration.js"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
@@ -25,6 +30,7 @@
     "@nestjs/core": "^11.0.1",
     "@nestjs/platform-express": "^11.0.1",
     "@nestjs/typeorm": "^10.0.2",
+    "dotenv": "^16.4.7",
     "mysql2": "^3.11.5",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",

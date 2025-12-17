@@ -28,41 +28,92 @@ yarn install
 npm install
 ```
 
-2. Configurar base de datos:
+2. Configurar variables de entorno:
 
 Copia el archivo `env.example` a `.env` y ajusta las variables:
 
 ```env
-DB_HOST=localhost
-DB_PORT=3306
-DB_USERNAME=root
-DB_PASSWORD=tu_password
-DB_DATABASE=trainings_db
+DATABASE_HOST=localhost
+DATABASE_PORT=3306
+DATABASE_USER=root
+DATABASE_PASSWORD=root
+DATABASE_NAME=trainings_db
+PORT=3000
+NODE_ENV=development
 ```
 
-3. Crear la base de datos:
-
-```sql
-CREATE DATABASE trainings_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-```
-
-4. Ejecutar el script SQL para crear las tablas:
+3. Iniciar base de datos con Docker:
 
 ```bash
-mysql -u root -p trainings_db < trainings_database_normalized.sql
+# Iniciar MySQL en Docker
+docker-compose up -d
+
+# Verificar que el contenedor esté corriendo
+docker-compose ps
 ```
 
-O importa el archivo `trainings_database_normalized.sql` desde tu cliente MySQL.
+4. Opción A: Ejecutar migraciones (Recomendado)
+
+```bash
+# Generar migración inicial desde las entidades
+yarn typeorm:migration:generate generate InitialSchema
+
+# Ejecutar migraciones
+yarn typeorm:migration:run
+```
+
+4. Opción B: Importar script SQL directamente
+
+```bash
+# Conectar a la base de datos en Docker
+docker exec -i training_api_db mysql -uroot -proot trainings_db < trainings_database_normalized.sql
+```
+
+O importa el archivo `trainings_database_normalized.sql` desde tu cliente MySQL conectándote a `localhost:3306`.
 
 ## Ejecutar la aplicación
 
+### Con Docker (Recomendado)
+
 ```bash
+# 1. Iniciar base de datos
+docker-compose up -d
+
+# 2. Ejecutar migraciones (si es necesario)
+yarn typeorm:migration:run
+
+# 3. Iniciar aplicación en desarrollo
+yarn start:dev
+```
+
+### Sin Docker
+
+```bash
+# Asegúrate de tener MySQL corriendo localmente
+# y configurado en el archivo .env
+
 # Desarrollo
 yarn start:dev
 
 # Producción
 yarn build
 yarn start:prod
+```
+
+### Comandos Docker útiles
+
+```bash
+# Ver logs de la base de datos
+docker-compose logs -f db
+
+# Detener base de datos
+docker-compose down
+
+# Detener y eliminar volúmenes (⚠️ elimina datos)
+docker-compose down -v
+
+# Reiniciar base de datos
+docker-compose restart db
 ```
 
 ## Estructura del Proyecto
@@ -73,9 +124,45 @@ src/
 │   ├── catalogos/     # Catálogos maestros
 │   ├── evaluaciones/  # Entidades de evaluaciones
 │   └── ...
+├── migrations/        # Migraciones de base de datos
 ├── database/          # Configuración de base de datos
 └── app.module.ts      # Módulo principal
 ```
+
+## Migraciones
+
+El proyecto utiliza TypeORM para gestionar migraciones de base de datos.
+
+### Comandos disponibles
+
+```bash
+# Generar migración desde cambios en entidades
+yarn typeorm:migration:generate generate <NombreMigracion>
+
+# Crear migración vacía (para SQL manual)
+yarn typeorm:migration:create <NombreMigracion>
+
+# Ejecutar migraciones pendientes
+yarn typeorm:migration:run
+
+# Revertir última migración
+yarn typeorm:migration:revert
+```
+
+### Ejemplos
+
+```bash
+# Generar migración desde cambios en entidades
+yarn typeorm:migration:generate generate AddNewFieldToPersona
+
+# Crear migración vacía para SQL personalizado
+yarn typeorm:migration:create CustomDataMigration
+
+# Ejecutar todas las migraciones pendientes
+yarn typeorm:migration:run
+```
+
+**Nota:** Las migraciones se almacenan en `src/migrations/` y se ejecutan automáticamente en orden cronológico.
 
 ## Entidades Principales
 

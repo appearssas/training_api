@@ -1,0 +1,59 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+*~
+
+# Debug
+*.tsbuildinfo
+
+# Coverage
+coverage
+.nyc_output
+
+# Dependencies
+node_modules
+node_modules/**/*
+
+# Build output
+dist
+dist/**/*
+
+# Tests
+test
+test/**/*
+*.spec.ts
+
+# Git
+.git
+.gitignore
+
+# Docker
+docker-compose.yml
+Dockerfile
+.dockerignore
+
+# Documentation
+*.md
+!README.md
+
+# Database
+mysql/
+*.sql
+
+# Misc
+.DS_Store
+Thumbs.db
