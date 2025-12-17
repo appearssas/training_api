@@ -7,7 +7,6 @@ import {
   OneToOne,
   ManyToOne,
   JoinColumn,
-  Index,
 } from 'typeorm';
 import { Persona } from './persona.entity';
 import { Rol } from './roles/rol.entity';
@@ -25,7 +24,6 @@ export class Usuario {
   @JoinColumn({ name: 'persona_id' })
   persona: Persona;
 
-  @Index()
   @Column({ type: 'varchar', length: 100, unique: true })
   username: string;
 

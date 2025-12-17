@@ -26,7 +26,6 @@ export class Persona {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Index()
   @Column({
     type: 'varchar',
     length: 50,

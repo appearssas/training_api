@@ -4,7 +4,6 @@ import {
   Column,
   CreateDateColumn,
   OneToMany,
-  Index,
 } from 'typeorm';
 import { PersonaRol } from './persona-rol.entity';
 import { Usuario } from '../usuario.entity';
@@ -14,11 +13,9 @@ export class Rol {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Index()
   @Column({ type: 'varchar', length: 50, unique: true })
   nombre: string;
 
-  @Index()
   @Column({ type: 'varchar', length: 50, unique: true })
   codigo: string;
 

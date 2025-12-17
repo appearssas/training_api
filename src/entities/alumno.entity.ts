@@ -5,7 +5,6 @@ import {
   CreateDateColumn,
   OneToOne,
   JoinColumn,
-  Index,
 } from 'typeorm';
 import { Persona } from './persona.entity';
 
@@ -20,7 +19,6 @@ export class Alumno {
   @JoinColumn({ name: 'persona_id' })
   persona: Persona;
 
-  @Index()
   @Column({
     type: 'varchar',
     length: 50,
