@@ -23,19 +23,37 @@ services:
   api:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.dev
     container_name: training_api
     restart: unless-stopped
     ports:
       - '${PORT:-3000}:3000'
+    env_file:
+      - .env
     environment:
-      - NODE_ENV=${NODE_ENV:-production}
+      - NODE_ENV=${NODE_ENV:-development}
+      - STAGE=dev
       - DATABASE_HOST=db
       - DATABASE_PORT=3306
       - DATABASE_USER=${DATABASE_USER:-root}
       - DATABASE_PASSWORD=${DATABASE_PASSWORD:-root}
       - DATABASE_NAME=${DATABASE_NAME:-trainings_db}
       - PORT=${PORT:-3000}
+      # Las variables del archivo .env se cargan automáticamente con env_file
+      # Si necesitas una variable específica, agrégala aquí también:
+      # - JWT_SECRET=${JWT_SECRET}
+    volumes:
+      # Montar el código fuente para hot-reload
+      - ./src:/app/src
+      - ./package.json:/app/package.json
+      - ./yarn.lock:/app/yarn.lock
+      - ./tsconfig.json:/app/tsconfig.json
+      - ./tsconfig.build.json:/app/tsconfig.build.json
+      - ./nest-cli.json:/app/nest-cli.json
+      - ./typeorm.config.ts:/app/typeorm.config.ts
+      - ./scripts:/app/scripts
+      # Excluir node_modules del volumen (usar los del contenedor)
+      - /app/node_modules
     depends_on:
       db:
         condition: service_healthy

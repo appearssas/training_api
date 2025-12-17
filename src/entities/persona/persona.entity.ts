@@ -8,18 +8,13 @@ import {
   OneToMany,
   Index,
 } from 'typeorm';
-import { Usuario } from './usuario.entity';
-import { Alumno } from './alumno.entity';
-import { Instructor } from './instructor.entity';
-import { Capacitacion } from './capacitacion.entity';
-import { Inscripcion } from './inscripcion.entity';
-import { PersonaRol } from './roles/persona-rol.entity';
-
-export enum Genero {
-  MASCULINO = 'M',
-  FEMENINO = 'F',
-  OTRO = 'O',
-}
+import { Usuario } from '../usuario.entity';
+import { Alumno } from '../alumno.entity';
+import { Instructor } from '../instructor.entity';
+import { Capacitacion } from '../capacitacion/capacitacion.entity';
+import { Inscripcion } from '../inscripcion/inscripcion.entity';
+import { PersonaRol } from '../roles/persona-rol.entity';
+import { Genero } from './types';
 
 @Entity('personas')
 export class Persona {
@@ -83,31 +78,37 @@ export class Persona {
 
   // Relaciones
   // OBLIGATORIO: Una persona DEBE tener un usuario para acceder al sistema
-  @OneToOne(() => Usuario, (usuario) => usuario.persona, {
+  @OneToOne(() => Usuario, (usuario: Usuario) => usuario.persona, {
     nullable: false,
   })
   usuario: Usuario;
 
   // Roles asignados a la persona (muchos a muchos)
   // OBLIGATORIO: Una persona DEBE tener al menos un rol activo (ALUMNO o INSTRUCTOR)
-  @OneToMany(() => PersonaRol, (personaRol) => personaRol.persona)
+  @OneToMany(() => PersonaRol, (personaRol: PersonaRol) => personaRol.persona)
   roles: PersonaRol[];
 
   // Una persona puede ser alumno (datos específicos del rol ALUMNO)
-  @OneToOne(() => Alumno, (alumno) => alumno.persona, {
+  @OneToOne(() => Alumno, (alumno: Alumno) => alumno.persona, {
     nullable: true,
   })
   alumno: Alumno;
 
   // Una persona puede ser instructor (datos específicos del rol INSTRUCTOR)
-  @OneToOne(() => Instructor, (instructor) => instructor.persona, {
+  @OneToOne(() => Instructor, (instructor: Instructor) => instructor.persona, {
     nullable: true,
   })
   instructor: Instructor;
 
-  @OneToMany(() => Capacitacion, (capacitacion) => capacitacion.instructor)
+  @OneToMany(
+    () => Capacitacion,
+    (capacitacion: Capacitacion) => capacitacion.instructor,
+  )
   capacitacionesComoInstructor: Capacitacion[];
 
-  @OneToMany(() => Inscripcion, (inscripcion) => inscripcion.estudiante)
+  @OneToMany(
+    () => Inscripcion,
+    (inscripcion: Inscripcion) => inscripcion.estudiante,
+  )
   inscripciones: Inscripcion[];
 }

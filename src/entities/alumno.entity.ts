@@ -6,7 +6,7 @@ import {
   OneToOne,
   JoinColumn,
 } from 'typeorm';
-import { Persona } from './persona.entity';
+import { Persona } from './persona/persona.entity';
 
 @Entity('alumnos')
 export class Alumno {

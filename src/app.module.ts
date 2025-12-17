@@ -1,20 +1,27 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { APP_FILTER } from '@nestjs/core';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { DatabaseModule } from './infrastructure/shared/database/database.module';
 import { CapacitacionesModule } from './infrastructure/capacitaciones/capacitaciones.module';
+import { GlobalExceptionFilter } from '@/infrastructure/shared/filters/global-exception.filter';
+import { AuthModule } from './infrastructure/auth/auth.module';
+import { DatabaseModule } from './infrastructure/shared/database/database.module';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({
-      isGlobal: true,
-      envFilePath: '.env',
-    }),
+    ConfigModule.forRoot(),
     DatabaseModule,
+    AuthModule,
     CapacitacionesModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    {
+      provide: APP_FILTER,
+      useClass: GlobalExceptionFilter,
+    },
+  ],
 })
 export class AppModule {}

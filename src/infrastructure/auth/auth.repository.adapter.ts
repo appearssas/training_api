@@ -1,0 +1,196 @@
+import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository, DataSource } from 'typeorm';
+import { JwtService } from '@nestjs/jwt';
+import { IAuthRepository } from '@/domain/auth/ports/auth.repository.port';
+import { Usuario } from '@/entities/usuario.entity';
+import { Persona } from '@/entities/persona/persona.entity';
+import { Rol } from '@/entities/roles/rol.entity';
+import { PersonaRol } from '@/entities/roles/persona-rol.entity';
+import { Alumno } from '@/entities/alumno.entity';
+import { Instructor } from '@/entities/instructor.entity';
+import {
+  comparePassword,
+  hashPassword,
+} from '@/infrastructure/shared/helpers/bcrypt.helper';
+
+@Injectable()
+export class AuthRepositoryAdapter implements IAuthRepository {
+  constructor(
+    @InjectRepository(Usuario)
+    private readonly userRepository: Repository<Usuario>,
+    @InjectRepository(Persona)
+    private readonly personaRepository: Repository<Persona>,
+    @InjectRepository(Rol)
+    private readonly rolRepository: Repository<Rol>,
+    @InjectRepository(PersonaRol)
+    private readonly personaRolRepository: Repository<PersonaRol>,
+    @InjectRepository(Alumno)
+    private readonly alumnoRepository: Repository<Alumno>,
+    @InjectRepository(Instructor)
+    private readonly instructorRepository: Repository<Instructor>,
+    private readonly jwtService: JwtService,
+    private readonly dataSource: DataSource,
+  ) {}
+
+  async findByUsername(username: string): Promise<Usuario | null> {
+    const user = await this.userRepository.findOne({
+      where: {
+        username,
+        activo: true, // Solo usuarios activos
+      },
+      relations: ['persona', 'rolPrincipal'],
+      select: {
+        id: true,
+        username: true,
+        passwordHash: true,
+        activo: true,
+        persona: {
+          id: true,
+          nombres: true,
+          apellidos: true,
+          email: true,
+          activo: true,
+        },
+        rolPrincipal: {
+          id: true,
+          codigo: true,
+          nombre: true,
+        },
+      },
+    });
+
+    // Verificar que la persona también esté activa
+    if (user && user.persona && !user.persona.activo) {
+      return null;
+    }
+
+    return user ?? null;
+  }
+
+  comparePassword(password: string, hashedPassword: string): boolean {
+    return comparePassword(password, hashedPassword);
+  }
+
+  generateToken(user: Usuario): string {
+    const payload = {
+      id: user.id,
+      username: user.username,
+      email: user.persona?.email || undefined,
+      rol: user.rolPrincipal?.codigo || undefined,
+    };
+    return this.jwtService.sign(payload);
+  }
+
+  generateTokenWithMetadata(user: Usuario): {
+    access_token: string;
+    expires_in: string;
+  } {
+    const payload = {
+      id: user.id,
+      username: user.username,
+      email: user.persona?.email || undefined,
+      rol: user.rolPrincipal?.codigo || undefined,
+    };
+    const access_token = this.jwtService.sign(payload);
+    // JWT expira en 24h por defecto (configurado en auth.module.ts)
+    // Retornamos en formato de segundos para expires_in
+    const expires_in = '86400'; // 24 horas en segundos
+
+    return {
+      access_token,
+      expires_in,
+    };
+  }
+
+  async findByEmail(email: string): Promise<Persona | null> {
+    return await this.personaRepository.findOne({
+      where: { email },
+    });
+  }
+
+  async findByNumeroDocumento(
+    numeroDocumento: string,
+  ): Promise<Persona | null> {
+    return await this.personaRepository.findOne({
+      where: { numeroDocumento },
+    });
+  }
+
+  hashPassword(password: string): string {
+    return hashPassword(password);
+  }
+
+  async findRolByCodigo(codigo: string): Promise<Rol | null> {
+    return await this.rolRepository.findOne({
+      where: { codigo, activo: true },
+    });
+  }
+
+  async createPersonaWithUsuario(
+    personaData: Partial<Persona>,
+    usuarioData: { username: string; passwordHash: string },
+    rolCodigo: string,
+  ): Promise<Usuario> {
+    // Usar transacción para asegurar consistencia
+    return await this.dataSource.transaction(async (manager) => {
+      // 1. Buscar el rol
+      const rol = await manager.findOne(Rol, {
+        where: { codigo: rolCodigo, activo: true },
+      });
+
+      if (!rol) {
+        throw new Error(
+          `Rol con código ${rolCodigo} no encontrado. Asegúrate de que los roles estén creados en la base de datos.`,
+        );
+      }
+
+      // 2. Crear Persona
+      const persona = manager.create(Persona, {
+        ...personaData,
+        activo: true,
+      });
+      const savedPersona = await manager.save(Persona, persona);
+
+      // 3. Crear Usuario
+      const usuario = manager.create(Usuario, {
+        persona: savedPersona,
+        username: usuarioData.username,
+        passwordHash: usuarioData.passwordHash,
+        rolPrincipal: rol,
+        activo: true,
+      });
+      const savedUsuario = await manager.save(Usuario, usuario);
+
+      // 4. Crear PersonaRol (asignar rol a la persona)
+      const personaRol = manager.create(PersonaRol, {
+        persona: savedPersona,
+        rol: rol,
+        activo: true,
+      });
+      await manager.save(PersonaRol, personaRol);
+
+      // 5. Crear registro específico según el rol
+      if (rolCodigo === 'ALUMNO') {
+        const alumno = manager.create(Alumno, {
+          persona: savedPersona,
+          activo: true,
+          fechaIngreso: new Date(),
+        });
+        await manager.save(Alumno, alumno);
+      } else if (rolCodigo === 'INSTRUCTOR') {
+        const instructor = manager.create(Instructor, {
+          persona: savedPersona,
+          activo: true,
+        });
+        await manager.save(Instructor, instructor);
+      }
+
+      // 6. Cargar relaciones para retornar
+      return (await manager.findOne(Usuario, {
+        where: { id: savedUsuario.id },
+        relations: ['persona', 'rolPrincipal'],
+      })) as Usuario;
+    });
+  }
+}

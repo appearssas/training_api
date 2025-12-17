@@ -27,7 +27,8 @@ API REST para sistema de capacitaciones tipo Udemy, construida con NestJS y Type
 - ✅ Gestión de personas, usuarios, alumnos e instructores
 - ✅ **Arquitectura Hexagonal** para alta testabilidad y mantenibilidad
 - ✅ TypeORM con migraciones para gestión de esquema
-- ✅ Docker Compose para desarrollo
+- ✅ Docker Compose para desarrollo con hot-reload
+- ✅ Autenticación JWT con Passport
 
 ---
 
@@ -81,6 +82,9 @@ Database (TypeORM Entities)
 ```
 src/
 ├── domain/                    # Capa de Dominio (Núcleo)
+│   ├── auth/
+│   │   └── ports/            # Interfaces de autenticación
+│   │       └── auth.repository.port.ts
 │   ├── capacitaciones/
 │   │   └── ports/            # Interfaces de repositorio
 │   │       └── capacitaciones.repository.port.ts
@@ -90,6 +94,12 @@ src/
 │       └── ports/            # (Por implementar)
 │
 ├── application/               # Capa de Aplicación
+│   ├── auth/
+│   │   ├── dto/              # DTOs de autenticación
+│   │   │   └── login.dto.ts
+│   │   └── use-cases/         # Casos de uso
+│   │       ├── login.use-case.ts
+│   │       └── refresh-token.use-case.ts
 │   ├── capacitaciones/
 │   │   ├── dto/              # DTOs de transferencia
 │   │   │   ├── create-capacitacion.dto.ts
@@ -105,13 +115,23 @@ src/
 │           └── pagination.dto.ts
 │
 ├── infrastructure/            # Capa de Infraestructura
+│   ├── auth/
+│   │   ├── auth.controller.ts
+│   │   ├── auth.module.ts
+│   │   └── auth.repository.adapter.ts
 │   ├── capacitaciones/
 │   │   ├── capacitaciones.controller.ts
 │   │   ├── capacitaciones.module.ts
 │   │   └── capacitaciones.repository.adapter.ts
 │   └── shared/
-│       └── database/
-│           └── database.module.ts
+│       ├── auth/              # Componentes compartidos de auth
+│       │   ├── strategies/    # Estrategia JWT
+│       │   ├── decorators/    # Decoradores (GetUser)
+│       │   └── interfaces/    # Interfaces JWT
+│       ├── database/
+│       │   └── database.module.ts
+│       └── helpers/           # Helpers compartidos
+│           └── bcrypt.helper.ts
 │
 ├── entities/                  # Entidades TypeORM
 │   ├── capacitacion.entity.ts
@@ -157,6 +177,8 @@ DATABASE_PASSWORD=root
 DATABASE_NAME=trainings_db
 PORT=3000
 NODE_ENV=development
+JWT_SECRET=your-super-secret-jwt-key-change-in-production
+JWT_EXPIRES_IN=24h
 ```
 
 3. **Iniciar base de datos con Docker:**
@@ -197,15 +219,17 @@ O importa el archivo `trainings_database_normalized.sql` desde tu cliente MySQL 
 ### Con Docker (Recomendado)
 
 ```bash
-# 1. Iniciar base de datos
-docker-compose up -d db
+# 1. Iniciar base de datos y API con hot-reload
+docker-compose up -d
 
 # 2. Ejecutar migraciones (si es necesario)
 yarn typeorm:migration:run
 
-# 3. Iniciar aplicación en desarrollo
-yarn start:dev
+# Ver logs de la API (con hot-reload activo)
+docker-compose logs -f api
 ```
+
+**Nota:** El contenedor de la API está configurado con hot-reload. Los cambios en el código se reflejarán automáticamente sin necesidad de reconstruir el contenedor.
 
 ### Sin Docker
 
@@ -224,18 +248,37 @@ yarn start:prod
 ### Comandos Docker útiles
 
 ```bash
+# Ver logs de la API (con hot-reload)
+docker-compose logs -f api
+
 # Ver logs de la base de datos
 docker-compose logs -f db
 
-# Detener base de datos
+# Ver logs de ambos servicios
+docker-compose logs -f
+
+# Reconstruir contenedor de API (después de cambios en package.json)
+docker-compose build api
+docker-compose up -d api
+
+# Detener todos los servicios
 docker-compose down
 
 # Detener y eliminar volúmenes (⚠️ elimina datos)
 docker-compose down -v
 
-# Reiniciar base de datos
-docker-compose restart db
+# Reiniciar servicios
+docker-compose restart
 ```
+
+### Hot-Reload en Docker
+
+El contenedor de la API está configurado con **hot-reload** activo. Esto significa que:
+
+- ✅ Los cambios en archivos `.ts` en `src/` se reflejan automáticamente
+- ✅ No necesitas reconstruir el contenedor después de cambios en el código
+- ✅ El servidor se reinicia automáticamente cuando detecta cambios
+- ⚠️ Si cambias `package.json`, necesitas reconstruir: `docker-compose build api && docker-compose up -d api`
 
 ---
 
@@ -315,6 +358,45 @@ Para más detalles, consulta [MIGRATIONS.md](./MIGRATIONS.md).
 - **Progreso**: Seguimiento de lecciones completadas
 - **Certificados**: Certificados generados
 - **Reseñas**: Calificaciones y comentarios
+
+---
+
+## Módulos Implementados
+
+### Auth (Autenticación)
+
+Módulo de autenticación con JWT implementado siguiendo arquitectura hexagonal:
+
+**Endpoints:**
+
+- `POST /auth/login` - Iniciar sesión con username y password
+- `GET /auth/check-status` - Verificar estado de autenticación (requiere token)
+- `GET /auth/refresh` - Refrescar token de autenticación (requiere token)
+
+**Uso:**
+
+```typescript
+// En un controlador protegido
+import { UseGuards } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
+import { GetUser } from '@/infrastructure/shared/auth/decorators/get-user.decorator';
+
+@Get('protected')
+@UseGuards(AuthGuard('jwt'))
+getProtectedData(@GetUser() user: Usuario) {
+  return { message: 'Datos protegidos', user };
+}
+```
+
+**Estructura:**
+
+- Domain: `IAuthRepository` - Puerto de autenticación
+- Application: `LoginUseCase`, `RefreshTokenUseCase` - Casos de uso
+- Infrastructure: `AuthController`, `AuthRepositoryAdapter`, `JwtStrategy` - Implementación
+
+### Capacitaciones
+
+Módulo completo de gestión de capacitaciones con CRUD completo.
 
 ---
 
@@ -476,6 +558,8 @@ yarn typeorm:migration:revert
 - **TypeORM** - ORM para TypeScript/JavaScript
 - **MySQL** - Base de datos relacional
 - **Docker** - Contenedorización
+- **JWT & Passport** - Autenticación y autorización
+- **bcrypt** - Encriptación de contraseñas
 - **class-validator** - Validación de DTOs
 - **class-transformer** - Transformación de objetos
 

@@ -1,5 +1,5 @@
 // Exportar todas las entidades
-export * from './persona.entity';
+export * from './persona/persona.entity';
 export * from './usuario.entity';
 export * from './alumno.entity';
 export * from './instructor.entity';
@@ -9,14 +9,14 @@ export * from './catalogos/tipo-capacitacion.entity';
 export * from './catalogos/modalidad-capacitacion.entity';
 export * from './catalogos/tipo-pregunta.entity';
 export * from './catalogos/tipo-material.entity';
-export * from './capacitacion.entity';
+export * from './capacitacion/capacitacion.entity';
 export * from './material-capacitacion.entity';
 export * from './seccion-capacitacion.entity';
 export * from './leccion.entity';
 export * from './evaluaciones/evaluacion.entity';
 export * from './evaluaciones/pregunta.entity';
 export * from './evaluaciones/opcion-respuesta.entity';
-export * from './inscripcion.entity';
+export * from './inscripcion/inscripcion.entity';
 export * from './progreso-leccion.entity';
 export * from './evaluaciones/intento-evaluacion.entity';
 export * from './evaluaciones/respuesta-estudiante.entity';

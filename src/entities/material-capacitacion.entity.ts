@@ -6,7 +6,7 @@ import {
   ManyToOne,
   JoinColumn,
 } from 'typeorm';
-import { Capacitacion } from './capacitacion.entity';
+import { Capacitacion } from './capacitacion/capacitacion.entity';
 import { TipoMaterial } from './catalogos/tipo-material.entity';
 
 @Entity('materiales_capacitacion')
@@ -14,9 +14,13 @@ export class MaterialCapacitacion {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne(() => Capacitacion, (capacitacion) => capacitacion.materiales, {
-    onDelete: 'CASCADE',
-  })
+  @ManyToOne(
+    () => Capacitacion,
+    (capacitacion: Capacitacion) => capacitacion.materiales,
+    {
+      onDelete: 'CASCADE',
+    },
+  )
   @JoinColumn({ name: 'capacitacion_id' })
   capacitacion: Capacitacion;
 

@@ -1,7 +1,7 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { ICapacitacionesRepository } from '@/domain/capacitaciones/ports/capacitaciones.repository.port';
 import { UpdateCapacitacionDto } from '@/application/capacitaciones/dto/update-capacitacion.dto';
-import { Capacitacion } from '@/entities/capacitacion.entity';
+import { Capacitacion } from '@/entities/capacitacion/capacitacion.entity';
 
 @Injectable()
 export class UpdateCapacitacionUseCase {

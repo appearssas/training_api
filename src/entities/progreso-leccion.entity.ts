@@ -6,7 +6,7 @@ import {
   JoinColumn,
   Unique,
 } from 'typeorm';
-import { Inscripcion } from './inscripcion.entity';
+import { Inscripcion } from './inscripcion/inscripcion.entity';
 import { Leccion } from './leccion.entity';
 
 @Entity('progreso_lecciones')
@@ -17,7 +17,7 @@ export class ProgresoLeccion {
 
   @ManyToOne(
     () => Inscripcion,
-    (inscripcion) => inscripcion.progresoLecciones,
+    (inscripcion: Inscripcion) => inscripcion.progresoLecciones,
     {
       onDelete: 'CASCADE',
     },
@@ -25,7 +25,7 @@ export class ProgresoLeccion {
   @JoinColumn({ name: 'inscripcion_id' })
   inscripcion: Inscripcion;
 
-  @ManyToOne(() => Leccion, (leccion) => leccion.progresos, {
+  @ManyToOne(() => Leccion, (leccion: Leccion) => leccion.progresos, {
     onDelete: 'CASCADE',
   })
   @JoinColumn({ name: 'leccion_id' })

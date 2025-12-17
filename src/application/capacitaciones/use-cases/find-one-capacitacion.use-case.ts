@@ -1,6 +1,6 @@
 import { Injectable, Inject, NotFoundException } from '@nestjs/common';
 import { ICapacitacionesRepository } from '@/domain/capacitaciones/ports/capacitaciones.repository.port';
-import { Capacitacion } from '@/entities/capacitacion.entity';
+import { Capacitacion } from '@/entities/capacitacion/capacitacion.entity';
 
 @Injectable()
 export class FindOneCapacitacionUseCase {

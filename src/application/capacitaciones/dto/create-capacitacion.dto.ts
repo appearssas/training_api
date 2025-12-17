@@ -9,7 +9,7 @@ import {
   Max,
   Length,
 } from 'class-validator';
-import { EstadoCapacitacion } from '@/entities/capacitacion.entity';
+import { EstadoCapacitacion } from '@/entities/capacitacion/types';
 
 export class CreateCapacitacionDto {
   @IsString()

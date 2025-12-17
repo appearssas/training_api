@@ -7,7 +7,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, QueryFailedError, Repository } from 'typeorm';
 import { ICapacitacionesRepository } from '@/domain/capacitaciones/ports/capacitaciones.repository.port';
-import { Capacitacion } from '@/entities/capacitacion.entity';
+import { Capacitacion } from '@/entities/capacitacion/capacitacion.entity';
 import { CreateCapacitacionDto } from '@/application/capacitaciones/dto/create-capacitacion.dto';
 import { UpdateCapacitacionDto } from '@/application/capacitaciones/dto/update-capacitacion.dto';
 import { PaginationDto } from '@/application/shared/dto/pagination.dto';

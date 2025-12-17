@@ -7,14 +7,14 @@ import {
   OneToOne,
   JoinColumn,
 } from 'typeorm';
-import { Persona } from './persona.entity';
+import { Persona } from './persona/persona.entity';
 
 @Entity('instructores')
 export class Instructor {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @OneToOne(() => Persona, (persona) => persona.instructor, {
+  @OneToOne(() => Persona, (persona: Persona) => persona.instructor, {
     onDelete: 'CASCADE',
   })
   @JoinColumn({ name: 'persona_id' })

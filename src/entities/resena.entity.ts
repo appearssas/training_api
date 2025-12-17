@@ -8,17 +8,21 @@ import {
   Unique,
   Index,
 } from 'typeorm';
-import { Inscripcion } from './inscripcion.entity';
+import { Inscripcion } from './inscripcion/inscripcion.entity';
 
-@Entity('reseñas')
+@Entity('resenas')
 @Unique(['inscripcion'])
 export class Resena {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne(() => Inscripcion, (inscripcion) => inscripcion.resenas, {
-    onDelete: 'CASCADE',
-  })
+  @ManyToOne(
+    () => Inscripcion,
+    (inscripcion: Inscripcion) => inscripcion.resenas,
+    {
+      onDelete: 'CASCADE',
+    },
+  )
   @JoinColumn({ name: 'inscripcion_id' })
   inscripcion: Inscripcion;
 

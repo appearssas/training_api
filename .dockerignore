@@ -44,6 +44,7 @@ test/**/*
 # Docker
 docker-compose.yml
 Dockerfile
+Dockerfile.dev
 .dockerignore
 
 # Documentation

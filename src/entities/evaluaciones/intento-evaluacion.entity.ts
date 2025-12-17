@@ -8,27 +8,22 @@ import {
   OneToMany,
 } from 'typeorm';
 import { Evaluacion } from './evaluacion.entity';
-import { Inscripcion } from '../inscripcion.entity';
+import { Inscripcion } from '../inscripcion/inscripcion.entity';
 import { RespuestaEstudiante } from './respuesta-estudiante.entity';
-
-export enum EstadoIntento {
-  EN_PROGRESO = 'en_progreso',
-  COMPLETADO = 'completado',
-  ABANDONADO = 'abandonado',
-}
+import { EstadoIntento } from './types';
 
 @Entity('intentos_evaluacion')
 export class IntentoEvaluacion {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne(() => Evaluacion, (evaluacion) => evaluacion.intentos)
+  @ManyToOne(() => Evaluacion, (evaluacion: Evaluacion) => evaluacion.intentos)
   @JoinColumn({ name: 'evaluacion_id' })
   evaluacion: Evaluacion;
 
   @ManyToOne(
     () => Inscripcion,
-    (inscripcion) => inscripcion.intentosEvaluacion,
+    (inscripcion: Inscripcion) => inscripcion.intentosEvaluacion,
     {
       onDelete: 'CASCADE',
     },
@@ -81,7 +76,7 @@ export class IntentoEvaluacion {
 
   @OneToMany(
     () => RespuestaEstudiante,
-    (respuesta) => respuesta.intentoEvaluacion,
+    (respuesta: RespuestaEstudiante) => respuesta.intentoEvaluacion,
   )
   respuestas: RespuestaEstudiante[];
 }

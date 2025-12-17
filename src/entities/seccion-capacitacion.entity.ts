@@ -6,7 +6,7 @@ import {
   JoinColumn,
   OneToMany,
 } from 'typeorm';
-import { Capacitacion } from './capacitacion.entity';
+import { Capacitacion } from './capacitacion/capacitacion.entity';
 import { Leccion } from './leccion.entity';
 
 @Entity('secciones_capacitacion')
@@ -14,9 +14,13 @@ export class SeccionCapacitacion {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne(() => Capacitacion, (capacitacion) => capacitacion.secciones, {
-    onDelete: 'CASCADE',
-  })
+  @ManyToOne(
+    () => Capacitacion,
+    (capacitacion: Capacitacion) => capacitacion.secciones,
+    {
+      onDelete: 'CASCADE',
+    },
+  )
   @JoinColumn({ name: 'capacitacion_id' })
   capacitacion: Capacitacion;
 
@@ -32,6 +36,6 @@ export class SeccionCapacitacion {
   @Column({ type: 'tinyint', default: 1 })
   activo: boolean;
 
-  @OneToMany(() => Leccion, (leccion) => leccion.seccion)
+  @OneToMany(() => Leccion, (leccion: Leccion) => leccion.seccion)
   lecciones: Leccion[];
 }

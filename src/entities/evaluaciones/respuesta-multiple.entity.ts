@@ -16,7 +16,7 @@ export class RespuestaMultiple {
 
   @ManyToOne(
     () => RespuestaEstudiante,
-    (respuesta) => respuesta.respuestasMultiples,
+    (respuesta: RespuestaEstudiante) => respuesta.respuestasMultiples,
     {
       onDelete: 'CASCADE',
     },
@@ -24,7 +24,10 @@ export class RespuestaMultiple {
   @JoinColumn({ name: 'respuesta_estudiante_id' })
   respuestaEstudiante: RespuestaEstudiante;
 
-  @ManyToOne(() => OpcionRespuesta, (opcion) => opcion.respuestasMultiples)
+  @ManyToOne(
+    () => OpcionRespuesta,
+    (opcion: OpcionRespuesta) => opcion.respuestasMultiples,
+  )
   @JoinColumn({ name: 'opcion_respuesta_id' })
   opcionRespuesta: OpcionRespuesta;
 }

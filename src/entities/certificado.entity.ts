@@ -7,16 +7,20 @@ import {
   JoinColumn,
   Index,
 } from 'typeorm';
-import { Inscripcion } from './inscripcion.entity';
+import { Inscripcion } from './inscripcion/inscripcion.entity';
 
 @Entity('certificados')
 export class Certificado {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne(() => Inscripcion, (inscripcion) => inscripcion.certificados, {
-    onDelete: 'CASCADE',
-  })
+  @ManyToOne(
+    () => Inscripcion,
+    (inscripcion: Inscripcion) => inscripcion.certificados,
+    {
+      onDelete: 'CASCADE',
+    },
+  )
   @JoinColumn({ name: 'inscripcion_id' })
   inscripcion: Inscripcion;
 

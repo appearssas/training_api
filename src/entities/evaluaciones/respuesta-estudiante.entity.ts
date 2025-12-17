@@ -17,19 +17,27 @@ export class RespuestaEstudiante {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne(() => IntentoEvaluacion, (intento) => intento.respuestas, {
-    onDelete: 'CASCADE',
-  })
+  @ManyToOne(
+    () => IntentoEvaluacion,
+    (intento: IntentoEvaluacion) => intento.respuestas,
+    {
+      onDelete: 'CASCADE',
+    },
+  )
   @JoinColumn({ name: 'intento_evaluacion_id' })
   intentoEvaluacion: IntentoEvaluacion;
 
-  @ManyToOne(() => Pregunta, (pregunta) => pregunta.respuestas)
+  @ManyToOne(() => Pregunta, (pregunta: Pregunta) => pregunta.respuestas)
   @JoinColumn({ name: 'pregunta_id' })
   pregunta: Pregunta;
 
-  @ManyToOne(() => OpcionRespuesta, (opcion) => opcion.respuestasEstudiante, {
-    nullable: true,
-  })
+  @ManyToOne(
+    () => OpcionRespuesta,
+    (opcion: OpcionRespuesta) => opcion.respuestasEstudiante,
+    {
+      nullable: true,
+    },
+  )
   @JoinColumn({ name: 'opcion_respuesta_id' })
   opcionRespuesta: OpcionRespuesta;
 
@@ -48,6 +56,9 @@ export class RespuestaEstudiante {
   @CreateDateColumn({ name: 'fecha_respuesta' })
   fechaRespuesta: Date;
 
-  @OneToMany(() => RespuestaMultiple, (rm) => rm.respuestaEstudiante)
+  @OneToMany(
+    () => RespuestaMultiple,
+    (rm: RespuestaMultiple) => rm.respuestaEstudiante,
+  )
   respuestasMultiples: RespuestaMultiple[];
 }

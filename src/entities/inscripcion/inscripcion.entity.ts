@@ -7,19 +7,13 @@ import {
   JoinColumn,
   OneToMany,
 } from 'typeorm';
-import { Capacitacion } from './capacitacion.entity';
-import { Persona } from './persona.entity';
-import { ProgresoLeccion } from './progreso-leccion.entity';
-import { IntentoEvaluacion } from './evaluaciones/intento-evaluacion.entity';
-import { Certificado } from './certificado.entity';
-import { Resena } from './resena.entity';
-
-export enum EstadoInscripcion {
-  INSCRITO = 'inscrito',
-  EN_PROGRESO = 'en_progreso',
-  COMPLETADO = 'completado',
-  ABANDONADO = 'abandonado',
-}
+import { Capacitacion } from '../capacitacion/capacitacion.entity';
+import { Persona } from '../persona/persona.entity';
+import { ProgresoLeccion } from '../progreso-leccion.entity';
+import { IntentoEvaluacion } from '../evaluaciones/intento-evaluacion.entity';
+import { Certificado } from '../certificado.entity';
+import { Resena } from '../resena.entity';
+import { EstadoInscripcion } from './types';
 
 @Entity('inscripciones')
 export class Inscripcion {

@@ -8,21 +8,14 @@ import {
   JoinColumn,
   OneToMany,
 } from 'typeorm';
-import { TipoCapacitacion } from './catalogos/tipo-capacitacion.entity';
-import { ModalidadCapacitacion } from './catalogos/modalidad-capacitacion.entity';
-import { Persona } from './persona.entity';
-import { MaterialCapacitacion } from './material-capacitacion.entity';
-import { SeccionCapacitacion } from './seccion-capacitacion.entity';
-import { Evaluacion } from './evaluaciones/evaluacion.entity';
-import { Inscripcion } from './inscripcion.entity';
-
-export enum EstadoCapacitacion {
-  BORRADOR = 'borrador',
-  PUBLICADA = 'publicada',
-  EN_CURSO = 'en_curso',
-  FINALIZADA = 'finalizada',
-  CANCELADA = 'cancelada',
-}
+import { TipoCapacitacion } from '../catalogos/tipo-capacitacion.entity';
+import { ModalidadCapacitacion } from '../catalogos/modalidad-capacitacion.entity';
+import { Persona } from '../persona/persona.entity';
+import { MaterialCapacitacion } from '../material-capacitacion.entity';
+import { SeccionCapacitacion } from '../seccion-capacitacion.entity';
+import { Evaluacion } from '../evaluaciones/evaluacion.entity';
+import { Inscripcion } from '../inscripcion/inscripcion.entity';
+import { EstadoCapacitacion } from './types';
 
 @Entity('capacitaciones')
 export class Capacitacion {
@@ -35,15 +28,29 @@ export class Capacitacion {
   @Column({ type: 'text', nullable: true })
   descripcion: string;
 
-  @ManyToOne(() => TipoCapacitacion, { eager: true })
+  @ManyToOne(
+    () => TipoCapacitacion,
+    (tipo: TipoCapacitacion) => tipo.capacitaciones,
+    { eager: true },
+  )
   @JoinColumn({ name: 'tipo_capacitacion_id' })
   tipoCapacitacion: TipoCapacitacion;
 
-  @ManyToOne(() => ModalidadCapacitacion, { eager: true })
+  @ManyToOne(
+    () => ModalidadCapacitacion,
+    (modalidad: ModalidadCapacitacion) => modalidad.capacitaciones,
+    { eager: true },
+  )
   @JoinColumn({ name: 'modalidad_id' })
   modalidad: ModalidadCapacitacion;
 
-  @ManyToOne(() => Persona, { eager: true })
+  @ManyToOne(
+    () => Persona,
+    (persona: Persona) => persona.capacitacionesComoInstructor,
+    {
+      eager: true,
+    },
+  )
   @JoinColumn({ name: 'instructor_id' })
   instructor: Persona;
 
@@ -134,15 +141,27 @@ export class Capacitacion {
   })
   usuarioActualizacion: string;
 
-  @OneToMany(() => MaterialCapacitacion, (material) => material.capacitacion)
+  @OneToMany(
+    () => MaterialCapacitacion,
+    (material: MaterialCapacitacion) => material.capacitacion,
+  )
   materiales: MaterialCapacitacion[];
 
-  @OneToMany(() => SeccionCapacitacion, (seccion) => seccion.capacitacion)
+  @OneToMany(
+    () => SeccionCapacitacion,
+    (seccion: SeccionCapacitacion) => seccion.capacitacion,
+  )
   secciones: SeccionCapacitacion[];
 
-  @OneToMany(() => Evaluacion, (evaluacion) => evaluacion.capacitacion)
+  @OneToMany(
+    () => Evaluacion,
+    (evaluacion: Evaluacion) => evaluacion.capacitacion,
+  )
   evaluaciones: Evaluacion[];
 
-  @OneToMany(() => Inscripcion, (inscripcion) => inscripcion.capacitacion)
+  @OneToMany(
+    () => Inscripcion,
+    (inscripcion: Inscripcion) => inscripcion.capacitacion,
+  )
   inscripciones: Inscripcion[];
 }

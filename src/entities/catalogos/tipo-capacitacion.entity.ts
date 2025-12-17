@@ -6,7 +6,7 @@ import {
   UpdateDateColumn,
   OneToMany,
 } from 'typeorm';
-import { Capacitacion } from '../capacitacion.entity';
+import { Capacitacion } from '../capacitacion/capacitacion.entity';
 
 @Entity('tipos_capacitacion')
 export class TipoCapacitacion {
@@ -33,7 +33,7 @@ export class TipoCapacitacion {
 
   @OneToMany(
     () => Capacitacion,
-    (capacitacion) => capacitacion.tipoCapacitacion,
+    (capacitacion: Capacitacion) => capacitacion.tipoCapacitacion,
   )
   capacitaciones: Capacitacion[];
 }

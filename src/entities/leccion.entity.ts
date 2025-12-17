@@ -14,9 +14,13 @@ export class Leccion {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne(() => SeccionCapacitacion, (seccion) => seccion.lecciones, {
-    onDelete: 'CASCADE',
-  })
+  @ManyToOne(
+    () => SeccionCapacitacion,
+    (seccion: SeccionCapacitacion) => seccion.lecciones,
+    {
+      onDelete: 'CASCADE',
+    },
+  )
   @JoinColumn({ name: 'seccion_id' })
   seccion: SeccionCapacitacion;
 
@@ -41,6 +45,9 @@ export class Leccion {
   @Column({ type: 'tinyint', default: 1 })
   activo: boolean;
 
-  @OneToMany(() => ProgresoLeccion, (progreso) => progreso.leccion)
+  @OneToMany(
+    () => ProgresoLeccion,
+    (progreso: ProgresoLeccion) => progreso.leccion,
+  )
   progresos: ProgresoLeccion[];
 }

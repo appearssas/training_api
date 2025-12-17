@@ -7,7 +7,7 @@ import {
   JoinColumn,
   OneToMany,
 } from 'typeorm';
-import { Capacitacion } from '../capacitacion.entity';
+import { Capacitacion } from '../capacitacion/capacitacion.entity';
 import { Pregunta } from './pregunta.entity';
 import { IntentoEvaluacion } from './intento-evaluacion.entity';
 
@@ -16,9 +16,13 @@ export class Evaluacion {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne(() => Capacitacion, (capacitacion) => capacitacion.evaluaciones, {
-    onDelete: 'CASCADE',
-  })
+  @ManyToOne(
+    () => Capacitacion,
+    (capacitacion: Capacitacion) => capacitacion.evaluaciones,
+    {
+      onDelete: 'CASCADE',
+    },
+  )
   @JoinColumn({ name: 'capacitacion_id' })
   capacitacion: Capacitacion;
 
@@ -67,9 +71,12 @@ export class Evaluacion {
   @CreateDateColumn({ name: 'fecha_creacion' })
   fechaCreacion: Date;
 
-  @OneToMany(() => Pregunta, (pregunta) => pregunta.evaluacion)
+  @OneToMany(() => Pregunta, (pregunta: Pregunta) => pregunta.evaluacion)
   preguntas: Pregunta[];
 
-  @OneToMany(() => IntentoEvaluacion, (intento) => intento.evaluacion)
+  @OneToMany(
+    () => IntentoEvaluacion,
+    (intento: IntentoEvaluacion) => intento.evaluacion,
+  )
   intentos: IntentoEvaluacion[];
 }

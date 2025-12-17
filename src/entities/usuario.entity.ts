@@ -8,7 +8,7 @@ import {
   ManyToOne,
   JoinColumn,
 } from 'typeorm';
-import { Persona } from './persona.entity';
+import { Persona } from './persona/persona.entity';
 import { Rol } from './roles/rol.entity';
 
 @Entity('usuarios')
@@ -17,7 +17,7 @@ export class Usuario {
   id: number;
 
   // OBLIGATORIO: Una persona DEBE tener un usuario
-  @OneToOne(() => Persona, (persona) => persona.usuario, {
+  @OneToOne(() => Persona, (persona: Persona) => persona.usuario, {
     onDelete: 'CASCADE',
     nullable: false,
   })

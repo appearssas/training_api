@@ -1,5 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
-import { Capacitacion } from '../capacitacion.entity';
+import { Capacitacion } from '../capacitacion/capacitacion.entity';
 
 @Entity('modalidades_capacitacion')
 export class ModalidadCapacitacion {
@@ -15,6 +15,9 @@ export class ModalidadCapacitacion {
   @Column({ type: 'tinyint', default: 1 })
   activo: boolean;
 
-  @OneToMany(() => Capacitacion, (capacitacion) => capacitacion.modalidad)
+  @OneToMany(
+    () => Capacitacion,
+    (capacitacion: Capacitacion) => capacitacion.modalidad,
+  )
   capacitaciones: Capacitacion[];
 }

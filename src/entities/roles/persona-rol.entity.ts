@@ -8,7 +8,7 @@ import {
   Unique,
   Index,
 } from 'typeorm';
-import { Persona } from '../persona.entity';
+import { Persona } from '../persona/persona.entity';
 import { Rol } from './rol.entity';
 
 @Entity('persona_roles')
@@ -17,13 +17,13 @@ export class PersonaRol {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne(() => Persona, (persona) => persona.roles, {
+  @ManyToOne(() => Persona, (persona: Persona) => persona.roles, {
     onDelete: 'CASCADE',
   })
   @JoinColumn({ name: 'persona_id' })
   persona: Persona;
 
-  @ManyToOne(() => Rol, (rol) => rol.personaRoles)
+  @ManyToOne(() => Rol, (rol: Rol) => rol.personaRoles)
   @JoinColumn({ name: 'rol_id' })
   rol: Rol;
 

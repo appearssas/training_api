@@ -15,7 +15,7 @@ export class OpcionRespuesta {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne(() => Pregunta, (pregunta) => pregunta.opciones, {
+  @ManyToOne(() => Pregunta, (pregunta: Pregunta) => pregunta.opciones, {
     onDelete: 'CASCADE',
   })
   @JoinColumn({ name: 'pregunta_id' })
@@ -41,10 +41,13 @@ export class OpcionRespuesta {
 
   @OneToMany(
     () => RespuestaEstudiante,
-    (respuesta) => respuesta.opcionRespuesta,
+    (respuesta: RespuestaEstudiante) => respuesta.opcionRespuesta,
   )
   respuestasEstudiante: RespuestaEstudiante[];
 
-  @OneToMany(() => RespuestaMultiple, (rm) => rm.opcionRespuesta)
+  @OneToMany(
+    () => RespuestaMultiple,
+    (rm: RespuestaMultiple) => rm.opcionRespuesta,
+  )
   respuestasMultiples: RespuestaMultiple[];
 }
