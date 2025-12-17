@@ -321,6 +321,91 @@ Para más detalles, consulta [MIGRATIONS.md](./MIGRATIONS.md).
 
 ---
 
+## Seeders (Datos Iniciales)
+
+Los seeders permiten poblar la base de datos con datos iniciales necesarios para el funcionamiento del sistema, como roles, tipos de capacitación, modalidades, tipos de pregunta y tipos de material.
+
+### Comandos disponibles
+
+```bash
+# Ejecutar todos los seeders
+yarn seed
+
+# O usando el alias
+yarn seed:run
+```
+
+### Seeders implementados
+
+Los siguientes seeders están disponibles y son **idempotentes** (pueden ejecutarse múltiples veces sin duplicar datos):
+
+1. **Roles Seeder** - Pobla los roles básicos del sistema:
+   - `ADMIN` - Administrador del sistema
+   - `INSTRUCTOR` - Instructor de capacitaciones
+   - `ALUMNO` - Estudiante/alumno
+
+2. **Tipos de Capacitación Seeder** - Pobla los tipos de capacitación disponibles
+
+3. **Modalidades Seeder** - Pobla las modalidades de capacitación (presencial, virtual, híbrida, etc.)
+
+4. **Tipos de Pregunta Seeder** - Pobla los tipos de pregunta para evaluaciones:
+   - Selección única
+   - Selección múltiple
+   - Respuesta abierta
+   - Verdadero/Falso
+   - Etc.
+
+5. **Tipos de Material Seeder** - Pobla los tipos de material de apoyo (documento, video, link, imagen, etc.)
+
+### Ejecutar seeders
+
+**Después de ejecutar las migraciones**, ejecuta los seeders para poblar los datos iniciales:
+
+```bash
+# Ejecutar todos los seeders
+yarn seed
+```
+
+**Nota:** Los seeders son idempotentes, lo que significa que puedes ejecutarlos múltiples veces sin crear datos duplicados. Verifican si los datos ya existen antes de insertarlos.
+
+### Ejecutar seeders en Docker
+
+Si estás usando Docker, puedes ejecutar los seeders desde el contenedor:
+
+```bash
+# Ejecutar seeders dentro del contenedor
+docker-compose exec api yarn seed
+
+# O desde fuera del contenedor (si tienes las variables de entorno configuradas)
+yarn seed
+```
+
+### Orden recomendado de ejecución
+
+1. **Ejecutar migraciones** para crear las tablas:
+
+   ```bash
+   yarn typeorm:migration:run
+   ```
+
+2. **Ejecutar seeders** para poblar datos iniciales:
+
+   ```bash
+   yarn seed
+   ```
+
+3. **Iniciar la aplicación**:
+
+   ```bash
+   # Con Docker
+   docker-compose up -d
+
+   # Sin Docker
+   yarn start:dev
+   ```
+
+---
+
 ## Entidades Principales
 
 ### Personas, Usuarios y Roles
@@ -548,6 +633,10 @@ yarn typeorm:migration:generate generate <Nombre>
 yarn typeorm:migration:create <Nombre>
 yarn typeorm:migration:run
 yarn typeorm:migration:revert
+
+# Seeders
+yarn seed              # Ejecutar todos los seeders
+yarn seed:run          # Alias para seed
 ```
 
 ---
