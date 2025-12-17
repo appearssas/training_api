@@ -13,7 +13,7 @@ export class Alumno {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @OneToOne(() => Persona, (persona) => persona.alumno, {
+  @OneToOne(() => Persona, (persona: Persona) => persona.alumno, {
     onDelete: 'CASCADE',
   })
   @JoinColumn({ name: 'persona_id' })
