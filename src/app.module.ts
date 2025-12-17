@@ -2,7 +2,8 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { DatabaseModule } from './database/database.module';
+import { DatabaseModule } from './infrastructure/shared/database/database.module';
+import { CapacitacionesModule } from './infrastructure/capacitaciones/capacitaciones.module';
 
 @Module({
   imports: [
@@ -11,6 +12,7 @@ import { DatabaseModule } from './database/database.module';
       envFilePath: '.env',
     }),
     DatabaseModule,
+    CapacitacionesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -1,6 +1,20 @@
 # Training API
 
-API REST para sistema de capacitaciones tipo Udemy, construida con NestJS y TypeORM.
+API REST para sistema de capacitaciones tipo Udemy, construida con NestJS y TypeORM siguiendo **Arquitectura Hexagonal (Ports & Adapters)**.
+
+## 📋 Tabla de Contenidos
+
+- [Características](#características)
+- [Arquitectura Hexagonal](#arquitectura-hexagonal)
+- [Estructura del Proyecto](#estructura-del-proyecto)
+- [Requisitos](#requisitos)
+- [Instalación](#instalación)
+- [Ejecutar la aplicación](#ejecutar-la-aplicación)
+- [Migraciones](#migraciones)
+- [Entidades Principales](#entidades-principales)
+- [Agregar Nuevos Módulos](#agregar-nuevos-módulos)
+
+---
 
 ## Características
 
@@ -11,16 +25,119 @@ API REST para sistema de capacitaciones tipo Udemy, construida con NestJS y Type
 - ✅ Sistema de certificados
 - ✅ Reseñas y calificaciones
 - ✅ Gestión de personas, usuarios, alumnos e instructores
+- ✅ **Arquitectura Hexagonal** para alta testabilidad y mantenibilidad
+- ✅ TypeORM con migraciones para gestión de esquema
+- ✅ Docker Compose para desarrollo
+
+---
+
+## 🏗️ Arquitectura Hexagonal
+
+Este proyecto implementa **Arquitectura Hexagonal** (Ports & Adapters) para garantizar:
+
+- ✅ **Separación de responsabilidades**: Domain, Application e Infrastructure claramente separados
+- ✅ **Testabilidad**: Fácil de testear porque el dominio no tiene dependencias externas
+- ✅ **Mantenibilidad**: Código organizado y fácil de entender
+- ✅ **Flexibilidad**: Puedes cambiar la base de datos o framework sin afectar el dominio
+- ✅ **Independencia**: El dominio es independiente de frameworks y tecnologías
+
+### Capas de la Arquitectura
+
+1. **Domain (Dominio)** - Lógica de negocio pura, sin dependencias externas
+   - Contiene los **puertos** (interfaces) que definen los contratos
+   - Ejemplo: `ICapacitacionesRepository`
+
+2. **Application (Aplicación)** - Casos de uso que orquestan la lógica
+   - **DTOs**: Objetos de transferencia de datos
+   - **Use Cases**: Casos de uso que implementan la lógica de negocio
+   - Ejemplo: `CreateCapacitacionUseCase`
+
+3. **Infrastructure (Infraestructura)** - Implementaciones concretas
+   - **Controllers**: Endpoints REST
+   - **Repository Adapters**: Implementación de los puertos
+   - **Modules**: Configuración de NestJS
+   - Ejemplo: `CapacitacionesRepositoryAdapter`
+
+### Flujo de Datos
+
+```
+HTTP Request
+    ↓
+[Controller] (Infrastructure - Adaptador de Entrada)
+    ↓
+[Use Case] (Application - Caso de Uso)
+    ↓
+[Repository Interface] (Domain - Puerto)
+    ↓
+[Repository Adapter] (Infrastructure - Adaptador de Salida)
+    ↓
+Database (TypeORM Entities)
+```
+
+---
+
+## 📁 Estructura del Proyecto
+
+```
+src/
+├── domain/                    # Capa de Dominio (Núcleo)
+│   ├── capacitaciones/
+│   │   └── ports/            # Interfaces de repositorio
+│   │       └── capacitaciones.repository.port.ts
+│   ├── personas/
+│   │   └── ports/            # (Por implementar)
+│   └── inscripciones/
+│       └── ports/            # (Por implementar)
+│
+├── application/               # Capa de Aplicación
+│   ├── capacitaciones/
+│   │   ├── dto/              # DTOs de transferencia
+│   │   │   ├── create-capacitacion.dto.ts
+│   │   │   └── update-capacitacion.dto.ts
+│   │   └── use-cases/         # Casos de uso
+│   │       ├── create-capacitacion.use-case.ts
+│   │       ├── find-all-capacitaciones.use-case.ts
+│   │       ├── find-one-capacitacion.use-case.ts
+│   │       ├── update-capacitacion.use-case.ts
+│   │       └── remove-capacitacion.use-case.ts
+│   └── shared/
+│       └── dto/               # DTOs compartidos
+│           └── pagination.dto.ts
+│
+├── infrastructure/            # Capa de Infraestructura
+│   ├── capacitaciones/
+│   │   ├── capacitaciones.controller.ts
+│   │   ├── capacitaciones.module.ts
+│   │   └── capacitaciones.repository.adapter.ts
+│   └── shared/
+│       └── database/
+│           └── database.module.ts
+│
+├── entities/                  # Entidades TypeORM
+│   ├── capacitacion.entity.ts
+│   ├── persona.entity.ts
+│   ├── usuario.entity.ts
+│   ├── catalogos/
+│   ├── evaluaciones/
+│   └── ...
+│
+└── migrations/                # Migraciones de base de datos
+```
+
+---
 
 ## Requisitos
 
 - Node.js 18+
 - MySQL 5.7+ o MariaDB 10.3+
 - Yarn o npm
+- Docker (opcional, para desarrollo)
+
+---
 
 ## Instalación
 
-1. Instalar dependencias:
+1. **Instalar dependencias:**
 
 ```bash
 yarn install
@@ -28,9 +145,9 @@ yarn install
 npm install
 ```
 
-2. Configurar variables de entorno:
+2. **Configurar variables de entorno:**
 
-Copia el archivo `env.example` a `.env` y ajusta las variables:
+Copia el archivo `.env.example` a `.env` y ajusta las variables:
 
 ```env
 DATABASE_HOST=localhost
@@ -42,17 +159,19 @@ PORT=3000
 NODE_ENV=development
 ```
 
-3. Iniciar base de datos con Docker:
+3. **Iniciar base de datos con Docker:**
 
 ```bash
 # Iniciar MySQL en Docker
-docker-compose up -d
+docker-compose up -d db
 
 # Verificar que el contenedor esté corriendo
 docker-compose ps
 ```
 
-4. Opción A: Ejecutar migraciones (Recomendado)
+4. **Configurar base de datos:**
+
+**Opción A: Ejecutar migraciones (Recomendado)**
 
 ```bash
 # Generar migración inicial desde las entidades
@@ -62,7 +181,7 @@ yarn typeorm:migration:generate generate InitialSchema
 yarn typeorm:migration:run
 ```
 
-4. Opción B: Importar script SQL directamente
+**Opción B: Importar script SQL directamente**
 
 ```bash
 # Conectar a la base de datos en Docker
@@ -71,13 +190,15 @@ docker exec -i training_api_db mysql -uroot -proot trainings_db < trainings_data
 
 O importa el archivo `trainings_database_normalized.sql` desde tu cliente MySQL conectándote a `localhost:3306`.
 
+---
+
 ## Ejecutar la aplicación
 
 ### Con Docker (Recomendado)
 
 ```bash
 # 1. Iniciar base de datos
-docker-compose up -d
+docker-compose up -d db
 
 # 2. Ejecutar migraciones (si es necesario)
 yarn typeorm:migration:run
@@ -116,22 +237,11 @@ docker-compose down -v
 docker-compose restart db
 ```
 
-## Estructura del Proyecto
-
-```
-src/
-├── entities/           # Entidades TypeORM
-│   ├── catalogos/     # Catálogos maestros
-│   ├── evaluaciones/  # Entidades de evaluaciones
-│   └── ...
-├── migrations/        # Migraciones de base de datos
-├── database/          # Configuración de base de datos
-└── app.module.ts      # Módulo principal
-```
+---
 
 ## Migraciones
 
-El proyecto utiliza TypeORM para gestionar migraciones de base de datos.
+El proyecto utiliza TypeORM para gestionar migraciones de base de datos de forma controlada y versionada.
 
 ### Comandos disponibles
 
@@ -163,6 +273,10 @@ yarn typeorm:migration:run
 ```
 
 **Nota:** Las migraciones se almacenan en `src/migrations/` y se ejecutan automáticamente en orden cronológico.
+
+Para más detalles, consulta [MIGRATIONS.md](./MIGRATIONS.md).
+
+---
 
 ## Entidades Principales
 
@@ -202,6 +316,110 @@ yarn typeorm:migration:run
 - **Certificados**: Certificados generados
 - **Reseñas**: Calificaciones y comentarios
 
+---
+
+## Agregar Nuevos Módulos
+
+Para agregar un nuevo módulo siguiendo la arquitectura hexagonal:
+
+### 1. Crear el Puerto (Domain)
+
+```typescript
+// src/domain/nuevo-modulo/ports/nuevo-modulo.repository.port.ts
+export interface INuevoModuloRepository {
+  create(dto: CreateDto): Promise<Entity>;
+  findAll(pagination: PaginationDto): Promise<any>;
+  findOne(id: number): Promise<Entity | null>;
+  update(id: number, dto: UpdateDto): Promise<Entity>;
+  remove(id: number): Promise<void>;
+}
+```
+
+### 2. Crear DTOs y Casos de Uso (Application)
+
+```typescript
+// src/application/nuevo-modulo/dto/create-nuevo-modulo.dto.ts
+export class CreateNuevoModuloDto {
+  // Propiedades del DTO
+}
+
+// src/application/nuevo-modulo/use-cases/create-nuevo-modulo.use-case.ts
+@Injectable()
+export class CreateNuevoModuloUseCase {
+  constructor(
+    @Inject('INuevoModuloRepository')
+    private readonly repository: INuevoModuloRepository,
+  ) {}
+
+  async execute(dto: CreateNuevoModuloDto): Promise<Entity> {
+    return this.repository.create(dto);
+  }
+}
+```
+
+### 3. Implementar el Adaptador (Infrastructure)
+
+```typescript
+// src/infrastructure/nuevo-modulo/nuevo-modulo.repository.adapter.ts
+@Injectable()
+export class NuevoModuloRepositoryAdapter implements INuevoModuloRepository {
+  constructor(
+    @InjectRepository(Entity)
+    private readonly repository: Repository<Entity>,
+    private readonly dataSource: DataSource,
+  ) {}
+
+  // Implementar métodos del puerto
+}
+
+// src/infrastructure/nuevo-modulo/nuevo-modulo.controller.ts
+@Controller('nuevo-modulo')
+export class NuevoModuloController {
+  constructor(
+    private readonly createUseCase: CreateNuevoModuloUseCase,
+    // ... otros casos de uso
+  ) {}
+
+  @Post()
+  create(@Body() dto: CreateNuevoModuloDto) {
+    return this.createUseCase.execute(dto);
+  }
+}
+
+// src/infrastructure/nuevo-modulo/nuevo-modulo.module.ts
+@Module({
+  controllers: [NuevoModuloController],
+  providers: [
+    CreateNuevoModuloUseCase,
+    // ... otros casos de uso
+    {
+      provide: 'INuevoModuloRepository',
+      useClass: NuevoModuloRepositoryAdapter,
+    },
+    DataSource,
+  ],
+  imports: [TypeOrmModule.forFeature([Entity])],
+})
+export class NuevoModuloModule {}
+```
+
+### 4. Registrar el Módulo
+
+```typescript
+// src/app.module.ts
+import { NuevoModuloModule } from './infrastructure/nuevo-modulo/nuevo-modulo.module';
+
+@Module({
+  imports: [
+    // ...
+    NuevoModuloModule,
+  ],
+})
+export class AppModule {}
+```
+
+---
+
 ## Base de Datos
 
 La base de datos está normalizada y soporta:
@@ -220,3 +438,49 @@ El sistema incluye triggers de base de datos que previenen:
 - Desactivar el único rol activo de una persona
 
 Estas validaciones aseguran que cada persona mantenga al menos un rol activo en el sistema.
+
+---
+
+## Scripts Disponibles
+
+```bash
+# Desarrollo
+yarn start:dev          # Iniciar en modo desarrollo con hot-reload
+yarn start:debug        # Iniciar en modo debug
+
+# Producción
+yarn build              # Compilar TypeScript
+yarn start:prod         # Iniciar versión compilada
+
+# Calidad de código
+yarn lint               # Ejecutar ESLint
+yarn format             # Formatear código con Prettier
+
+# Testing
+yarn test               # Ejecutar tests unitarios
+yarn test:watch         # Ejecutar tests en modo watch
+yarn test:cov           # Ejecutar tests con cobertura
+
+# Migraciones
+yarn typeorm:migration:generate generate <Nombre>
+yarn typeorm:migration:create <Nombre>
+yarn typeorm:migration:run
+yarn typeorm:migration:revert
+```
+
+---
+
+## Tecnologías Utilizadas
+
+- **NestJS** - Framework Node.js progresivo
+- **TypeORM** - ORM para TypeScript/JavaScript
+- **MySQL** - Base de datos relacional
+- **Docker** - Contenedorización
+- **class-validator** - Validación de DTOs
+- **class-transformer** - Transformación de objetos
+
+---
+
+## Licencia
+
+UNLICENSED
