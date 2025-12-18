@@ -36,6 +36,7 @@ export class CapacitacionesRepositoryAdapter implements ICapacitacionesRepositor
         } as any,
         modalidad: { id: createCapacitacionDto.modalidadId } as any,
         instructor: { id: createCapacitacionDto.instructorId } as any,
+        usuarioCreacion: createCapacitacionDto.usuarioCreacion || 'system',
       });
 
       const savedCapacitacion = await queryRunner.manager.save(newCapacitacion);
