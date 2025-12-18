@@ -10,7 +10,10 @@ import { DatabaseModule } from './infrastructure/shared/database/database.module
 
 @Module({
   imports: [
-    ConfigModule.forRoot(),
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: '.env',
+    }),
     DatabaseModule,
     AuthModule,
     CapacitacionesModule,

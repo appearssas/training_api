@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import * as entities from '@/entities';
 
@@ -28,27 +29,37 @@ const entityClasses = Object.values(entities).filter((entity) => {
 
 @Module({
   imports: [
-    TypeOrmModule.forRoot(
-      process.env.STAGE === 'dev'
-        ? {
+    TypeOrmModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => {
+        const stage = configService.get<string>('STAGE', 'dev');
+
+        if (stage === 'dev') {
+          return {
             ssl: false,
             extra: undefined,
             type: 'mysql' as const,
-            host: process.env.DATABASE_HOST,
-            port: Number(process.env.DATABASE_PORT),
-            username: process.env.DATABASE_USER,
-            password: process.env.DATABASE_PASSWORD,
-            database: process.env.DATABASE_NAME,
+            host: configService.get<string>('DATABASE_HOST', 'localhost'),
+            port: configService.get<number>('DATABASE_PORT', 3306),
+            username: configService.get<string>('DATABASE_USER', 'root'),
+            password: configService.get<string>('DATABASE_PASSWORD', 'root'),
+            database: configService.get<string>(
+              'DATABASE_NAME',
+              'trainings_db',
+            ),
             entities: entityClasses,
             synchronize: false,
-          }
-        : {
+          };
+        } else {
+          return {
             type: 'mysql' as const,
-            url: process.env.DATABASE_URL,
+            url: configService.get<string>('DATABASE_URL'),
             entities: entityClasses,
             synchronize: false,
-          },
-    ),
+          };
+        }
+      },
+    }),
   ],
   exports: [TypeOrmModule],
 })
