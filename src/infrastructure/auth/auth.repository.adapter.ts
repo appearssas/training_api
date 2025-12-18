@@ -3,12 +3,12 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
 import { IAuthRepository } from '@/domain/auth/ports/auth.repository.port';
-import { Usuario } from '@/entities/usuario.entity';
+import { Usuario } from '@/entities/usuarios/usuario.entity';
 import { Persona } from '@/entities/persona/persona.entity';
 import { Rol } from '@/entities/roles/rol.entity';
 import { PersonaRol } from '@/entities/roles/persona-rol.entity';
-import { Alumno } from '@/entities/alumno.entity';
-import { Instructor } from '@/entities/instructor.entity';
+import { Alumno } from '@/entities/alumnos/alumno.entity';
+import { Instructor } from '@/entities/instructores/instructor.entity';
 import {
   comparePassword,
   hashPassword,

@@ -8,8 +8,8 @@ import {
   ManyToOne,
   JoinColumn,
 } from 'typeorm';
-import { Persona } from './persona/persona.entity';
-import { Rol } from './roles/rol.entity';
+import { Persona } from '../persona/persona.entity';
+import { Rol } from '../roles/rol.entity';
 
 @Entity('usuarios')
 export class Usuario {
@@ -33,6 +33,9 @@ export class Usuario {
   @ManyToOne(() => Rol, { nullable: true })
   @JoinColumn({ name: 'rol_principal_id' })
   rolPrincipal: Rol;
+
+  @Column({ type: 'tinyint', default: 1 })
+  habilitado: boolean;
 
   @Column({ type: 'tinyint', default: 1 })
   activo: boolean;

@@ -4,7 +4,7 @@ import {
   InternalServerErrorException,
 } from '@nestjs/common';
 import { Request } from 'express';
-import { Usuario } from '@/entities/usuario.entity';
+import { Usuario } from '@/entities/usuarios/usuario.entity';
 
 export const GetUser = createParamDecorator(
   (data: string | undefined, ctx: ExecutionContext): Usuario | any => {

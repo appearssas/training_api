@@ -17,7 +17,7 @@ export class LoginUseCase {
   async execute(loginDto: LoginDto): Promise<{
     access_token: string;
     token_type: string;
-    expires_in: string;
+    expires_in: number;
   }> {
     const user = await this.authRepository.findByUsername(loginDto.username);
 
@@ -53,7 +53,7 @@ export class LoginUseCase {
     return {
       access_token: tokenResult.access_token,
       token_type: 'Bearer',
-      expires_in: tokenResult.expires_in,
+      expires_in: +tokenResult.expires_in,
     };
   }
 }

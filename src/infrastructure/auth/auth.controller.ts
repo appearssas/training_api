@@ -6,12 +6,12 @@ import { RegisterUseCase } from '@/application/auth/use-cases/register.use-case'
 import { LoginDto } from '@/application/auth/dto/login.dto';
 import { RegisterDto } from '@/application/auth/dto/register.dto';
 import { GetUser } from '@/infrastructure/shared/auth/decorators/get-user.decorator';
-import { Usuario } from '@/entities/usuario.entity';
+import { Usuario } from '@/entities/usuarios/usuario.entity';
 
 interface TokenResponse {
   access_token: string;
   token_type: string;
-  expires_in: string;
+  expires_in: number;
 }
 
 interface UserProfileResponse {
@@ -58,8 +58,8 @@ export class AuthController {
 
   @Get('refresh')
   @UseGuards(AuthGuard('jwt'))
-  async refreshToken(@GetUser() user: Usuario): Promise<TokenResponse> {
-    const result = await this.refreshTokenUseCase.execute(user);
+  refreshToken(@GetUser() user: Usuario): TokenResponse {
+    const result = this.refreshTokenUseCase.execute(user);
     return result as TokenResponse;
   }
 }

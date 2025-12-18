@@ -7,7 +7,7 @@ import {
   JoinColumn,
   Index,
 } from 'typeorm';
-import { Inscripcion } from './inscripcion/inscripcion.entity';
+import { Inscripcion } from '../inscripcion/inscripcion.entity';
 
 @Entity('certificados')
 export class Certificado {
@@ -35,6 +35,34 @@ export class Certificado {
   @CreateDateColumn({ name: 'fecha_emision' })
   fechaEmision: Date;
 
+  @Column({
+    type: 'datetime',
+    nullable: true,
+    name: 'fecha_aprobacion_real',
+  })
+  fechaAprobacionReal: Date;
+
+  @Column({
+    type: 'datetime',
+    nullable: true,
+    name: 'fecha_retroactiva',
+  })
+  fechaRetroactiva: Date;
+
+  @Column({
+    type: 'tinyint',
+    default: 0,
+    name: 'es_retroactivo',
+  })
+  esRetroactivo: boolean;
+
+  @Column({
+    type: 'text',
+    nullable: true,
+    name: 'justificacion_retroactiva',
+  })
+  justificacionRetroactiva: string;
+
   @Column({ type: 'date', nullable: true, name: 'fecha_vencimiento' })
   fechaVencimiento: Date;
 
@@ -46,6 +74,14 @@ export class Certificado {
   })
   urlCertificado: string;
 
+  @Column({
+    type: 'varchar',
+    length: 500,
+    nullable: true,
+    name: 'url_verificacion_publica',
+  })
+  urlVerificacionPublica: string;
+
   @Index()
   @Column({
     type: 'varchar',
@@ -54,6 +90,20 @@ export class Certificado {
     name: 'hash_verificacion',
   })
   hashVerificacion: string;
+
+  @Column({
+    type: 'text',
+    nullable: true,
+    name: 'codigo_qr',
+  })
+  codigoQr: string;
+
+  @Column({
+    type: 'text',
+    nullable: true,
+    name: 'firma_digital',
+  })
+  firmaDigital: string;
 
   @Column({ type: 'tinyint', default: 1 })
   activo: boolean;

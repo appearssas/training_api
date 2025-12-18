@@ -6,7 +6,7 @@ import {
   OneToMany,
 } from 'typeorm';
 import { PersonaRol } from './persona-rol.entity';
-import { Usuario } from '../usuario.entity';
+import { Usuario } from '../usuarios/usuario.entity';
 
 @Entity('roles')
 export class Rol {

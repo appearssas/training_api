@@ -11,8 +11,8 @@ import {
 import { TipoCapacitacion } from '../catalogos/tipo-capacitacion.entity';
 import { ModalidadCapacitacion } from '../catalogos/modalidad-capacitacion.entity';
 import { Persona } from '../persona/persona.entity';
-import { MaterialCapacitacion } from '../material-capacitacion.entity';
-import { SeccionCapacitacion } from '../seccion-capacitacion.entity';
+import { MaterialCapacitacion } from '../materiales/material-capacitacion.entity';
+import { SeccionCapacitacion } from '../secciones/seccion-capacitacion.entity';
 import { Evaluacion } from '../evaluaciones/evaluacion.entity';
 import { Inscripcion } from '../inscripcion/inscripcion.entity';
 import { EstadoCapacitacion } from './types';
@@ -79,6 +79,13 @@ export class Capacitacion {
     name: 'duracion_horas',
   })
   duracionHoras: number;
+
+  @Column({
+    type: 'int',
+    nullable: true,
+    name: 'duracion_vigencia_dias',
+  })
+  duracionVigenciaDias: number;
 
   @Column({ type: 'int', nullable: true, name: 'capacidad_maxima' })
   capacidadMaxima: number;

@@ -6,7 +6,7 @@ import {
   OneToOne,
   JoinColumn,
 } from 'typeorm';
-import { Persona } from './persona/persona.entity';
+import { Persona } from '../persona/persona.entity';
 
 @Entity('alumnos')
 export class Alumno {
@@ -27,6 +27,13 @@ export class Alumno {
     name: 'codigo_estudiante',
   })
   codigoEstudiante: string;
+
+  @Column({
+    type: 'tinyint',
+    default: 0,
+    name: 'es_externo',
+  })
+  esExterno: boolean;
 
   @Column({ type: 'date', nullable: true, name: 'fecha_ingreso' })
   fechaIngreso: Date;

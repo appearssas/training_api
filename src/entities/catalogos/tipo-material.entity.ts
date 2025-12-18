@@ -1,5 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
-import { MaterialCapacitacion } from '../material-capacitacion.entity';
+import { MaterialCapacitacion } from '../materiales/material-capacitacion.entity';
 
 @Entity('tipos_material')
 export class TipoMaterial {
@@ -15,6 +15,9 @@ export class TipoMaterial {
   @Column({ type: 'tinyint', default: 1 })
   activo: boolean;
 
-  @OneToMany(() => MaterialCapacitacion, (material) => material.tipoMaterial)
+  @OneToMany(
+    () => MaterialCapacitacion,
+    (material: MaterialCapacitacion) => material.tipoMaterial,
+  )
   materiales: MaterialCapacitacion[];
 }

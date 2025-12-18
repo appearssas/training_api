@@ -6,8 +6,8 @@ import {
   JoinColumn,
   Unique,
 } from 'typeorm';
-import { Inscripcion } from './inscripcion/inscripcion.entity';
-import { Leccion } from './leccion.entity';
+import { Inscripcion } from '../inscripcion/inscripcion.entity';
+import { Leccion } from '../lecciones/leccion.entity';
 
 @Entity('progreso_lecciones')
 @Unique(['inscripcion', 'leccion'])

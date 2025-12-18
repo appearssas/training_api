@@ -77,8 +77,10 @@ CREATE TABLE `personas` (
   `id` INT(11) NOT NULL AUTO_INCREMENT,
   `numero_documento` VARCHAR(50) NOT NULL UNIQUE COMMENT 'Número de documento único',
   `tipo_documento` VARCHAR(20) DEFAULT 'CC' COMMENT 'CC, CE, NIT, etc.',
+  `tipo_persona` ENUM('NATURAL', 'JURIDICA') NOT NULL DEFAULT 'NATURAL' COMMENT 'Persona natural o jurídica (empresa)',
   `nombres` VARCHAR(200) NOT NULL,
-  `apellidos` VARCHAR(200) NOT NULL,
+  `apellidos` VARCHAR(200) DEFAULT NULL COMMENT 'NULL para personas jurídicas',
+  `razon_social` VARCHAR(500) DEFAULT NULL COMMENT 'Para personas jurídicas',
   `email` VARCHAR(255) DEFAULT NULL,
   `telefono` VARCHAR(50) DEFAULT NULL,
   `fecha_nacimiento` DATE DEFAULT NULL,
@@ -91,7 +93,8 @@ CREATE TABLE `personas` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_num_doc` (`numero_documento`),
   INDEX `idx_email` (`email`),
-  INDEX `idx_activo` (`activo`)
+  INDEX `idx_activo` (`activo`),
+  INDEX `idx_tipo_persona` (`tipo_persona`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Usuarios (OBLIGATORIO: una persona DEBE tener un usuario para acceder al sistema)
@@ -129,18 +132,20 @@ CREATE TABLE `persona_roles` (
   CONSTRAINT `fk_pr_rol` FOREIGN KEY (`rol_id`) REFERENCES `roles` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Alumnos (datos específicos del rol ALUMNO)
--- NOTA: Una persona debe tener el rol 'ALUMNO' en persona_roles para ser considerada alumno
+-- Alumnos (datos específicos del rol ALUMNO/CONDUCTOR)
+-- NOTA: Una persona debe tener el rol 'ALUMNO' o 'CONDUCTOR' en persona_roles para ser considerada alumno
 CREATE TABLE `alumnos` (
   `id` INT(11) NOT NULL AUTO_INCREMENT,
   `persona_id` INT(11) NOT NULL COMMENT 'FK a personas',
   `codigo_estudiante` VARCHAR(50) DEFAULT NULL UNIQUE COMMENT 'Código único de estudiante',
+  `es_externo` TINYINT(1) NOT NULL DEFAULT 0 COMMENT 'Si es conductor externo creado por administrador',
   `fecha_ingreso` DATE DEFAULT NULL,
   `activo` TINYINT(1) NOT NULL DEFAULT 1,
   `fecha_creacion` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_persona_alumno` (`persona_id`),
   INDEX `idx_codigo` (`codigo_estudiante`),
+  INDEX `idx_externo` (`es_externo`),
   CONSTRAINT `fk_alu_persona` FOREIGN KEY (`persona_id`) REFERENCES `personas` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -182,29 +187,29 @@ CREATE TABLE `instructores` (
 
 -- Trigger para prevenir eliminar el último rol activo de una persona
 DELIMITER $$
-CREATE TRIGGER `trg_prevenir_eliminar_ultimo_rol` 
+CREATE TRIGGER `trg_prevenir_eliminar_ultimo_rol`
 BEFORE DELETE ON `persona_roles`
 FOR EACH ROW
 BEGIN
   DECLARE roles_activos_restantes INT DEFAULT 0;
-  
+
   -- Contar roles activos restantes (excluyendo el que se está eliminando)
   SELECT COUNT(*) INTO roles_activos_restantes
   FROM `persona_roles`
-  WHERE `persona_id` = OLD.persona_id 
-    AND `id` != OLD.id 
+  WHERE `persona_id` = OLD.persona_id
+    AND `id` != OLD.id
     AND `activo` = 1;
-  
+
   -- Si no quedan roles activos y el rol eliminado era ALUMNO o INSTRUCTOR, prevenir
   IF roles_activos_restantes = 0 THEN
     DECLARE es_alumno_o_instructor INT DEFAULT 0;
     SELECT COUNT(*) INTO es_alumno_o_instructor
     FROM `roles` r
-    WHERE r.id = OLD.rol_id 
+    WHERE r.id = OLD.rol_id
       AND r.codigo IN ('ALUMNO', 'INSTRUCTOR');
-    
+
     IF es_alumno_o_instructor > 0 THEN
-      SIGNAL SQLSTATE '45000' 
+      SIGNAL SQLSTATE '45000'
       SET MESSAGE_TEXT = 'No se puede eliminar el último rol activo. La persona debe tener al menos un rol activo (ALUMNO o INSTRUCTOR).';
     END IF;
   END IF;
@@ -213,31 +218,31 @@ DELIMITER ;
 
 -- Trigger para prevenir desactivar el último rol activo de una persona
 DELIMITER $$
-CREATE TRIGGER `trg_prevenir_desactivar_ultimo_rol` 
+CREATE TRIGGER `trg_prevenir_desactivar_ultimo_rol`
 BEFORE UPDATE ON `persona_roles`
 FOR EACH ROW
 BEGIN
   DECLARE roles_activos_restantes INT DEFAULT 0;
-  
+
   -- Si se está desactivando un rol
   IF NEW.activo = 0 AND OLD.activo = 1 THEN
     -- Contar otros roles activos
     SELECT COUNT(*) INTO roles_activos_restantes
     FROM `persona_roles`
-    WHERE `persona_id` = NEW.persona_id 
-      AND `id` != NEW.id 
+    WHERE `persona_id` = NEW.persona_id
+      AND `id` != NEW.id
       AND `activo` = 1;
-    
+
     -- Si no quedan roles activos y el rol desactivado es ALUMNO o INSTRUCTOR, prevenir
     IF roles_activos_restantes = 0 THEN
       DECLARE es_alumno_o_instructor INT DEFAULT 0;
       SELECT COUNT(*) INTO es_alumno_o_instructor
       FROM `roles` r
-      WHERE r.id = NEW.rol_id 
+      WHERE r.id = NEW.rol_id
         AND r.codigo IN ('ALUMNO', 'INSTRUCTOR');
-      
+
       IF es_alumno_o_instructor > 0 THEN
-        SIGNAL SQLSTATE '45000' 
+        SIGNAL SQLSTATE '45000'
         SET MESSAGE_TEXT = 'No se puede desactivar el último rol activo. La persona debe tener al menos un rol activo (ALUMNO o INSTRUCTOR).';
       END IF;
     END IF;
@@ -262,6 +267,7 @@ CREATE TABLE `capacitaciones` (
   `fecha_inicio` DATE DEFAULT NULL,
   `fecha_fin` DATE DEFAULT NULL,
   `duracion_horas` DECIMAL(5,2) DEFAULT NULL,
+  `duracion_vigencia_dias` INT(11) DEFAULT NULL COMMENT 'Duración de vigencia del certificado en días',
   `capacidad_maxima` INT(11) DEFAULT NULL,
   `imagen_portada_url` VARCHAR(500) DEFAULT NULL,
   `video_promocional_url` VARCHAR(500) DEFAULT NULL,
@@ -359,6 +365,7 @@ CREATE TABLE `preguntas` (
   `evaluacion_id` INT(11) NOT NULL,
   `tipo_pregunta_id` INT(11) NOT NULL,
   `enunciado` TEXT NOT NULL,
+  `imagen_url` VARCHAR(500) DEFAULT NULL COMMENT 'URL de imagen para preguntas tipo imagen',
   `puntaje` DECIMAL(10,2) NOT NULL DEFAULT 1.00,
   `orden` INT(11) DEFAULT 0,
   `requerida` TINYINT(1) NOT NULL DEFAULT 1,
@@ -384,6 +391,32 @@ CREATE TABLE `opciones_respuesta` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- =====================================================
+-- PAGOS (Para conductores externos)
+-- =====================================================
+
+-- Pagos registrados manualmente para conductores externos
+CREATE TABLE `pagos` (
+  `id` INT(11) NOT NULL AUTO_INCREMENT,
+  `estudiante_id` INT(11) NOT NULL COMMENT 'FK a personas.id (conductor externo)',
+  `capacitacion_id` INT(11) NOT NULL COMMENT 'FK a capacitaciones',
+  `monto` DECIMAL(10,2) NOT NULL,
+  `metodo_pago` VARCHAR(50) DEFAULT NULL COMMENT 'Efectivo, Transferencia, etc.',
+  `numero_comprobante` VARCHAR(100) DEFAULT NULL,
+  `fecha_pago` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `registrado_por` INT(11) NOT NULL COMMENT 'FK a usuarios.id (administrador que registró el pago)',
+  `observaciones` TEXT DEFAULT NULL,
+  `activo` TINYINT(1) NOT NULL DEFAULT 1,
+  `fecha_creacion` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  INDEX `idx_estudiante` (`estudiante_id`),
+  INDEX `idx_capacitacion` (`capacitacion_id`),
+  INDEX `idx_registrado_por` (`registrado_por`),
+  CONSTRAINT `fk_pago_estudiante` FOREIGN KEY (`estudiante_id`) REFERENCES `personas` (`id`),
+  CONSTRAINT `fk_pago_capacitacion` FOREIGN KEY (`capacitacion_id`) REFERENCES `capacitaciones` (`id`),
+  CONSTRAINT `fk_pago_registrado_por` FOREIGN KEY (`registrado_por`) REFERENCES `usuarios` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- =====================================================
 -- ESTUDIANTES Y PROGRESO
 -- =====================================================
 
@@ -392,6 +425,7 @@ CREATE TABLE `inscripciones` (
   `id` INT(11) NOT NULL AUTO_INCREMENT,
   `capacitacion_id` INT(11) NOT NULL,
   `estudiante_id` INT(11) NOT NULL COMMENT 'FK a personas.id',
+  `pago_id` INT(11) DEFAULT NULL COMMENT 'FK a pagos - Para conductores externos, debe existir pago antes de inscribir',
   `fecha_inscripcion` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `fecha_inicio` DATETIME DEFAULT NULL COMMENT 'Cuándo empezó a tomar la capacitación',
   `fecha_finalizacion` DATETIME DEFAULT NULL COMMENT 'Cuándo completó la capacitación',
@@ -403,8 +437,10 @@ CREATE TABLE `inscripciones` (
   UNIQUE KEY `uk_cap_est` (`capacitacion_id`, `estudiante_id`),
   INDEX `idx_estudiante` (`estudiante_id`),
   INDEX `idx_estado` (`estado`),
+  INDEX `idx_pago` (`pago_id`),
   CONSTRAINT `fk_insc_cap` FOREIGN KEY (`capacitacion_id`) REFERENCES `capacitaciones` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `fk_insc_estudiante` FOREIGN KEY (`estudiante_id`) REFERENCES `personas` (`id`)
+  CONSTRAINT `fk_insc_estudiante` FOREIGN KEY (`estudiante_id`) REFERENCES `personas` (`id`),
+  CONSTRAINT `fk_insc_pago` FOREIGN KEY (`pago_id`) REFERENCES `pagos` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Progreso por lección
@@ -484,15 +520,153 @@ CREATE TABLE `certificados` (
   `inscripcion_id` INT(11) NOT NULL,
   `numero_certificado` VARCHAR(100) NOT NULL UNIQUE,
   `fecha_emision` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `fecha_aprobacion_real` DATETIME DEFAULT NULL COMMENT 'Fecha real de aprobación (oculta para certificados retroactivos)',
+  `fecha_retroactiva` DATETIME DEFAULT NULL COMMENT 'Fecha retroactiva asignada por administrador',
+  `es_retroactivo` TINYINT(1) NOT NULL DEFAULT 0 COMMENT 'Si el certificado fue emitido con fecha retroactiva',
+  `justificacion_retroactiva` TEXT DEFAULT NULL COMMENT 'Justificación de la fecha retroactiva',
   `fecha_vencimiento` DATE DEFAULT NULL,
   `url_certificado` VARCHAR(500) DEFAULT NULL COMMENT 'URL del PDF del certificado',
+  `url_verificacion_publica` VARCHAR(500) DEFAULT NULL COMMENT 'URL pública para verificación del certificado',
   `hash_verificacion` VARCHAR(255) DEFAULT NULL COMMENT 'Hash para verificar autenticidad',
+  `codigo_qr` TEXT DEFAULT NULL COMMENT 'Código QR con token único para verificación',
+  `firma_digital` TEXT DEFAULT NULL COMMENT 'Firma digital del certificado (opcional)',
   `activo` TINYINT(1) NOT NULL DEFAULT 1,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_num_cert` (`numero_certificado`),
   INDEX `idx_inscripcion` (`inscripcion_id`),
   INDEX `idx_hash` (`hash_verificacion`),
+  INDEX `idx_retroactivo` (`es_retroactivo`),
   CONSTRAINT `fk_cert_insc` FOREIGN KEY (`inscripcion_id`) REFERENCES `inscripciones` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- =====================================================
+-- AUDITORÍA DE CERTIFICADOS RETROACTIVOS
+-- =====================================================
+
+-- Log inmutable de certificados emitidos con fecha retroactiva
+CREATE TABLE `auditoria_certificados_retroactivos` (
+  `id` INT(11) NOT NULL AUTO_INCREMENT,
+  `certificado_id` INT(11) NOT NULL COMMENT 'FK a certificados',
+  `fecha_aprobacion_real` DATETIME NOT NULL COMMENT 'Fecha real de aprobación',
+  `fecha_retroactiva` DATETIME NOT NULL COMMENT 'Fecha retroactiva asignada',
+  `justificacion` TEXT NOT NULL COMMENT 'Justificación de la fecha retroactiva',
+  `emitido_por` INT(11) NOT NULL COMMENT 'FK a usuarios.id (administrador que emitió)',
+  `fecha_emision` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Fecha en que se emitió el certificado retroactivo',
+  PRIMARY KEY (`id`),
+  INDEX `idx_certificado` (`certificado_id`),
+  INDEX `idx_emitido_por` (`emitido_por`),
+  INDEX `idx_fecha_emision` (`fecha_emision`),
+  CONSTRAINT `fk_aud_cert` FOREIGN KEY (`certificado_id`) REFERENCES `certificados` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_aud_emitido_por` FOREIGN KEY (`emitido_por`) REFERENCES `usuarios` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- =====================================================
+-- VIGENCIAS Y ALERTAS
+-- =====================================================
+
+-- Configuración de alertas de vencimiento
+CREATE TABLE `configuracion_alertas` (
+  `id` INT(11) NOT NULL AUTO_INCREMENT,
+  `dias_antes_vencimiento` INT(11) NOT NULL COMMENT 'Días antes del vencimiento para enviar alerta',
+  `activo` TINYINT(1) NOT NULL DEFAULT 1,
+  `fecha_creacion` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_dias` (`dias_antes_vencimiento`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Alertas de vencimiento enviadas
+CREATE TABLE `alertas_vencimiento` (
+  `id` INT(11) NOT NULL AUTO_INCREMENT,
+  `certificado_id` INT(11) NOT NULL COMMENT 'FK a certificados',
+  `dias_restantes` INT(11) NOT NULL COMMENT 'Días restantes hasta el vencimiento',
+  `fecha_envio` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `enviado` TINYINT(1) NOT NULL DEFAULT 0,
+  `fecha_vencimiento` DATE NOT NULL,
+  PRIMARY KEY (`id`),
+  INDEX `idx_certificado` (`certificado_id`),
+  INDEX `idx_fecha_vencimiento` (`fecha_vencimiento`),
+  INDEX `idx_enviado` (`enviado`),
+  CONSTRAINT `fk_alert_cert` FOREIGN KEY (`certificado_id`) REFERENCES `certificados` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- =====================================================
+-- POLÍTICAS Y TÉRMINOS
+-- =====================================================
+
+-- Documentos legales configurables (políticas, términos, etc.)
+CREATE TABLE `documentos_legales` (
+  `id` INT(11) NOT NULL AUTO_INCREMENT,
+  `tipo` VARCHAR(50) NOT NULL COMMENT 'POLITICA_PRIVACIDAD, TERMINOS_CONDICIONES, etc.',
+  `titulo` VARCHAR(200) NOT NULL,
+  `contenido` LONGTEXT NOT NULL,
+  `version` VARCHAR(20) NOT NULL DEFAULT '1.0',
+  `requiere_firma_digital` TINYINT(1) NOT NULL DEFAULT 0,
+  `activo` TINYINT(1) NOT NULL DEFAULT 1,
+  `fecha_creacion` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `fecha_actualizacion` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `creado_por` INT(11) NOT NULL COMMENT 'FK a usuarios.id',
+  PRIMARY KEY (`id`),
+  INDEX `idx_tipo` (`tipo`),
+  INDEX `idx_activo` (`activo`),
+  INDEX `idx_creado_por` (`creado_por`),
+  CONSTRAINT `fk_doc_creado_por` FOREIGN KEY (`creado_por`) REFERENCES `usuarios` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Aceptaciones de políticas y términos por usuarios
+CREATE TABLE `aceptaciones_politicas` (
+  `id` INT(11) NOT NULL AUTO_INCREMENT,
+  `usuario_id` INT(11) NOT NULL COMMENT 'FK a usuarios.id',
+  `documento_legal_id` INT(11) NOT NULL COMMENT 'FK a documentos_legales.id',
+  `version` VARCHAR(20) NOT NULL COMMENT 'Versión del documento aceptada',
+  `firma_digital` TEXT DEFAULT NULL COMMENT 'Firma digital si se requiere',
+  `ip_address` VARCHAR(45) DEFAULT NULL,
+  `user_agent` VARCHAR(500) DEFAULT NULL,
+  `fecha_aceptacion` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_usuario_documento` (`usuario_id`, `documento_legal_id`),
+  INDEX `idx_documento` (`documento_legal_id`),
+  INDEX `idx_fecha` (`fecha_aceptacion`),
+  CONSTRAINT `fk_acep_usuario` FOREIGN KEY (`usuario_id`) REFERENCES `usuarios` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_acep_documento` FOREIGN KEY (`documento_legal_id`) REFERENCES `documentos_legales` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- =====================================================
+-- LOGS DE IMPORTACIÓN Y REPORTES
+-- =====================================================
+
+-- Logs de importación masiva de conductores (CSV)
+CREATE TABLE `logs_importacion` (
+  `id` INT(11) NOT NULL AUTO_INCREMENT,
+  `usuario_id` INT(11) NOT NULL COMMENT 'FK a usuarios.id (quien importó)',
+  `archivo_nombre` VARCHAR(255) NOT NULL,
+  `total_registros` INT(11) NOT NULL,
+  `registros_exitosos` INT(11) NOT NULL DEFAULT 0,
+  `registros_fallidos` INT(11) NOT NULL DEFAULT 0,
+  `errores` TEXT DEFAULT NULL COMMENT 'JSON con detalles de errores',
+  `estado` ENUM('en_proceso', 'completado', 'fallido') NOT NULL DEFAULT 'en_proceso',
+  `fecha_inicio` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `fecha_fin` DATETIME DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  INDEX `idx_usuario` (`usuario_id`),
+  INDEX `idx_estado` (`estado`),
+  INDEX `idx_fecha` (`fecha_inicio`),
+  CONSTRAINT `fk_log_import_usuario` FOREIGN KEY (`usuario_id`) REFERENCES `usuarios` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Logs de generación de reportes
+CREATE TABLE `logs_reportes` (
+  `id` INT(11) NOT NULL AUTO_INCREMENT,
+  `usuario_id` INT(11) NOT NULL COMMENT 'FK a usuarios.id',
+  `tipo_reporte` VARCHAR(100) NOT NULL COMMENT 'Tipo de reporte generado',
+  `filtros` TEXT DEFAULT NULL COMMENT 'JSON con filtros aplicados',
+  `formato` ENUM('PDF', 'CSV', 'EXCEL', 'JSON') NOT NULL DEFAULT 'PDF',
+  `ruta_archivo` VARCHAR(500) DEFAULT NULL,
+  `fecha_generacion` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  INDEX `idx_usuario` (`usuario_id`),
+  INDEX `idx_tipo` (`tipo_reporte`),
+  INDEX `idx_fecha` (`fecha_generacion`),
+  CONSTRAINT `fk_log_reporte_usuario` FOREIGN KEY (`usuario_id`) REFERENCES `usuarios` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- =====================================================
@@ -520,6 +694,8 @@ CREATE TABLE `resenas` (
 -- Roles del sistema
 INSERT INTO `roles` (`nombre`, `codigo`, `descripcion`) VALUES
 ('Administrador', 'ADMIN', 'Administrador del sistema con acceso completo'),
+('Cliente Institucional', 'CLIENTE_INSTITUCIONAL', 'Cliente institucional que puede gestionar sus conductores'),
+('Conductor', 'CONDUCTOR', 'Conductor que puede tomar capacitaciones'),
 ('Instructor', 'INSTRUCTOR', 'Instructor que puede crear y gestionar capacitaciones'),
 ('Alumno', 'ALUMNO', 'Estudiante que puede inscribirse y tomar capacitaciones');
 
@@ -539,8 +715,10 @@ INSERT INTO `modalidades_capacitacion` (`nombre`, `codigo`) VALUES
 INSERT INTO `tipos_pregunta` (`nombre`, `codigo`, `permite_multiple_respuesta`, `requiere_texto_libre`) VALUES
 ('Selección única', 'SINGLE_CHOICE', 0, 0),
 ('Selección múltiple', 'MULTIPLE_CHOICE', 1, 0),
-('Respuesta abierta', 'OPEN_TEXT', 0, 1),
+('Pregunta con imagen', 'IMAGE_QUESTION', 0, 0),
 ('Verdadero/Falso', 'TRUE_FALSE', 0, 0),
+('Sí/No', 'YES_NO', 0, 0),
+('Respuesta abierta', 'OPEN_TEXT', 0, 1),
 ('Completar espacios', 'FILL_BLANKS', 0, 1),
 ('Emparejamiento', 'MATCHING', 1, 0);
 
@@ -553,3 +731,9 @@ INSERT INTO `tipos_material` (`nombre`, `codigo`) VALUES
 ('Link externo', 'LINK'),
 ('Presentación', 'PRESENTATION'),
 ('Audio', 'AUDIO');
+
+-- Configuración de alertas de vencimiento (30 días, 7 días, día de vencimiento)
+INSERT INTO `configuracion_alertas` (`dias_antes_vencimiento`, `activo`) VALUES
+(30, 1),
+(7, 1),
+(0, 1);

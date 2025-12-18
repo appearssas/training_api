@@ -6,8 +6,8 @@ import {
   JoinColumn,
   OneToMany,
 } from 'typeorm';
-import { SeccionCapacitacion } from './seccion-capacitacion.entity';
-import { ProgresoLeccion } from './progreso-leccion.entity';
+import { SeccionCapacitacion } from '../secciones/seccion-capacitacion.entity';
+import { ProgresoLeccion } from '../progreso/progreso-leccion.entity';
 
 @Entity('lecciones')
 export class Leccion {

@@ -6,8 +6,8 @@ import {
   ManyToOne,
   JoinColumn,
 } from 'typeorm';
-import { Capacitacion } from './capacitacion/capacitacion.entity';
-import { TipoMaterial } from './catalogos/tipo-material.entity';
+import { Capacitacion } from '../capacitacion/capacitacion.entity';
+import { TipoMaterial } from '../catalogos/tipo-material.entity';
 
 @Entity('materiales_capacitacion')
 export class MaterialCapacitacion {

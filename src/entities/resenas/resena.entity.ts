@@ -8,7 +8,7 @@ import {
   Unique,
   Index,
 } from 'typeorm';
-import { Inscripcion } from './inscripcion/inscripcion.entity';
+import { Inscripcion } from '../inscripcion/inscripcion.entity';
 
 @Entity('resenas')
 @Unique(['inscripcion'])

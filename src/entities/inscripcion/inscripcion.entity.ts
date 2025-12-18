@@ -9,10 +9,11 @@ import {
 } from 'typeorm';
 import { Capacitacion } from '../capacitacion/capacitacion.entity';
 import { Persona } from '../persona/persona.entity';
-import { ProgresoLeccion } from '../progreso-leccion.entity';
+import { Pago } from '../pagos/pago.entity';
+import { ProgresoLeccion } from '../progreso/progreso-leccion.entity';
 import { IntentoEvaluacion } from '../evaluaciones/intento-evaluacion.entity';
-import { Certificado } from '../certificado.entity';
-import { Resena } from '../resena.entity';
+import { Certificado } from '../certificados/certificado.entity';
+import { Resena } from '../resenas/resena.entity';
 import { EstadoInscripcion } from './types';
 
 @Entity('inscripciones')
@@ -29,6 +30,10 @@ export class Inscripcion {
   @ManyToOne(() => Persona, (persona) => persona.inscripciones)
   @JoinColumn({ name: 'estudiante_id' })
   estudiante: Persona;
+
+  @ManyToOne(() => Pago, { nullable: true })
+  @JoinColumn({ name: 'pago_id' })
+  pago: Pago;
 
   @CreateDateColumn({ name: 'fecha_inscripcion' })
   fechaInscripcion: Date;

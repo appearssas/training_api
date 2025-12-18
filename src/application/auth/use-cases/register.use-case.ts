@@ -6,7 +6,6 @@ import {
 } from '@nestjs/common';
 import { IAuthRepository } from '@/domain/auth/ports/auth.repository.port';
 import { RegisterDto, TipoRegistro } from '@/application/auth/dto/register.dto';
-import { Usuario } from '@/entities/usuario.entity';
 
 @Injectable()
 export class RegisterUseCase {
@@ -18,7 +17,7 @@ export class RegisterUseCase {
   async execute(registerDto: RegisterDto): Promise<{
     access_token: string;
     token_type: string;
-    expires_in: string;
+    expires_in: number;
   }> {
     // Verificar que el username no esté en uso
     const existingUser = await this.authRepository.findByUsername(
@@ -101,7 +100,7 @@ export class RegisterUseCase {
     return {
       access_token: tokenResult.access_token,
       token_type: 'Bearer',
-      expires_in: tokenResult.expires_in,
+      expires_in: +tokenResult.expires_in,
     };
   }
 }

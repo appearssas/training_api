@@ -1,4 +1,4 @@
-import { Usuario } from '@/entities/usuario.entity';
+import { Usuario } from '@/entities/usuarios/usuario.entity';
 import { Persona } from '@/entities/persona/persona.entity';
 import { Rol } from '@/entities/roles/rol.entity';
 

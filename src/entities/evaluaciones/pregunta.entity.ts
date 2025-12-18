@@ -33,6 +33,14 @@ export class Pregunta {
   @Column({ type: 'text' })
   enunciado: string;
 
+  @Column({
+    type: 'varchar',
+    length: 500,
+    nullable: true,
+    name: 'imagen_url',
+  })
+  imagenUrl: string;
+
   @Column({ type: 'decimal', precision: 10, scale: 2, default: 1.0 })
   puntaje: number;
 

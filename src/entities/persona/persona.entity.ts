@@ -8,9 +8,9 @@ import {
   OneToMany,
   Index,
 } from 'typeorm';
-import { Usuario } from '../usuario.entity';
-import { Alumno } from '../alumno.entity';
-import { Instructor } from '../instructor.entity';
+import { Usuario } from '../usuarios/usuario.entity';
+import { Alumno } from '../alumnos/alumno.entity';
+import { Instructor } from '../instructores/instructor.entity';
 import { Capacitacion } from '../capacitacion/capacitacion.entity';
 import { Inscripcion } from '../inscripcion/inscripcion.entity';
 import { PersonaRol } from '../roles/persona-rol.entity';
@@ -37,11 +37,27 @@ export class Persona {
   })
   tipoDocumento: string;
 
+  @Column({
+    type: 'enum',
+    enum: ['NATURAL', 'JURIDICA'],
+    default: 'NATURAL',
+    name: 'tipo_persona',
+  })
+  tipoPersona: 'NATURAL' | 'JURIDICA';
+
   @Column({ type: 'varchar', length: 200 })
   nombres: string;
 
-  @Column({ type: 'varchar', length: 200 })
+  @Column({ type: 'varchar', length: 200, nullable: true })
   apellidos: string;
+
+  @Column({
+    type: 'varchar',
+    length: 500,
+    nullable: true,
+    name: 'razon_social',
+  })
+  razonSocial: string;
 
   @Index()
   @Column({ type: 'varchar', length: 255, nullable: true })
