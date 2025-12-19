@@ -146,4 +146,14 @@ export class CreateCapacitacionDto {
   @IsOptional()
   @IsEnum(EstadoCapacitacion)
   estado?: EstadoCapacitacion;
+
+  @ApiPropertyOptional({
+    description: 'Usuario que crea la capacitación',
+    example: 'admin@example.com',
+    maxLength: 100,
+  })
+  @IsOptional()
+  @IsString()
+  @Length(0, 100)
+  usuarioCreacion?: string;
 }
