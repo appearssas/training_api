@@ -8,7 +8,8 @@ import {
   IsDateString,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { Genero } from '@/entities/persona/types';
+import { Genero, TipoDocumento } from '@/entities/persona/types';
+import { IsStrictEnum } from '@/infrastructure/shared/decorators/strict-enum.decorator';
 
 export enum TipoRegistro {
   ALUMNO = 'ALUMNO',
@@ -26,12 +27,15 @@ export class RegisterDto {
 
   @ApiPropertyOptional({
     description: 'Tipo de documento',
-    example: 'CC',
-    default: 'CC',
+    enum: TipoDocumento,
+    example: TipoDocumento.CC,
+    default: TipoDocumento.CC,
   })
-  @IsString()
+  @IsStrictEnum(TipoDocumento, {
+    message: 'tipoDocumento debe ser uno de los valores permitidos: CC, TI, CE, PA, RC, NIT',
+  })
   @IsOptional()
-  tipoDocumento?: string;
+  tipoDocumento?: TipoDocumento;
 
   @ApiProperty({
     description: 'Nombres de la persona',
@@ -78,7 +82,9 @@ export class RegisterDto {
     enum: Genero,
     example: Genero.MASCULINO,
   })
-  @IsEnum(Genero)
+  @IsStrictEnum(Genero, {
+    message: 'genero debe ser uno de los valores permitidos: M (MASCULINO), F (FEMENINO), O (OTRO)',
+  })
   @IsOptional()
   genero?: Genero;
 
@@ -115,18 +121,15 @@ export class RegisterDto {
     enum: TipoRegistro,
     example: TipoRegistro.ALUMNO,
   })
-  @IsEnum(TipoRegistro)
+  @IsStrictEnum(TipoRegistro, {
+    message: 'tipoRegistro debe ser ALUMNO o INSTRUCTOR',
+  })
   @IsNotEmpty()
   tipoRegistro: TipoRegistro;
 
   // Campos específicos para ALUMNO
-  @ApiPropertyOptional({
-    description: 'Código de estudiante (solo para ALUMNO)',
-    example: 'EST001',
-  })
-  @IsString()
-  @IsOptional()
-  codigoEstudiante?: string;
+  // NOTA: El código de estudiante se genera automáticamente en formato EST{YYYY}{NNNNN}
+  // Ejemplo: EST20250001, EST20250002, etc.
 
   // Campos específicos para INSTRUCTOR
   @ApiPropertyOptional({

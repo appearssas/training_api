@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { IAuthRepository } from '@/domain/auth/ports/auth.repository.port';
 import { RegisterDto, TipoRegistro } from '@/application/auth/dto/register.dto';
+import { TipoDocumento } from '@/entities/persona/types';
 
 @Injectable()
 export class RegisterUseCase {
@@ -60,7 +61,7 @@ export class RegisterUseCase {
     // Preparar datos de persona
     const personaData = {
       numeroDocumento: registerDto.numeroDocumento,
-      tipoDocumento: registerDto.tipoDocumento || 'CC',
+      tipoDocumento: registerDto.tipoDocumento || TipoDocumento.CC,
       nombres: registerDto.nombres,
       apellidos: registerDto.apellidos,
       email: registerDto.email,
@@ -86,7 +87,7 @@ export class RegisterUseCase {
     // Si es ALUMNO, agregar datos específicos
     if (registerDto.tipoRegistro === TipoRegistro.ALUMNO) {
       // Los datos específicos de alumno se manejan en el repositorio
-      // Si se necesita codigoEstudiante, se puede pasar aquí
+      // El código de estudiante se genera automáticamente en formato EST{YYYY}{NNNNN}
     }
 
     // Si es INSTRUCTOR, agregar datos específicos

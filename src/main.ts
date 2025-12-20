@@ -14,12 +14,21 @@ async function bootstrap() {
     allowedHeaders: ['Content-Type', 'Authorization'],
   });
 
-  // Habilitar validación global
+  // Habilitar validación global con validación estricta de enums
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
       forbidNonWhitelisted: true,
       transform: true,
+      transformOptions: {
+        enableImplicitConversion: false, // Deshabilitar conversión implícita para validación estricta
+      },
+      // Validar enums estrictamente sin transformación
+      disableErrorMessages: false,
+      validationError: {
+        target: false,
+        value: false,
+      },
     }),
   );
 

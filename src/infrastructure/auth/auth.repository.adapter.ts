@@ -13,6 +13,10 @@ import {
   comparePassword,
   hashPassword,
 } from '@/infrastructure/shared/helpers/bcrypt.helper';
+import {
+  generarCodigoEstudiante,
+  extraerNumeroSecuencial,
+} from '@/infrastructure/shared/helpers/codigo-estudiante.helper';
 
 @Injectable()
 export class AuthRepositoryAdapter implements IAuthRepository {
@@ -172,8 +176,14 @@ export class AuthRepositoryAdapter implements IAuthRepository {
 
       // 5. Crear registro específico según el rol
       if (rolCodigo === 'ALUMNO') {
+        // Generar código de estudiante automático
+        const codigoEstudiante = await this.generarCodigoEstudianteUnico(
+          manager.getRepository(Alumno),
+        );
+
         const alumno = manager.create(Alumno, {
           persona: savedPersona,
+          codigoEstudiante,
           activo: true,
           fechaIngreso: new Date(),
         });
@@ -192,5 +202,37 @@ export class AuthRepositoryAdapter implements IAuthRepository {
         relations: ['persona', 'rolPrincipal'],
       })) as Usuario;
     });
+  }
+
+  /**
+   * Genera un código de estudiante único para el año actual
+   * Busca el último código del año y genera el siguiente número secuencial
+   */
+  private async generarCodigoEstudianteUnico(
+    alumnoRepository: Repository<Alumno>,
+  ): Promise<string> {
+    const año = new Date().getFullYear();
+    const prefijo = `EST${año}`;
+
+    // Buscar el último código de estudiante del año actual
+    const ultimoAlumno = await alumnoRepository
+      .createQueryBuilder('alumno')
+      .where('alumno.codigoEstudiante LIKE :prefijo', { prefijo: `${prefijo}%` })
+      .andWhere('alumno.codigoEstudiante IS NOT NULL')
+      .orderBy('alumno.codigoEstudiante', 'DESC')
+      .getOne();
+
+    let siguienteNumero = 1;
+
+    if (ultimoAlumno && ultimoAlumno.codigoEstudiante) {
+      const numeroExtraido = extraerNumeroSecuencial(
+        ultimoAlumno.codigoEstudiante,
+      );
+      if (numeroExtraido !== null) {
+        siguienteNumero = numeroExtraido + 1;
+      }
+    }
+
+    return generarCodigoEstudiante(siguienteNumero - 1);
   }
 }
