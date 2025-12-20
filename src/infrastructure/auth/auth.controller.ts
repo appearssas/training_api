@@ -23,9 +23,19 @@ import { AuthGuard } from '@nestjs/passport';
 import { LoginUseCase } from '@/application/auth/use-cases/login.use-case';
 import { RefreshTokenUseCase } from '@/application/auth/use-cases/refresh-token.use-case';
 import { RegisterUseCase } from '@/application/auth/use-cases/register.use-case';
+import {
+  RequestPasswordResetUseCase,
+  RequestPasswordResetResponse,
+} from '@/application/auth/use-cases/request-password-reset.use-case';
+import {
+  ResetPasswordUseCase,
+  ResetPasswordResponse,
+} from '@/application/auth/use-cases/reset-password.use-case';
 import { LoginDto } from '@/application/auth/dto/login.dto';
 import { RegisterDto } from '@/application/auth/dto/register.dto';
 import { UpdateProfileDto } from '@/application/auth/dto/update-profile.dto';
+import { RequestPasswordResetDto } from '@/application/auth/dto/request-password-reset.dto';
+import { ResetPasswordDto } from '@/application/auth/dto/reset-password.dto';
 import { UpdateProfileUseCase } from '@/application/auth/use-cases/update-profile.use-case';
 import { GetUser } from '@/infrastructure/shared/auth/decorators/get-user.decorator';
 import { Usuario } from '@/entities/usuarios/usuario.entity';
@@ -60,7 +70,10 @@ export class AuthController {
     private readonly refreshTokenUseCase: RefreshTokenUseCase,
     private readonly registerUseCase: RegisterUseCase,
     private readonly updateProfileUseCase: UpdateProfileUseCase,
+    private readonly requestPasswordResetUseCase: RequestPasswordResetUseCase,
+    private readonly resetPasswordUseCase: ResetPasswordUseCase,
   ) {}
+
 
   @Post('register')
   @ApiOperation({ summary: 'Registrar un nuevo usuario' })
@@ -235,5 +248,61 @@ export class AuthController {
       message: 'Foto de perfil subida exitosamente',
       filePath: `/uploads/avatars/${file.filename}`,
     };
+  }
+
+  @Post('password-reset/request')
+  @ApiOperation({ summary: 'Solicitar recuperación de contraseña' })
+  @ApiBody({ type: RequestPasswordResetDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Solicitud procesada (siempre retorna éxito por seguridad)',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        message: {
+          type: 'string',
+          example:
+            'Si el usuario existe, se ha enviado un correo con instrucciones para recuperar la contraseña',
+        },
+        emailSentTo: { type: 'string', example: 'j***@e***.com' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Error al enviar el correo',
+  })
+  async requestPasswordReset(
+    @Body() dto: RequestPasswordResetDto,
+  ): Promise<RequestPasswordResetResponse> {
+    return await this.requestPasswordResetUseCase.execute(dto);
+  }
+
+  @Post('password-reset/reset')
+  @ApiOperation({ summary: 'Resetear contraseña con token' })
+  @ApiBody({ type: ResetPasswordDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Contraseña restablecida exitosamente',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        message: {
+          type: 'string',
+          example: 'Contraseña restablecida exitosamente',
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Token inválido, expirado o contraseñas no coinciden',
+  })
+  async resetPassword(
+    @Body() dto: ResetPasswordDto,
+  ): Promise<ResetPasswordResponse> {
+    return await this.resetPasswordUseCase.execute(dto);
   }
 }

@@ -8,14 +8,19 @@ import { LoginUseCase } from '@/application/auth/use-cases/login.use-case';
 import { RefreshTokenUseCase } from '@/application/auth/use-cases/refresh-token.use-case';
 import { UpdateProfileUseCase } from '@/application/auth/use-cases/update-profile.use-case';
 import { RegisterUseCase } from '@/application/auth/use-cases/register.use-case';
+import { RequestPasswordResetUseCase } from '@/application/auth/use-cases/request-password-reset.use-case';
+import { ResetPasswordUseCase } from '@/application/auth/use-cases/reset-password.use-case';
 import { JwtStrategy } from '@/infrastructure/shared/auth/strategies/jwt.strategy';
 import { AuthRepositoryAdapter } from '@/infrastructure/auth/auth.repository.adapter';
+import { PasswordResetRepository } from '@/infrastructure/auth/password-reset.repository.adapter';
+import { EmailModule } from '@/infrastructure/email/email.module';
 import { Usuario } from '@/entities/usuarios/usuario.entity';
 import { Persona } from '@/entities/persona/persona.entity';
 import { Rol } from '@/entities/roles/rol.entity';
 import { PersonaRol } from '@/entities/roles/persona-rol.entity';
 import { Alumno } from '@/entities/alumnos/alumno.entity';
 import { Instructor } from '@/entities/instructores/instructor.entity';
+import { PasswordResetToken } from '@/entities/password-reset/password-reset-token.entity';
 
 @Module({
   controllers: [AuthController],
@@ -24,10 +29,16 @@ import { Instructor } from '@/entities/instructores/instructor.entity';
     RefreshTokenUseCase,
     RegisterUseCase,
     UpdateProfileUseCase,
+    RequestPasswordResetUseCase,
+    ResetPasswordUseCase,
     JwtStrategy,
     {
       provide: 'IAuthRepository',
       useClass: AuthRepositoryAdapter,
+    },
+    {
+      provide: 'IPasswordResetRepository',
+      useClass: PasswordResetRepository,
     },
   ],
   exports: [JwtStrategy, PassportModule, JwtModule, TypeOrmModule],
@@ -39,9 +50,11 @@ import { Instructor } from '@/entities/instructores/instructor.entity';
       PersonaRol,
       Alumno,
       Instructor,
+      PasswordResetToken,
     ]),
     PassportModule.register({ defaultStrategy: 'jwt' }),
     ConfigModule,
+    EmailModule,
     JwtModule.registerAsync({
       inject: [ConfigService],
       imports: [ConfigModule],

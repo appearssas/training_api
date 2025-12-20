@@ -22,7 +22,7 @@ export class LoginUseCase {
     const user = await this.authRepository.findByUsername(loginDto.username);
 
     if (!user) {
-      throw new NotFoundException('Usuario no encontrado o inactivo');
+      throw new UnauthorizedException('Usuario o contraseña inválidos');
     }
 
     if (!user.passwordHash) {
