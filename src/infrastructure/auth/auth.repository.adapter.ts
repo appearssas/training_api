@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
@@ -20,6 +20,8 @@ import {
 
 @Injectable()
 export class AuthRepositoryAdapter implements IAuthRepository {
+  private readonly logger = new Logger(AuthRepositoryAdapter.name);
+
   constructor(
     @InjectRepository(Usuario)
     private readonly userRepository: Repository<Usuario>,
@@ -38,38 +40,88 @@ export class AuthRepositoryAdapter implements IAuthRepository {
   ) {}
 
   async findByUsername(username: string): Promise<Usuario | null> {
-    const user = await this.userRepository.findOne({
-      where: {
-        username,
-        activo: true, // Solo usuarios activos
-      },
-      relations: ['persona', 'rolPrincipal'],
-      select: {
-        id: true,
-        username: true,
-        passwordHash: true,
-        activo: true,
-        persona: {
-          id: true,
-          nombres: true,
-          apellidos: true,
-          email: true,
-          activo: true,
-        },
-        rolPrincipal: {
-          id: true,
-          codigo: true,
-          nombre: true,
-        },
-      },
-    });
+    this.logger.log(`[findByUsername] Buscando usuario con username/email: ${username}`);
 
-    // Verificar que la persona también esté activa
-    if (user && user.persona && !user.persona.activo) {
+    try {
+      // Intentar primero buscar por username
+      let user = await this.userRepository
+        .createQueryBuilder('usuario')
+        .leftJoinAndSelect('usuario.persona', 'persona')
+        .leftJoinAndSelect('usuario.rolPrincipal', 'rolPrincipal')
+        .where('usuario.username = :username', { username })
+        .getOne();
+
+      this.logger.log(
+        `[findByUsername] Usuario encontrado por username: ${user ? `ID ${user.id}` : 'null'}`,
+      );
+
+      // Si no se encuentra por username, intentar buscar por email
+      if (!user) {
+        this.logger.log(`[findByUsername] Intentando buscar por email...`);
+        user = await this.userRepository
+          .createQueryBuilder('usuario')
+          .leftJoinAndSelect('usuario.persona', 'persona')
+          .leftJoinAndSelect('usuario.rolPrincipal', 'rolPrincipal')
+          .where('persona.email = :email', { email: username })
+          .getOne();
+
+        this.logger.log(
+          `[findByUsername] Usuario encontrado por email: ${user ? `ID ${user.id}` : 'null'}`,
+        );
+      }
+
+      // Si no se encuentra el usuario, retornar null
+      if (!user) {
+        this.logger.error(`[findByUsername] Usuario/Email '${username}' NO encontrado en la base de datos`);
+        return null;
+      }
+
+      // Verificar que el usuario esté activo
+      // MySQL almacena tinyint(1) como 0 o 1, TypeORM lo convierte a boolean
+      // Convertir a número para comparación segura
+      const usuarioActivoValue =
+        typeof user.activo === 'boolean' ? (user.activo ? 1 : 0) : Number(user.activo);
+
+      this.logger.log(
+        `[findByUsername] Usuario activo: ${user.activo} (tipo: ${typeof user.activo}, valor numérico: ${usuarioActivoValue})`,
+      );
+
+      if (usuarioActivoValue !== 1) {
+        this.logger.warn(
+          `[findByUsername] Usuario '${username}' está inactivo (activo: ${user.activo})`,
+        );
+        return null;
+      }
+
+      // Verificar que la persona también esté activa
+      if (user.persona) {
+        const personaActivaValue =
+          typeof user.persona.activo === 'boolean'
+            ? (user.persona.activo ? 1 : 0)
+            : Number(user.persona.activo);
+
+        this.logger.log(
+          `[findByUsername] Persona activa: ${user.persona.activo} (tipo: ${typeof user.persona.activo}, valor numérico: ${personaActivaValue})`,
+        );
+
+        if (personaActivaValue !== 1) {
+          this.logger.warn(
+            `[findByUsername] Persona del usuario '${username}' está inactiva (activo: ${user.persona.activo})`,
+          );
+          return null;
+        }
+      } else {
+        // Si no hay persona asociada, retornar null
+        this.logger.error(`[findByUsername] Usuario '${username}' no tiene persona asociada`);
+        return null;
+      }
+
+      this.logger.log(`[findByUsername] Usuario '${username}' encontrado y validado correctamente`);
+      return user;
+    } catch (error) {
+      this.logger.error(`[findByUsername] Error buscando usuario: ${error.message}`, error.stack);
       return null;
     }
-
-    return user ?? null;
   }
 
   comparePassword(password: string, hashedPassword: string): boolean {

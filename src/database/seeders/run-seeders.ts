@@ -7,6 +7,7 @@ import { TiposCapacitacionSeeder } from './tipos-capacitacion.seeder';
 import { ModalidadesSeeder } from './modalidades.seeder';
 import { TiposPreguntaSeeder } from './tipos-pregunta.seeder';
 import { TiposMaterialSeeder } from './tipos-material.seeder';
+import { AdminSeeder } from './admin.seeder';
 import { AppDataSource } from './data-source';
 
 /**
@@ -30,6 +31,7 @@ async function runSeeders() {
       new ModalidadesSeeder(AppDataSource),
       new TiposPreguntaSeeder(AppDataSource),
       new TiposMaterialSeeder(AppDataSource),
+      new AdminSeeder(AppDataSource), // Crear administrador inicial
     ];
 
     for (const seeder of seeders) {

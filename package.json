@@ -25,7 +25,8 @@
     "typeorm:migration:run": "node scripts/run-migrations.js",
     "typeorm:migration:revert": "node scripts/revert-migration.js",
     "seed": "ts-node -r dotenv/config -r tsconfig-paths/register src/database/seeders/run-seeders.ts",
-    "seed:run": "yarn seed"
+    "seed:run": "yarn seed",
+    "verify:admin": "ts-node -r dotenv/config -r tsconfig-paths/register scripts/verify-admin.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",

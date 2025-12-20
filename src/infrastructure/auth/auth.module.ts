@@ -7,7 +7,9 @@ import { AuthController } from './auth.controller';
 import { LoginUseCase } from '@/application/auth/use-cases/login.use-case';
 import { RefreshTokenUseCase } from '@/application/auth/use-cases/refresh-token.use-case';
 import { RegisterUseCase } from '@/application/auth/use-cases/register.use-case';
+import { CreateAdminUseCase } from '@/application/auth/use-cases/create-admin.use-case';
 import { AuthRepositoryAdapter } from './auth.repository.adapter';
+import { RolesGuard } from '@/infrastructure/shared/guards/roles.guard';
 import { Usuario } from '@/entities/usuarios/usuario.entity';
 import { Persona } from '@/entities/persona/persona.entity';
 import { Rol } from '@/entities/roles/rol.entity';
@@ -22,7 +24,9 @@ import { JwtStrategy } from '@/infrastructure/shared/auth/strategies/jwt.strateg
     LoginUseCase,
     RefreshTokenUseCase,
     RegisterUseCase,
+    CreateAdminUseCase,
     JwtStrategy,
+    RolesGuard,
     {
       provide: 'IAuthRepository',
       useClass: AuthRepositoryAdapter,

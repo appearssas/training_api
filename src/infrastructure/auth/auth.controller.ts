@@ -10,10 +10,13 @@ import { AuthGuard } from '@nestjs/passport';
 import { LoginUseCase } from '@/application/auth/use-cases/login.use-case';
 import { RefreshTokenUseCase } from '@/application/auth/use-cases/refresh-token.use-case';
 import { RegisterUseCase } from '@/application/auth/use-cases/register.use-case';
+import { CreateAdminUseCase } from '@/application/auth/use-cases/create-admin.use-case';
 import { LoginDto } from '@/application/auth/dto/login.dto';
 import { RegisterDto } from '@/application/auth/dto/register.dto';
+import { CreateAdminDto } from '@/application/auth/dto/create-admin.dto';
 import { GetUser } from '@/infrastructure/shared/auth/decorators/get-user.decorator';
 import { Usuario } from '@/entities/usuarios/usuario.entity';
+import { RolesGuard, Roles } from '@/infrastructure/shared/guards/roles.guard';
 
 interface TokenResponse {
   access_token: string;
@@ -37,6 +40,7 @@ export class AuthController {
     private readonly loginUseCase: LoginUseCase,
     private readonly refreshTokenUseCase: RefreshTokenUseCase,
     private readonly registerUseCase: RegisterUseCase,
+    private readonly createAdminUseCase: CreateAdminUseCase,
   ) {}
 
   @Post('register')
@@ -142,5 +146,41 @@ export class AuthController {
   refreshToken(@GetUser() user: Usuario): TokenResponse {
     const result = this.refreshTokenUseCase.execute(user);
     return result as TokenResponse;
+  }
+
+  @Post('admin')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('ADMIN')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({
+    summary: 'Crear nuevo administrador',
+    description:
+      'Crea un nuevo usuario administrador. Solo disponible para administradores existentes.',
+  })
+  @ApiBody({ type: CreateAdminDto })
+  @ApiResponse({
+    status: 201,
+    description: 'Administrador creado exitosamente',
+    schema: {
+      type: 'object',
+      properties: {
+        id: { type: 'number', example: 1 },
+        username: { type: 'string', example: 'admin.juan' },
+        email: { type: 'string', example: 'admin@example.com' },
+        nombres: { type: 'string', example: 'Juan' },
+        apellidos: { type: 'string', example: 'Pérez' },
+        rol: { type: 'string', example: 'ADMIN' },
+      },
+    },
+  })
+  @ApiResponse({ status: 400, description: 'Datos inválidos' })
+  @ApiResponse({ status: 401, description: 'No autorizado' })
+  @ApiResponse({
+    status: 403,
+    description: 'Acceso denegado - Se requiere rol de administrador',
+  })
+  @ApiResponse({ status: 409, description: 'El usuario, email o documento ya existe' })
+  async createAdmin(@Body() createAdminDto: CreateAdminDto) {
+    return await this.createAdminUseCase.execute(createAdminDto);
   }
 }

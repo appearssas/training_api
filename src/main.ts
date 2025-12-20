@@ -50,6 +50,7 @@ async function bootstrap() {
     )
     .addTag('auth', 'Endpoints de autenticación')
     .addTag('capacitaciones', 'Endpoints de capacitaciones')
+    .addTag('personas', 'Endpoints de gestión de personas y conductores externos')
     .build();
 
   const document = SwaggerModule.createDocument(app, config);

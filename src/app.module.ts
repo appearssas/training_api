@@ -7,6 +7,7 @@ import { CapacitacionesModule } from './infrastructure/capacitaciones/capacitaci
 import { GlobalExceptionFilter } from '@/infrastructure/shared/filters/global-exception.filter';
 import { AuthModule } from './infrastructure/auth/auth.module';
 import { DatabaseModule } from './infrastructure/shared/database/database.module';
+import { PersonasModule } from './infrastructure/personas/personas.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { DatabaseModule } from './infrastructure/shared/database/database.module
     DatabaseModule,
     AuthModule,
     CapacitacionesModule,
+    PersonasModule,
   ],
   controllers: [AppController],
   providers: [
