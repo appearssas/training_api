@@ -30,5 +30,5 @@ export * from './alertas/configuracion-alerta.entity';
 export * from './alertas/alerta-vencimiento.entity';
 export * from './documentos/documento-legal.entity';
 export * from './aceptaciones/aceptacion-politica.entity';
-export * from './logs/log-importacion.entity';
-export * from './logs/log-reporte.entity';
+// export * from './logs/log-importacion.entity';
+// export * from './logs/log-reporte.entity';

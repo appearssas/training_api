@@ -1,10 +1,15 @@
 import { NestFactory } from '@nestjs/core';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
+import { join } from 'path';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+
+  // Servir archivos estáticos
+  app.useStaticAssets(join(process.cwd(), 'public'));
 
   // Habilitar validación global
   app.useGlobalPipes(
@@ -14,6 +19,9 @@ async function bootstrap() {
       transform: true,
     }),
   );
+
+  // Habilitar CORS
+  app.enableCors();
 
   // Configuración de Swagger
   const config = new DocumentBuilder()

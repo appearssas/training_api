@@ -13,6 +13,7 @@ import { Genero } from '@/entities/persona/types';
 export enum TipoRegistro {
   ALUMNO = 'ALUMNO',
   INSTRUCTOR = 'INSTRUCTOR',
+  OPERADOR = 'OPERADOR',
 }
 
 export class RegisterDto {
@@ -41,21 +42,29 @@ export class RegisterDto {
   @IsNotEmpty()
   nombres: string;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     description: 'Apellidos de la persona',
     example: 'Pérez',
   })
   @IsString()
-  @IsNotEmpty()
-  apellidos: string;
+  @IsOptional()
+  apellidos?: string;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
+    description: 'Razón Social (solo jurídicas)',
+    example: 'Empresa SAS',
+  })
+  @IsString()
+  @IsOptional()
+  razonSocial?: string;
+
+  @ApiPropertyOptional({
     description: 'Correo electrónico',
     example: 'juan.perez@example.com',
   })
   @IsEmail()
-  @IsNotEmpty()
-  email: string;
+  @IsOptional()
+  email?: string;
 
   @ApiPropertyOptional({
     description: 'Número de teléfono',
@@ -90,6 +99,14 @@ export class RegisterDto {
   @IsOptional()
   direccion?: string;
 
+  @ApiPropertyOptional({
+    description: 'URL de la foto de perfil',
+    example: 'https://example.com/foto.jpg',
+  })
+  @IsString()
+  @IsOptional()
+  fotoUrl?: string;
+
   @ApiProperty({
     description: 'Nombre de usuario para el sistema',
     example: 'juan.perez',
@@ -113,7 +130,7 @@ export class RegisterDto {
   @ApiProperty({
     description: 'Tipo de registro',
     enum: TipoRegistro,
-    example: TipoRegistro.ALUMNO,
+    example: TipoRegistro.OPERADOR,
   })
   @IsEnum(TipoRegistro)
   @IsNotEmpty()

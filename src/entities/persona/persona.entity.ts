@@ -79,6 +79,9 @@ export class Persona {
   @Column({ type: 'text', nullable: true })
   direccion: string;
 
+  @Column({ type: 'text', nullable: true })
+  biografia: string;
+
   @Column({ type: 'varchar', length: 500, nullable: true, name: 'foto_url' })
   fotoUrl: string;
 

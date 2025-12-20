@@ -16,10 +16,16 @@ export interface IAuthRepository {
     expires_in: string;
   };
   hashPassword(password: string): string;
+  updatePersona(id: number, data: Partial<Persona>): Promise<Persona>;
   findRolByCodigo(codigo: string): Promise<Rol | null>;
   createPersonaWithUsuario(
     personaData: Partial<Persona>,
     usuarioData: { username: string; passwordHash: string },
     rolCodigo: string,
   ): Promise<Usuario>;
+
+  /**
+   * Guardar una entidad de Usuario
+   */
+  saveUser(user: Usuario): Promise<Usuario>;
 }

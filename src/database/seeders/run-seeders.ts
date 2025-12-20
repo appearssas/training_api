@@ -7,6 +7,7 @@ import { TiposCapacitacionSeeder } from './tipos-capacitacion.seeder';
 import { ModalidadesSeeder } from './modalidades.seeder';
 import { TiposPreguntaSeeder } from './tipos-pregunta.seeder';
 import { TiposMaterialSeeder } from './tipos-material.seeder';
+import { AdminUserSeeder } from './admin-user.seeder';
 import { AppDataSource } from './data-source';
 
 /**
@@ -30,6 +31,7 @@ async function runSeeders() {
       new ModalidadesSeeder(AppDataSource),
       new TiposPreguntaSeeder(AppDataSource),
       new TiposMaterialSeeder(AppDataSource),
+      new AdminUserSeeder(AppDataSource),
     ];
 
     for (const seeder of seeders) {

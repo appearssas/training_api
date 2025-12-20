@@ -34,6 +34,13 @@ export class LoginUseCase {
       throw new UnauthorizedException('Usuario inactivo');
     }
 
+    // Verificar que el usuario esté habilitado (aprobado por admin)
+    if (!user.habilitado) {
+      throw new UnauthorizedException(
+        'Tu cuenta está pendiente de aprobación del administrador',
+      );
+    }
+
     // Verificar que la persona esté activa
     if (user.persona && !user.persona.activo) {
       throw new UnauthorizedException('Persona inactiva');

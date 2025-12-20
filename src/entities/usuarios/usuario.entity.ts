@@ -20,6 +20,7 @@ export class Usuario {
   @OneToOne(() => Persona, (persona: Persona) => persona.usuario, {
     onDelete: 'CASCADE',
     nullable: false,
+    cascade: true,
   })
   @JoinColumn({ name: 'persona_id' })
   persona: Persona;

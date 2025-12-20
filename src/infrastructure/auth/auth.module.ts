@@ -6,15 +6,16 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthController } from './auth.controller';
 import { LoginUseCase } from '@/application/auth/use-cases/login.use-case';
 import { RefreshTokenUseCase } from '@/application/auth/use-cases/refresh-token.use-case';
+import { UpdateProfileUseCase } from '@/application/auth/use-cases/update-profile.use-case';
 import { RegisterUseCase } from '@/application/auth/use-cases/register.use-case';
-import { AuthRepositoryAdapter } from './auth.repository.adapter';
+import { JwtStrategy } from '@/infrastructure/shared/auth/strategies/jwt.strategy';
+import { AuthRepositoryAdapter } from '@/infrastructure/auth/auth.repository.adapter';
 import { Usuario } from '@/entities/usuarios/usuario.entity';
 import { Persona } from '@/entities/persona/persona.entity';
 import { Rol } from '@/entities/roles/rol.entity';
 import { PersonaRol } from '@/entities/roles/persona-rol.entity';
 import { Alumno } from '@/entities/alumnos/alumno.entity';
 import { Instructor } from '@/entities/instructores/instructor.entity';
-import { JwtStrategy } from '@/infrastructure/shared/auth/strategies/jwt.strategy';
 
 @Module({
   controllers: [AuthController],
@@ -22,6 +23,7 @@ import { JwtStrategy } from '@/infrastructure/shared/auth/strategies/jwt.strateg
     LoginUseCase,
     RefreshTokenUseCase,
     RegisterUseCase,
+    UpdateProfileUseCase,
     JwtStrategy,
     {
       provide: 'IAuthRepository',
