@@ -8,9 +8,12 @@ import {
   Min,
   Max,
   Length,
+  ValidateNested,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { EstadoCapacitacion } from '@/entities/capacitacion/types';
+import { CreateEvaluacionInlineDto } from './create-evaluacion-inline.dto';
 
 export class CreateCapacitacionDto {
   @ApiProperty({
@@ -156,4 +159,13 @@ export class CreateCapacitacionDto {
   @IsString()
   @Length(0, 100)
   usuarioCreacion?: string;
+
+  @ApiPropertyOptional({
+    description: 'Datos de la evaluación a crear junto con la capacitación (opcional)',
+    type: CreateEvaluacionInlineDto,
+  })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => CreateEvaluacionInlineDto)
+  evaluacion?: CreateEvaluacionInlineDto;
 }

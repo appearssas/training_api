@@ -47,7 +47,7 @@ export class Certificado {
     nullable: true,
     name: 'fecha_retroactiva',
   })
-  fechaRetroactiva: Date;
+  fechaRetroactiva: Date | null;
 
   @Column({
     type: 'tinyint',
@@ -61,7 +61,7 @@ export class Certificado {
     nullable: true,
     name: 'justificacion_retroactiva',
   })
-  justificacionRetroactiva: string;
+  justificacionRetroactiva: string | null;
 
   @Column({ type: 'date', nullable: true, name: 'fecha_vencimiento' })
   fechaVencimiento: Date;

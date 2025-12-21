@@ -6,8 +6,18 @@ import { FindAllCapacitacionesUseCase } from '@/application/capacitaciones/use-c
 import { FindOneCapacitacionUseCase } from '@/application/capacitaciones/use-cases/find-one-capacitacion.use-case';
 import { UpdateCapacitacionUseCase } from '@/application/capacitaciones/use-cases/update-capacitacion.use-case';
 import { RemoveCapacitacionUseCase } from '@/application/capacitaciones/use-cases/remove-capacitacion.use-case';
+import { LinkEvaluacionUseCase } from '@/application/capacitaciones/use-cases/link-evaluacion.use-case';
+import { ToggleStatusUseCase } from '@/application/capacitaciones/use-cases/toggle-status.use-case';
 import { CapacitacionesRepositoryAdapter } from './capacitaciones.repository.adapter';
 import { Capacitacion } from '@/entities/capacitacion/capacitacion.entity';
+import { Evaluacion } from '@/entities/evaluaciones/evaluacion.entity';
+import { Pregunta } from '@/entities/evaluaciones/pregunta.entity';
+import { OpcionRespuesta } from '@/entities/evaluaciones/opcion-respuesta.entity';
+import { TipoPregunta } from '@/entities/catalogos/tipo-pregunta.entity';
+import { Certificado } from '@/entities/certificados/certificado.entity';
+import { Inscripcion } from '@/entities/inscripcion/inscripcion.entity';
+import { EvaluacionValidatorService } from '../shared/services/evaluacion-validator.service';
+import { CertificadoValidatorService } from '../shared/services/certificado-validator.service';
 
 @Module({
   controllers: [CapacitacionesController],
@@ -17,18 +27,36 @@ import { Capacitacion } from '@/entities/capacitacion/capacitacion.entity';
     FindOneCapacitacionUseCase,
     UpdateCapacitacionUseCase,
     RemoveCapacitacionUseCase,
+    LinkEvaluacionUseCase,
+    ToggleStatusUseCase,
+    EvaluacionValidatorService,
+    CertificadoValidatorService,
     {
       provide: 'ICapacitacionesRepository',
       useClass: CapacitacionesRepositoryAdapter,
     },
   ],
-  imports: [TypeOrmModule.forFeature([Capacitacion])],
+  imports: [
+    TypeOrmModule.forFeature([
+      Capacitacion,
+      Evaluacion,
+      Pregunta,
+      OpcionRespuesta,
+      TipoPregunta,
+      Certificado,
+      Inscripcion,
+    ]),
+  ],
   exports: [
     CreateCapacitacionUseCase,
     FindAllCapacitacionesUseCase,
     FindOneCapacitacionUseCase,
     UpdateCapacitacionUseCase,
     RemoveCapacitacionUseCase,
+    LinkEvaluacionUseCase,
+    ToggleStatusUseCase,
+    EvaluacionValidatorService,
+    CertificadoValidatorService,
   ],
 })
 export class CapacitacionesModule {}
