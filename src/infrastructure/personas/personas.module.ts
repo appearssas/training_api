@@ -11,19 +11,19 @@ import { Rol } from '@/entities/roles/rol.entity';
 import { IPersonasRepository } from '@/domain/personas/ports/personas.repository.port';
 import { RolesGuard } from '@/infrastructure/shared/guards/roles.guard';
 import { AuthModule } from '@/infrastructure/auth/auth.module';
-import { EmailService } from '@/infrastructure/shared/services/email.service';
+import { EmailModule } from '@/infrastructure/email/email.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Persona, Alumno, Usuario, Rol]),
     PassportModule,
     AuthModule, // Importar AuthModule para tener acceso a JwtStrategy y PassportModule
+    EmailModule, // Importar EmailModule para tener acceso a EmailService
   ],
   controllers: [PersonasController],
   providers: [
     CreateConductorExternoUseCase,
     RolesGuard, // Registrar el guard como provider para que pueda ser inyectado
-    EmailService, // Servicio de email
     {
       provide: 'IPersonasRepository',
       useClass: PersonasRepositoryAdapter,

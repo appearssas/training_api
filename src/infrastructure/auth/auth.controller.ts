@@ -46,7 +46,7 @@ import { UpdateProfileUseCase } from '@/application/auth/use-cases/update-profil
 import { GetUser } from '@/infrastructure/shared/auth/decorators/get-user.decorator';
 import { Usuario } from '@/entities/usuarios/usuario.entity';
 import { RolesGuard, Roles } from '@/infrastructure/shared/guards/roles.guard';
-import { EmailService } from '@/infrastructure/shared/services/email.service';
+import { EmailService } from '@/infrastructure/email/email.service';
 
 interface TokenResponse {
   access_token: string;

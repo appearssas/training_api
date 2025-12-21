@@ -8,7 +8,7 @@ import {
 import { IPersonasRepository } from '@/domain/personas/ports/personas.repository.port';
 import { CreateConductorExternoDto } from '../dto/create-conductor-externo.dto';
 import { TipoDocumento } from '@/entities/persona/types';
-import { EmailService } from '@/infrastructure/shared/services/email.service';
+import { EmailService } from '@/infrastructure/email/email.service';
 
 @Injectable()
 export class CreateConductorExternoUseCase {

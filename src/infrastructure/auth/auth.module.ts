@@ -16,7 +16,6 @@ import { JwtStrategy } from '@/infrastructure/shared/auth/strategies/jwt.strateg
 import { AuthRepositoryAdapter } from '@/infrastructure/auth/auth.repository.adapter';
 import { PasswordResetRepository } from '@/infrastructure/auth/password-reset.repository.adapter';
 import { RolesGuard } from '@/infrastructure/shared/guards/roles.guard';
-import { EmailService } from '@/infrastructure/shared/services/email.service';
 import { EmailModule } from '@/infrastructure/email/email.module';
 import { Usuario } from '@/entities/usuarios/usuario.entity';
 import { Persona } from '@/entities/persona/persona.entity';
@@ -39,7 +38,6 @@ import { PasswordResetToken } from '@/entities/password-reset/password-reset-tok
     ResetPasswordUseCase,
     JwtStrategy,
     RolesGuard,
-    EmailService,
     {
       provide: 'IAuthRepository',
       useClass: AuthRepositoryAdapter,
