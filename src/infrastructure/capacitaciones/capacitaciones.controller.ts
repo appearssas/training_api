@@ -14,6 +14,7 @@ import {
   ApiResponse,
   ApiParam,
   ApiBody,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 import {
   CreateCapacitacionDto,
@@ -38,18 +39,53 @@ export class CapacitacionesController {
   ) {}
 
   @Post()
-  @ApiOperation({ summary: 'Crear una nueva capacitación' })
+  @ApiOperation({
+    summary: 'Crear una nueva capacitación',
+    description: 'Crea una nueva capacitación en el sistema con los datos proporcionados',
+  })
   @ApiBody({ type: CreateCapacitacionDto })
-  @ApiResponse({ status: 201, description: 'Capacitación creada exitosamente' })
-  @ApiResponse({ status: 400, description: 'Datos inválidos' })
+  @ApiResponse({
+    status: 201,
+    description: 'Capacitación creada exitosamente',
+    schema: {
+      type: 'object',
+      properties: {
+        id: { type: 'number', example: 1 },
+        titulo: { type: 'string', example: 'Capacitación en Seguridad Vial' },
+        descripcion: { type: 'string', example: 'Curso completo de seguridad vial' },
+      },
+    },
+  })
+  @ApiResponse({ status: 400, description: 'Datos inválidos o faltantes' })
+  @ApiResponse({ status: 500, description: 'Error interno del servidor' })
   create(@Body() createCapacitacionDto: CreateCapacitacionDto) {
     return this.createCapacitacionUseCase.execute(createCapacitacionDto);
   }
 
   @Post('list')
-  @ApiOperation({ summary: 'Obtener lista de capacitaciones con paginación' })
+  @ApiOperation({
+    summary: 'Obtener lista de capacitaciones con paginación',
+    description:
+      'Obtiene una lista paginada de todas las capacitaciones disponibles en el sistema',
+  })
   @ApiBody({ type: PaginationDto })
-  @ApiResponse({ status: 200, description: 'Lista de capacitaciones' })
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de capacitaciones',
+    schema: {
+      type: 'object',
+      properties: {
+        data: {
+          type: 'array',
+          items: { type: 'object' },
+        },
+        total: { type: 'number', example: 100 },
+        page: { type: 'number', example: 1 },
+        limit: { type: 'number', example: 10 },
+      },
+    },
+  })
+  @ApiResponse({ status: 400, description: 'Parámetros de paginación inválidos' })
   findAll(@Body() pagination: PaginationDto) {
     return this.findAllCapacitacionesUseCase.execute(pagination);
   }
@@ -68,17 +104,29 @@ export class CapacitacionesController {
   }
 
   @Patch(':id')
-  @ApiOperation({ summary: 'Actualizar una capacitación' })
+  @ApiOperation({
+    summary: 'Actualizar una capacitación',
+    description: 'Actualiza los datos de una capacitación existente. Solo se actualizan los campos proporcionados.',
+  })
   @ApiParam({
     name: 'id',
     type: 'number',
-    description: 'ID de la capacitación',
+    description: 'ID de la capacitación a actualizar',
+    example: 1,
   })
   @ApiBody({ type: UpdateCapacitacionDto })
   @ApiResponse({
     status: 200,
     description: 'Capacitación actualizada exitosamente',
+    schema: {
+      type: 'object',
+      properties: {
+        id: { type: 'number', example: 1 },
+        titulo: { type: 'string', example: 'Capacitación actualizada' },
+      },
+    },
   })
+  @ApiResponse({ status: 400, description: 'Datos inválidos' })
   @ApiResponse({ status: 404, description: 'Capacitación no encontrada' })
   update(
     @Param('id', ParseIntPipe) id: number,
@@ -88,17 +136,35 @@ export class CapacitacionesController {
   }
 
   @Delete(':id')
-  @ApiOperation({ summary: 'Eliminar una capacitación' })
+  @ApiOperation({
+    summary: 'Eliminar una capacitación',
+    description:
+      'Elimina una capacitación del sistema. Esta acción puede tener efectos en cascada si hay inscripciones asociadas.',
+  })
   @ApiParam({
     name: 'id',
     type: 'number',
-    description: 'ID de la capacitación',
+    description: 'ID de la capacitación a eliminar',
+    example: 1,
   })
   @ApiResponse({
     status: 200,
     description: 'Capacitación eliminada exitosamente',
+    schema: {
+      type: 'object',
+      properties: {
+        message: {
+          type: 'string',
+          example: 'Capacitación eliminada exitosamente',
+        },
+      },
+    },
   })
   @ApiResponse({ status: 404, description: 'Capacitación no encontrada' })
+  @ApiResponse({
+    status: 409,
+    description: 'No se puede eliminar: la capacitación tiene inscripciones asociadas',
+  })
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.removeCapacitacionUseCase.execute(id);
   }

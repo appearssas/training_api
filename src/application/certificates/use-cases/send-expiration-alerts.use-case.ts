@@ -12,9 +12,8 @@ export class SendExpirationAlertsUseCase {
     certificado: Certificado,
     diasRestantes: number,
   ): Promise<void> {
-    // Obtener datos del alumno (conductor)
-    const alumno = certificado.inscripcion?.alumno;
-    const persona = alumno?.persona;
+    // Obtener datos del estudiante (conductor)
+    const persona = certificado.inscripcion?.estudiante;
 
     if (!persona?.email) {
       this.logger.warn(

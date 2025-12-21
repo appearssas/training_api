@@ -19,6 +19,7 @@ import {
   ApiBody,
   ApiBearerAuth,
   ApiConsumes,
+  ApiParam,
 } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
 import { LoginUseCase } from '@/application/auth/use-cases/login.use-case';
@@ -197,7 +198,6 @@ export class AuthController {
     const result = this.refreshTokenUseCase.execute(user);
     return result as TokenResponse;
   }
-<<<<<<< HEAD
 
   @Post('admin')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
@@ -244,6 +244,12 @@ export class AuthController {
     description:
       'Permite cambiar la contraseña temporal. Usar este endpoint cuando se recibe el error PASSWORD_CHANGE_REQUIRED en el login.',
   })
+  @ApiParam({
+    name: 'username',
+    type: String,
+    description: 'Nombre de usuario del usuario que desea cambiar la contraseña',
+    example: 'juan.perez',
+  })
   @ApiBody({ type: ChangePasswordDto })
   @ApiResponse({
     status: 200,
@@ -277,12 +283,27 @@ export class AuthController {
   @Patch('profile')
   @UseGuards(AuthGuard('jwt'))
   @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Actualizar perfil del usuario autenticado' })
+  @ApiOperation({
+    summary: 'Actualizar perfil del usuario autenticado',
+    description:
+      'Actualiza los datos del perfil del usuario autenticado. Solo se actualizan los campos proporcionados en el body.',
+  })
   @ApiBody({ type: UpdateProfileDto })
   @ApiResponse({
     status: 200,
     description: 'Perfil actualizado exitosamente',
+    schema: {
+      type: 'object',
+      properties: {
+        message: {
+          type: 'string',
+          example: 'Perfil actualizado exitosamente',
+        },
+      },
+    },
   })
+  @ApiResponse({ status: 400, description: 'Datos inválidos' })
+  @ApiResponse({ status: 401, description: 'No autorizado' })
   async updateProfile(
     @GetUser() user: Usuario,
     @Body() updateDto: UpdateProfileDto,
@@ -293,7 +314,11 @@ export class AuthController {
   @Post('profile/photo')
   @UseGuards(AuthGuard('jwt'))
   @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Subir o actualizar foto de perfil' })
+  @ApiOperation({
+    summary: 'Subir o actualizar foto de perfil',
+    description:
+      'Sube o actualiza la foto de perfil del usuario autenticado. Acepta archivos de imagen (jpg, jpeg, png, gif). El archivo se guarda en /public/uploads/avatars/',
+  })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
     description: 'Archivo de imagen para el perfil',
@@ -303,8 +328,10 @@ export class AuthController {
         file: {
           type: 'string',
           format: 'binary',
+          description: 'Archivo de imagen (jpg, jpeg, png, gif)',
         },
       },
+      required: ['file'],
     },
   })
   @UseInterceptors(
@@ -327,7 +354,26 @@ export class AuthController {
       },
     }),
   )
-  uploadProfilePhoto(@UploadedFile() file: Express.Multer.File) {
+  @ApiResponse({
+    status: 200,
+    description: 'Foto de perfil subida exitosamente',
+    schema: {
+      type: 'object',
+      properties: {
+        message: {
+          type: 'string',
+          example: 'Foto de perfil subida exitosamente',
+        },
+        filePath: {
+          type: 'string',
+          example: '/uploads/avatars/abc123def456.jpg',
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 400, description: 'No se subió ningún archivo o formato inválido' })
+  @ApiResponse({ status: 401, description: 'No autorizado' })
+  uploadProfilePhoto(@UploadedFile() file?: Express.Multer.File) {
     if (!file) {
       throw new Error('No se subió ningún archivo');
     }
