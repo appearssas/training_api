@@ -25,6 +25,12 @@ export class RolesSeeder extends BaseSeeder {
         descripcion: 'Estudiante que puede inscribirse y tomar capacitaciones',
         activo: true,
       },
+      {
+        nombre: 'Operador',
+        codigo: 'OPERADOR',
+        descripcion: 'Operador del sistema con permisos básicos',
+        activo: true,
+      },
     ];
 
     for (const roleData of rolesData) {

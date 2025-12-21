@@ -14,6 +14,7 @@ import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { EstadoCapacitacion } from '@/entities/capacitacion/types';
 import { CreateEvaluacionInlineDto } from './create-evaluacion-inline.dto';
+import { IsStrictEnum } from '@/infrastructure/shared/decorators/strict-enum.decorator';
 
 export class CreateCapacitacionDto {
   @ApiProperty({
@@ -147,7 +148,9 @@ export class CreateCapacitacionDto {
     example: EstadoCapacitacion.BORRADOR,
   })
   @IsOptional()
-  @IsEnum(EstadoCapacitacion)
+  @IsStrictEnum(EstadoCapacitacion, {
+    message: 'estado debe ser uno de los valores permitidos: borrador, publicada, en_curso, finalizada, cancelada',
+  })
   estado?: EstadoCapacitacion;
 
   @ApiPropertyOptional({

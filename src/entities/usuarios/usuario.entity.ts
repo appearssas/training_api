@@ -20,6 +20,7 @@ export class Usuario {
   @OneToOne(() => Persona, (persona: Persona) => persona.usuario, {
     onDelete: 'CASCADE',
     nullable: false,
+    cascade: true,
   })
   @JoinColumn({ name: 'persona_id' })
   persona: Persona;
@@ -39,6 +40,13 @@ export class Usuario {
 
   @Column({ type: 'tinyint', default: 1 })
   activo: boolean;
+
+  @Column({
+    type: 'tinyint',
+    default: 0,
+    name: 'debe_cambiar_password',
+  })
+  debeCambiarPassword: boolean;
 
   @Column({ type: 'datetime', nullable: true, name: 'ultimo_acceso' })
   ultimoAcceso: Date;

@@ -12,8 +12,15 @@ COPY package.json yarn.lock ./
 # Instalar TODAS las dependencias (incluyendo dev)
 RUN yarn install
 
+# Copiar archivos de configuración necesarios para el build
+COPY tsconfig.json tsconfig.build.json nest-cli.json ./
+
 # Exponer el puerto
 EXPOSE 3000
 
-# Comando para iniciar en modo desarrollo con watch
-CMD ["yarn", "start:dev"]
+# Configurar variables de entorno para hot-reload
+ENV CHOKIDAR_USEPOLLING=true
+ENV WATCHPACK_POLLING=true
+
+# Comando para iniciar en modo desarrollo con watch (usar script específico para Docker)
+CMD ["yarn", "start:dev:docker"]

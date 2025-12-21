@@ -1,9 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
 import { IAuthRepository } from '@/domain/auth/ports/auth.repository.port';
-import { Usuario } from '@/entities/usuarios/usuario.entity';
+import { Usuario } from '../../entities/usuarios/usuario.entity';
 import { Persona } from '@/entities/persona/persona.entity';
 import { Rol } from '@/entities/roles/rol.entity';
 import { PersonaRol } from '@/entities/roles/persona-rol.entity';
@@ -13,9 +13,15 @@ import {
   comparePassword,
   hashPassword,
 } from '@/infrastructure/shared/helpers/bcrypt.helper';
+import {
+  generarCodigoEstudiante,
+  extraerNumeroSecuencial,
+} from '@/infrastructure/shared/helpers/codigo-estudiante.helper';
 
 @Injectable()
 export class AuthRepositoryAdapter implements IAuthRepository {
+  private readonly logger = new Logger(AuthRepositoryAdapter.name);
+
   constructor(
     @InjectRepository(Usuario)
     private readonly userRepository: Repository<Usuario>,
@@ -33,18 +39,44 @@ export class AuthRepositoryAdapter implements IAuthRepository {
     private readonly dataSource: DataSource,
   ) {}
 
-  async findByUsername(username: string): Promise<Usuario | null> {
+  async findByUsername(usernameOrEmail: string): Promise<Usuario | null> {
+    this.logger.log(
+      `[findByUsername] Buscando usuario con username/email: ${usernameOrEmail}`,
+    );
+
+    let whereCondition: any = {
+      username: usernameOrEmail,
+      // activo: true, // REMOVED: Allow inactive users to be found for proper error handling
+    };
+
+    // Si parece un email, buscamos primero la persona
+    if (usernameOrEmail.includes('@')) {
+      const persona = await this.personaRepository.findOne({
+        where: { email: usernameOrEmail },
+      });
+
+      if (!persona) {
+        this.logger.log(
+          `[findByUsername] Persona no encontrada para email: ${usernameOrEmail}`,
+        );
+        return null; // Persona not found logic remains
+      }
+
+      whereCondition = {
+        persona: { id: persona.id },
+        // activo: true, // REMOVED
+      };
+    }
+
     const user = await this.userRepository.findOne({
-      where: {
-        username,
-        activo: true, // Solo usuarios activos
-      },
+      where: whereCondition,
       relations: ['persona', 'rolPrincipal'],
       select: {
         id: true,
         username: true,
         passwordHash: true,
         activo: true,
+        habilitado: true,
         persona: {
           id: true,
           nombres: true,
@@ -60,11 +92,17 @@ export class AuthRepositoryAdapter implements IAuthRepository {
       },
     });
 
-    // Verificar que la persona también esté activa
-    if (user && user.persona && !user.persona.activo) {
-      return null;
+    if (user) {
+      this.logger.log(
+        `[findByUsername] Usuario encontrado: ID ${user.id}, activo: ${user.activo}, habilitado: ${user.habilitado}`,
+      );
+    } else {
+      this.logger.log(
+        `[findByUsername] Usuario no encontrado para: ${usernameOrEmail}`,
+      );
     }
 
+    // We return the user even if inactive/disabled so the UseCase can throw specific exceptions
     return user ?? null;
   }
 
@@ -132,65 +170,121 @@ export class AuthRepositoryAdapter implements IAuthRepository {
     usuarioData: { username: string; passwordHash: string },
     rolCodigo: string,
   ): Promise<Usuario> {
-    // Usar transacción para asegurar consistencia
-    return await this.dataSource.transaction(async (manager) => {
-      // 1. Buscar el rol
-      const rol = await manager.findOne(Rol, {
-        where: { codigo: rolCodigo, activo: true },
-      });
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
-      if (!rol) {
-        throw new Error(
-          `Rol con código ${rolCodigo} no encontrado. Asegúrate de que los roles estén creados en la base de datos.`,
-        );
-      }
-
-      // 2. Crear Persona
-      const persona = manager.create(Persona, {
+    try {
+      // 1. Crear persona
+      const persona = this.personaRepository.create({
         ...personaData,
         activo: true,
       });
-      const savedPersona = await manager.save(Persona, persona);
+      const savedPersona = await queryRunner.manager.save(persona);
 
-      // 3. Crear Usuario
-      const usuario = manager.create(Usuario, {
-        persona: savedPersona,
-        username: usuarioData.username,
-        passwordHash: usuarioData.passwordHash,
-        rolPrincipal: rol,
-        activo: true,
+      // 2. Buscar rol
+      const rol = await this.rolRepository.findOne({
+        where: { codigo: rolCodigo },
       });
-      const savedUsuario = await manager.save(Usuario, usuario);
 
-      // 4. Crear PersonaRol (asignar rol a la persona)
-      const personaRol = manager.create(PersonaRol, {
-        persona: savedPersona,
-        rol: rol,
-        activo: true,
-      });
-      await manager.save(PersonaRol, personaRol);
-
-      // 5. Crear registro específico según el rol
-      if (rolCodigo === 'ALUMNO') {
-        const alumno = manager.create(Alumno, {
-          persona: savedPersona,
-          activo: true,
-          fechaIngreso: new Date(),
-        });
-        await manager.save(Alumno, alumno);
-      } else if (rolCodigo === 'INSTRUCTOR') {
-        const instructor = manager.create(Instructor, {
-          persona: savedPersona,
-          activo: true,
-        });
-        await manager.save(Instructor, instructor);
+      if (!rol) {
+        throw new Error(`El rol ${rolCodigo} no existe`);
       }
 
-      // 6. Cargar relaciones para retornar
-      return (await manager.findOne(Usuario, {
-        where: { id: savedUsuario.id },
-        relations: ['persona', 'rolPrincipal'],
-      })) as Usuario;
+      // 3. Crear usuario
+      const usuario = this.userRepository.create({
+        ...usuarioData,
+        persona: savedPersona,
+        rolPrincipal: rol,
+        activo: true,
+        habilitado: false, // Por defecto inhabilitado hasta aprobación
+      });
+      const savedUsuario = await queryRunner.manager.save(usuario);
+
+      // 4. Asignar rol a persona
+      const personaRol = new PersonaRol();
+      personaRol.persona = savedPersona;
+      personaRol.rol = rol;
+      personaRol.activo = true;
+      await queryRunner.manager.save(personaRol);
+
+      // 5. Crear registro específico según rol
+      if (rolCodigo === 'ALUMNO') {
+        const alumno = new Alumno();
+        alumno.persona = savedPersona;
+        alumno.esExterno = false;
+        alumno.activo = true;
+        await queryRunner.manager.save(alumno);
+      } else if (rolCodigo === 'INSTRUCTOR') {
+        const instructor = new Instructor();
+        instructor.persona = savedPersona;
+        instructor.totalCapacitaciones = 0;
+        instructor.totalEstudiantes = 0;
+        instructor.activo = true;
+        await queryRunner.manager.save(instructor);
+      }
+
+      await queryRunner.commitTransaction();
+      return savedUsuario;
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
+  async updatePersona(id: number, data: Partial<Persona>): Promise<Persona> {
+    await this.personaRepository.update(id, data);
+    return await this.personaRepository.findOneOrFail({ where: { id } });
+  }
+
+  async saveUser(user: Usuario): Promise<Usuario> {
+    return await this.userRepository.save(user);
+  }
+
+  async updatePassword(
+    usuarioId: number,
+    nuevaPassword: string,
+  ): Promise<void> {
+    const passwordHash = this.hashPassword(nuevaPassword);
+    await this.userRepository.update(usuarioId, {
+      passwordHash,
+      debeCambiarPassword: false, // Ya no debe cambiar la contraseña
     });
+  }
+
+  /**
+   * Genera un código de estudiante único para el año actual
+   * Busca el último código del año y genera el siguiente número secuencial
+   */
+  private async generarCodigoEstudianteUnico(
+    alumnoRepository: Repository<Alumno>,
+  ): Promise<string> {
+    const año = new Date().getFullYear();
+    const prefijo = `EST${año}`;
+
+    // Buscar el último código de estudiante del año actual
+    const ultimoAlumno = await alumnoRepository
+      .createQueryBuilder('alumno')
+      .where('alumno.codigoEstudiante LIKE :prefijo', {
+        prefijo: `${prefijo}%`,
+      })
+      .andWhere('alumno.codigoEstudiante IS NOT NULL')
+      .orderBy('alumno.codigoEstudiante', 'DESC')
+      .getOne();
+
+    let siguienteNumero = 1;
+
+    if (ultimoAlumno && ultimoAlumno.codigoEstudiante) {
+      const numeroExtraido = extraerNumeroSecuencial(
+        ultimoAlumno.codigoEstudiante,
+      );
+      if (numeroExtraido !== null) {
+        siguienteNumero = numeroExtraido + 1;
+      }
+    }
+
+    return generarCodigoEstudiante(siguienteNumero - 1);
   }
 }

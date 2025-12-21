@@ -1,10 +1,15 @@
 import { NestFactory } from '@nestjs/core';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
+import { join } from 'path';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+
+  // Servir archivos estáticos
+  app.useStaticAssets(join(process.cwd(), 'public'));
 
   // Habilitar CORS para permitir peticiones desde el frontend
   app.enableCors({
@@ -14,14 +19,26 @@ async function bootstrap() {
     allowedHeaders: ['Content-Type', 'Authorization'],
   });
 
-  // Habilitar validación global
+  // Habilitar validación global con validación estricta de enums
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
       forbidNonWhitelisted: true,
       transform: true,
+      transformOptions: {
+        enableImplicitConversion: false, // Deshabilitar conversión implícita para validación estricta
+      },
+      // Validar enums estrictamente sin transformación
+      disableErrorMessages: false,
+      validationError: {
+        target: false,
+        value: false,
+      },
     }),
   );
+
+  // Habilitar CORS
+  app.enableCors();
 
   // Configuración de Swagger
   const config = new DocumentBuilder()
@@ -41,6 +58,7 @@ async function bootstrap() {
     )
     .addTag('auth', 'Endpoints de autenticación')
     .addTag('capacitaciones', 'Endpoints de capacitaciones')
+    .addTag('personas', 'Endpoints de gestión de personas y conductores externos')
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
