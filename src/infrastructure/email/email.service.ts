@@ -177,4 +177,123 @@ export class EmailService {
       // No lanzamos error aquí porque el cambio de contraseña ya se hizo
     }
   }
+
+  async sendExpirationAlert(
+    to: string,
+    nombreDestinatario: string,
+    certificado: any,
+    diasRestantes: number,
+  ): Promise<void> {
+    const mailFrom = this.configService.get<string>(
+      'MAIL_FROM',
+      'noreply@capacitaciones.com',
+    );
+
+    // Determinar el color y mensaje según los días restantes
+    let colorPrincipal = '#ff9800'; // Naranja por defecto (30 días)
+    let iconoAlerta = '⚠️';
+    let mensajePrincipal = 'Tu certificado está próximo a vencer';
+
+    if (diasRestantes === 0) {
+      colorPrincipal = '#f44336'; // Rojo
+      iconoAlerta = '🔴';
+      mensajePrincipal = 'Tu certificado vence HOY';
+    } else if (diasRestantes <= 7) {
+      colorPrincipal = '#ff9800'; // Naranja
+      iconoAlerta = '🟡';
+      mensajePrincipal = 'Tu certificado vence pronto';
+    }
+
+    const cursoNombre =
+      certificado.inscripcion?.capacitacion?.titulo || 'Curso';
+    const numeroCertificado = certificado.numeroCertificado;
+    const fechaVencimiento = new Date(
+      certificado.fechaVencimiento,
+    ).toLocaleDateString('es-CO');
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background-color: ${colorPrincipal}; color: white; padding: 20px; text-align: center; border-radius: 5px 5px 0 0; }
+          .content { background-color: #f9f9f9; padding: 30px; border-radius: 0 0 5px 5px; }
+          .alert-box { background-color: #fff3cd; border-left: 4px solid ${colorPrincipal}; padding: 15px; margin: 20px 0; border-radius: 3px; }
+          .info-table { width: 100%; margin: 20px 0; }
+          .info-table td { padding: 10px; border-bottom: 1px solid #ddd; }
+          .info-table td:first-child { font-weight: bold; width: 40%; }
+          .button { display: inline-block; padding: 12px 30px; background-color: ${colorPrincipal}; color: white; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+          .footer { text-align: center; margin-top: 20px; font-size: 12px; color: #666; }
+          .counter { font-size: 48px; font-weight: bold; color: ${colorPrincipal}; text-align: center; margin: 20px 0; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>${iconoAlerta} ${mensajePrincipal}</h1>
+          </div>
+          <div class="content">
+            <p>Hola <strong>${nombreDestinatario}</strong>,</p>
+            <p>Te recordamos que tu certificado está próximo a vencer:</p>
+            
+            <div class="counter">
+              ${diasRestantes} ${diasRestantes === 1 ? 'día' : 'día s'}
+            </div>
+            
+            <table class="info-table">
+              <tr>
+                <td>Curso:</td>
+                <td>${cursoNombre}</td>
+              </tr>
+              <tr>
+                <td>Número de Certificado:</td>
+                <td>${numeroCertificado}</td>
+              </tr>
+              <tr>
+                <td>Fecha de Vencimiento:</td>
+                <td><strong>${fechaVencimiento}</strong></td>
+              </tr>
+            </table>
+
+            <div class="alert-box">
+              <strong>¿Qué debes hacer?</strong>
+              <ul>
+                <li>Programa tu renovación antes de la fecha de vencimiento</li>
+                <li>Contacta con tu coordinador para inscribirte en la siguiente capacitación</li>
+                <li>${diasRestantes === 0 ? 'URGENTE: Tu certificado vence hoy' : 'No dejes pasar la fecha límite'}</li>
+              </ul>
+            </div>
+
+            <p style="margin-top: 30px;">Para más información o renovar tu certificado, contáctanos:</p>
+            <ul>
+              <li>Email: soporte@qinspecting.com</li>
+              <li>Teléfono: [Número de contacto]</li>
+            </ul>
+          </div>
+          <div class="footer">
+            <p>© ${new Date().getFullYear()} Sistema de Capacitaciones. Todos los derechos reservados.</p>
+            <p>Este es un correo automático, por favor no respondas a este mensaje.</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    try {
+      await this.transporter.sendMail({
+        from: mailFrom,
+        to,
+        subject: `${iconoAlerta} Alerta: Certificado próximo a vencer (${diasRestantes} ${diasRestantes === 1 ? 'día' : 'días'})`,
+        html: htmlContent,
+      });
+      this.logger.log(
+        `Alerta de vencimiento enviada a: ${to} (${diasRestantes} días)`,
+      );
+    } catch (error) {
+      this.logger.error(`Error al enviar alerta de vencimiento:`, error);
+      throw new Error('No se pudo enviar la alerta de vencimiento');
+    }
+  }
 }
