@@ -5,6 +5,6 @@
   "compilerOptions": {
     "deleteOutDir": false,
     "watchAssets": true,
-    "assets": ["**/*.json", "**/*.hbs"]
+    "assets": ["**/*.json", "**/*.hbs", "**/*.html"]
   }
 }

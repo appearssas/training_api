@@ -40,7 +40,9 @@ export class AuthRepositoryAdapter implements IAuthRepository {
   ) {}
 
   async findByUsername(username: string): Promise<Usuario | null> {
-    this.logger.log(`[findByUsername] Buscando usuario con username/email: ${username}`);
+    this.logger.log(
+      `[findByUsername] Buscando usuario con username/email: ${username}`,
+    );
 
     try {
       // Intentar primero buscar por username
@@ -72,7 +74,9 @@ export class AuthRepositoryAdapter implements IAuthRepository {
 
       // Si no se encuentra el usuario, retornar null
       if (!user) {
-        this.logger.error(`[findByUsername] Usuario/Email '${username}' NO encontrado en la base de datos`);
+        this.logger.error(
+          `[findByUsername] Usuario/Email '${username}' NO encontrado en la base de datos`,
+        );
         return null;
       }
 
@@ -80,7 +84,11 @@ export class AuthRepositoryAdapter implements IAuthRepository {
       // MySQL almacena tinyint(1) como 0 o 1, TypeORM lo convierte a boolean
       // Convertir a número para comparación segura
       const usuarioActivoValue =
-        typeof user.activo === 'boolean' ? (user.activo ? 1 : 0) : Number(user.activo);
+        typeof user.activo === 'boolean'
+          ? user.activo
+            ? 1
+            : 0
+          : Number(user.activo);
 
       this.logger.log(
         `[findByUsername] Usuario activo: ${user.activo} (tipo: ${typeof user.activo}, valor numérico: ${usuarioActivoValue})`,
@@ -97,7 +105,9 @@ export class AuthRepositoryAdapter implements IAuthRepository {
       if (user.persona) {
         const personaActivaValue =
           typeof user.persona.activo === 'boolean'
-            ? (user.persona.activo ? 1 : 0)
+            ? user.persona.activo
+              ? 1
+              : 0
             : Number(user.persona.activo);
 
         this.logger.log(
@@ -112,14 +122,21 @@ export class AuthRepositoryAdapter implements IAuthRepository {
         }
       } else {
         // Si no hay persona asociada, retornar null
-        this.logger.error(`[findByUsername] Usuario '${username}' no tiene persona asociada`);
+        this.logger.error(
+          `[findByUsername] Usuario '${username}' no tiene persona asociada`,
+        );
         return null;
       }
 
-      this.logger.log(`[findByUsername] Usuario '${username}' encontrado y validado correctamente`);
+      this.logger.log(
+        `[findByUsername] Usuario '${username}' encontrado y validado correctamente`,
+      );
       return user;
     } catch (error) {
-      this.logger.error(`[findByUsername] Error buscando usuario: ${error.message}`, error.stack);
+      this.logger.error(
+        `[findByUsername] Error buscando usuario: ${error.message}`,
+        error.stack,
+      );
       return null;
     }
   }
@@ -256,6 +273,17 @@ export class AuthRepositoryAdapter implements IAuthRepository {
     });
   }
 
+  async updatePassword(
+    usuarioId: number,
+    nuevaPassword: string,
+  ): Promise<void> {
+    const passwordHash = this.hashPassword(nuevaPassword);
+    await this.userRepository.update(usuarioId, {
+      passwordHash,
+      debeCambiarPassword: false, // Ya no debe cambiar la contraseña
+    });
+  }
+
   /**
    * Genera un código de estudiante único para el año actual
    * Busca el último código del año y genera el siguiente número secuencial
@@ -269,7 +297,9 @@ export class AuthRepositoryAdapter implements IAuthRepository {
     // Buscar el último código de estudiante del año actual
     const ultimoAlumno = await alumnoRepository
       .createQueryBuilder('alumno')
-      .where('alumno.codigoEstudiante LIKE :prefijo', { prefijo: `${prefijo}%` })
+      .where('alumno.codigoEstudiante LIKE :prefijo', {
+        prefijo: `${prefijo}%`,
+      })
       .andWhere('alumno.codigoEstudiante IS NOT NULL')
       .orderBy('alumno.codigoEstudiante', 'DESC')
       .getOne();

@@ -5,6 +5,7 @@ import {
   IsEnum,
   IsDateString,
   MinLength,
+  IsEmail,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { TipoDocumento, Genero } from '@/entities/persona/types';
@@ -61,15 +62,15 @@ export class CreateConductorExternoDto {
   @IsNotEmpty({ message: 'Los apellidos son obligatorios' })
   apellidos: string;
 
-  @ApiPropertyOptional({
-    description: 'Correo electrónico de contacto',
+  @ApiProperty({
+    description: 'Correo electrónico de contacto (obligatorio para enviar credenciales de acceso)',
     example: 'juan.perez@example.com',
     format: 'email',
     maxLength: 255,
   })
-  @IsString()
-  @IsOptional()
-  email?: string;
+  @IsEmail({}, { message: 'El email debe tener un formato válido' })
+  @IsNotEmpty({ message: 'El email es obligatorio para enviar las credenciales de acceso' })
+  email: string;
 
   @ApiPropertyOptional({
     description: 'Número de teléfono de contacto',

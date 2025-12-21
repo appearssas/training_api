@@ -11,6 +11,7 @@ import { Rol } from '@/entities/roles/rol.entity';
 import { IPersonasRepository } from '@/domain/personas/ports/personas.repository.port';
 import { RolesGuard } from '@/infrastructure/shared/guards/roles.guard';
 import { AuthModule } from '@/infrastructure/auth/auth.module';
+import { EmailService } from '@/infrastructure/shared/services/email.service';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { AuthModule } from '@/infrastructure/auth/auth.module';
   providers: [
     CreateConductorExternoUseCase,
     RolesGuard, // Registrar el guard como provider para que pueda ser inyectado
+    EmailService, // Servicio de email
     {
       provide: 'IPersonasRepository',
       useClass: PersonasRepositoryAdapter,

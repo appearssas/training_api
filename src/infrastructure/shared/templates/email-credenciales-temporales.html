@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Credenciales de Acceso - Sistema de Capacitaciones</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      line-height: 1.6;
+      color: #333333;
+      background-color: #f4f4f4;
+    }
+    .email-container {
+      max-width: 600px;
+      margin: 0 auto;
+      background-color: #ffffff;
+    }
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #ffffff;
+      padding: 40px 20px;
+      text-align: center;
+    }
+    .header h1 {
+      font-size: 24px;
+      font-weight: 600;
+      margin-bottom: 10px;
+    }
+    .header p {
+      font-size: 14px;
+      opacity: 0.9;
+    }
+    .content {
+      padding: 40px 30px;
+    }
+    .greeting {
+      font-size: 16px;
+      margin-bottom: 20px;
+      color: #333333;
+    }
+    .greeting strong {
+      color: #667eea;
+    }
+    .intro {
+      font-size: 14px;
+      color: #666666;
+      margin-bottom: 30px;
+      line-height: 1.8;
+    }
+    .credentials-box {
+      background-color: #f8f9fa;
+      border: 2px solid #e9ecef;
+      border-radius: 8px;
+      padding: 25px;
+      margin: 30px 0;
+    }
+    .credential-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 0;
+      border-bottom: 1px solid #e9ecef;
+    }
+    .credential-item:last-child {
+      border-bottom: none;
+    }
+    .credential-label {
+      font-weight: 600;
+      color: #495057;
+      font-size: 14px;
+    }
+    .credential-value {
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+      color: #212529;
+      background-color: #ffffff;
+      padding: 6px 12px;
+      border-radius: 4px;
+      border: 1px solid #dee2e6;
+      font-weight: 600;
+    }
+    .warning-box {
+      background-color: #fff3cd;
+      border-left: 4px solid #ffc107;
+      padding: 20px;
+      margin: 30px 0;
+      border-radius: 4px;
+    }
+    .warning-box strong {
+      color: #856404;
+      display: block;
+      margin-bottom: 10px;
+      font-size: 14px;
+    }
+    .warning-box p {
+      color: #856404;
+      font-size: 13px;
+      margin: 0;
+      line-height: 1.6;
+    }
+    .instructions {
+      background-color: #e7f3ff;
+      border-left: 4px solid #2196F3;
+      padding: 20px;
+      margin: 30px 0;
+      border-radius: 4px;
+    }
+    .instructions h3 {
+      color: #1976D2;
+      font-size: 14px;
+      margin-bottom: 15px;
+      font-weight: 600;
+    }
+    .instructions ol {
+      margin-left: 20px;
+      color: #1976D2;
+      font-size: 13px;
+    }
+    .instructions li {
+      margin-bottom: 8px;
+      line-height: 1.6;
+    }
+    .footer {
+      background-color: #f8f9fa;
+      padding: 30px;
+      text-align: center;
+      border-top: 1px solid #e9ecef;
+    }
+    .footer p {
+      font-size: 12px;
+      color: #6c757d;
+      margin: 5px 0;
+    }
+    .footer a {
+      color: #667eea;
+      text-decoration: none;
+    }
+    .divider {
+      height: 1px;
+      background-color: #e9ecef;
+      margin: 30px 0;
+    }
+    @media only screen and (max-width: 600px) {
+      .content {
+        padding: 30px 20px;
+      }
+      .credentials-box {
+        padding: 20px;
+      }
+      .credential-item {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .credential-value {
+        margin-top: 8px;
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="email-container">
+    <div class="header">
+      <h1>🎓 Sistema de Capacitaciones</h1>
+      <p>Credenciales de Acceso Temporales</p>
+    </div>
+    
+    <div class="content">
+      <div class="greeting">
+        Estimado/a <strong>{{nombre}}</strong>,
+      </div>
+      
+      <div class="intro">
+        Se ha creado tu cuenta en el sistema de capacitaciones. A continuación encontrarás tus credenciales de acceso temporales que deberás usar para iniciar sesión por primera vez.
+      </div>
+      
+      <div class="credentials-box">
+        <div class="credential-item">
+          <span class="credential-label">👤 Usuario:</span>
+          <span class="credential-value">{{username}}</span>
+        </div>
+        <div class="credential-item">
+          <span class="credential-label">🔑 Contraseña Temporal:</span>
+          <span class="credential-value">{{passwordTemporal}}</span>
+        </div>
+      </div>
+      
+      <div class="warning-box">
+        <strong>⚠️ IMPORTANTE - Seguridad</strong>
+        <p>Por seguridad del sistema, deberás cambiar tu contraseña al iniciar sesión por primera vez. No compartas estas credenciales con nadie.</p>
+      </div>
+      
+      <div class="instructions">
+        <h3>📋 Pasos para acceder al sistema:</h3>
+        <ol>
+          <li>Ingresa al sistema usando las credenciales temporales proporcionadas arriba</li>
+          <li>El sistema te solicitará automáticamente cambiar tu contraseña</li>
+          <li>Establece una contraseña segura que cumpla con los requisitos del sistema:
+            <ul style="margin-top: 8px; margin-left: 20px;">
+              <li>Mínimo 8 caracteres</li>
+              <li>Al menos una mayúscula</li>
+              <li>Al menos una minúscula</li>
+              <li>Al menos un número</li>
+              <li>Al menos un símbolo especial (!@#$%&*)</li>
+            </ul>
+          </li>
+          <li>Una vez cambiada la contraseña, podrás acceder normalmente al sistema</li>
+        </ol>
+      </div>
+      
+      <div class="divider"></div>
+      
+      <p style="font-size: 13px; color: #6c757d; margin-top: 20px;">
+        Si tienes alguna pregunta o necesitas asistencia, por favor contacta al administrador del sistema.
+      </p>
+    </div>
+    
+    <div class="footer">
+      <p><strong>Sistema de Capacitaciones</strong></p>
+      <p>Este es un correo automático generado por el sistema.</p>
+      <p style="margin-top: 15px; font-size: 11px; color: #adb5bd;">
+        Por favor, no respondas a este correo. Si necesitas ayuda, contacta al administrador.
+      </p>
+    </div>
+  </div>
+</body>
+</html>
+

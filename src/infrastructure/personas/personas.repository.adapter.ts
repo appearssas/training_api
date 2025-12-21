@@ -11,6 +11,7 @@ import {
   extraerNumeroSecuencial,
 } from '@/infrastructure/shared/helpers/codigo-estudiante.helper';
 import { hashPassword } from '@/infrastructure/shared/helpers/bcrypt.helper';
+import { generarPasswordTemporal } from '@/infrastructure/shared/helpers/password-generator.helper';
 
 @Injectable()
 export class PersonasRepositoryAdapter implements IPersonasRepository {
@@ -40,7 +41,12 @@ export class PersonasRepositoryAdapter implements IPersonasRepository {
 
   async createConductorExterno(
     personaData: Partial<Persona>,
-  ): Promise<{ persona: Persona; alumno: Alumno }> {
+  ): Promise<{
+    persona: Persona;
+    alumno: Alumno;
+    usuario: Usuario;
+    passwordTemporal: string;
+  }> {
     // Usar transacción para asegurar consistencia
     return await this.dataSource.transaction(async (manager) => {
       // 1. Buscar el rol ALUMNO
@@ -61,7 +67,7 @@ export class PersonasRepositoryAdapter implements IPersonasRepository {
       });
       const savedPersona = await manager.save(Persona, persona);
 
-      // 3. Crear Usuario deshabilitado (estado "No habilitado")
+      // 3. Crear Usuario con contraseña temporal
       // Generar un username único basado en el número de documento
       const username = `ext_${savedPersona.numeroDocumento}`;
       
@@ -77,20 +83,20 @@ export class PersonasRepositoryAdapter implements IPersonasRepository {
         counter++;
       }
 
-      // Crear usuario con contraseña temporal (no se usará, pero es requerida)
-      // Generar una contraseña aleatoria segura que no se usará porque el usuario está deshabilitado
-      const randomPassword = `EXT_${savedPersona.numeroDocumento}_${Date.now()}`;
-      const passwordHash = hashPassword(randomPassword);
+      // Generar contraseña temporal segura
+      const passwordTemporal = generarPasswordTemporal(12, 'TEMP_');
+      const passwordHash = hashPassword(passwordTemporal);
 
       const usuario = manager.create(Usuario, {
         persona: savedPersona,
         username: finalUsername,
         passwordHash,
         rolPrincipal: rolAlumno,
-        habilitado: false, // Estado "No habilitado"
+        habilitado: true, // Habilitado para que pueda iniciar sesión
         activo: true,
+        debeCambiarPassword: true, // Debe cambiar la contraseña en el primer login
       });
-      await manager.save(Usuario, usuario);
+      const savedUsuario = await manager.save(Usuario, usuario);
 
       // 4. Generar código de estudiante automático
       const codigoEstudiante = await this.generarCodigoEstudianteUnico(
@@ -107,9 +113,12 @@ export class PersonasRepositoryAdapter implements IPersonasRepository {
       });
       const savedAlumno = await manager.save(Alumno, alumno);
 
+      // Retornar también la contraseña temporal para enviarla por email
       return {
         persona: savedPersona,
         alumno: savedAlumno,
+        usuario: savedUsuario,
+        passwordTemporal, // Incluir para enviar por email
       };
     });
   }

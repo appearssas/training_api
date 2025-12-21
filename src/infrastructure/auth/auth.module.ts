@@ -8,8 +8,10 @@ import { LoginUseCase } from '@/application/auth/use-cases/login.use-case';
 import { RefreshTokenUseCase } from '@/application/auth/use-cases/refresh-token.use-case';
 import { RegisterUseCase } from '@/application/auth/use-cases/register.use-case';
 import { CreateAdminUseCase } from '@/application/auth/use-cases/create-admin.use-case';
+import { ChangePasswordUseCase } from '@/application/auth/use-cases/change-password.use-case';
 import { AuthRepositoryAdapter } from './auth.repository.adapter';
 import { RolesGuard } from '@/infrastructure/shared/guards/roles.guard';
+import { EmailService } from '@/infrastructure/shared/services/email.service';
 import { Usuario } from '@/entities/usuarios/usuario.entity';
 import { Persona } from '@/entities/persona/persona.entity';
 import { Rol } from '@/entities/roles/rol.entity';
@@ -25,8 +27,10 @@ import { JwtStrategy } from '@/infrastructure/shared/auth/strategies/jwt.strateg
     RefreshTokenUseCase,
     RegisterUseCase,
     CreateAdminUseCase,
+    ChangePasswordUseCase,
     JwtStrategy,
     RolesGuard,
+    EmailService,
     {
       provide: 'IAuthRepository',
       useClass: AuthRepositoryAdapter,

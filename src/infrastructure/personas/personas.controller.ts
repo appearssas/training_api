@@ -36,10 +36,11 @@ export class PersonasController {
     description: `Crea un conductor externo manualmente en el sistema. 
 
 **Características importantes:**
-- El conductor queda en estado "No habilitado" (usuario con \`habilitado: false\`)
+- El conductor queda habilitado con usuario activo
 - Se crea automáticamente un código de estudiante en formato EST{YYYY}{NNNNN}
 - El conductor es marcado como externo (\`esExterno: true\`)
-- Se genera un usuario con credenciales temporales que no puede acceder al sistema
+- Se genera un usuario con contraseña temporal que debe ser cambiada en el primer login
+- Se envía un correo electrónico con las credenciales de acceso temporales
 - Solo disponible para usuarios con rol de administrador
 
 **Datos obligatorios:**
@@ -47,8 +48,9 @@ export class PersonasController {
 - Tipo de documento (CC, TI, CE, PA, RC, NIT)
 - Nombres
 - Apellidos
+- Email (obligatorio para enviar credenciales de acceso)
 
-**Nota:** El conductor externo puede ser habilitado posteriormente para acceder al sistema.`,
+**Nota:** El usuario recibirá un correo con sus credenciales temporales y deberá cambiar la contraseña al iniciar sesión por primera vez.`,
   })
   @ApiBody({
     type: CreateConductorExternoDto,
@@ -56,12 +58,13 @@ export class PersonasController {
     examples: {
       ejemploMinimo: {
         summary: 'Ejemplo con datos mínimos obligatorios',
-        description: 'Solo los campos obligatorios',
+        description: 'Solo los campos obligatorios (incluye email)',
         value: {
           numeroDocumento: '1234567890',
           tipoDocumento: 'CC',
           nombres: 'Juan',
           apellidos: 'Pérez',
+          email: 'juan.perez@example.com',
         },
       },
       ejemploCompleto: {

@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, UseGuards } from '@nestjs/common';
+import { Controller, Post, Body, Get, UseGuards, Param } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
@@ -11,12 +11,15 @@ import { LoginUseCase } from '@/application/auth/use-cases/login.use-case';
 import { RefreshTokenUseCase } from '@/application/auth/use-cases/refresh-token.use-case';
 import { RegisterUseCase } from '@/application/auth/use-cases/register.use-case';
 import { CreateAdminUseCase } from '@/application/auth/use-cases/create-admin.use-case';
+import { ChangePasswordUseCase } from '@/application/auth/use-cases/change-password.use-case';
 import { LoginDto } from '@/application/auth/dto/login.dto';
 import { RegisterDto } from '@/application/auth/dto/register.dto';
 import { CreateAdminDto } from '@/application/auth/dto/create-admin.dto';
+import { ChangePasswordDto } from '@/application/auth/dto/change-password.dto';
 import { GetUser } from '@/infrastructure/shared/auth/decorators/get-user.decorator';
 import { Usuario } from '@/entities/usuarios/usuario.entity';
 import { RolesGuard, Roles } from '@/infrastructure/shared/guards/roles.guard';
+import { EmailService } from '@/infrastructure/shared/services/email.service';
 
 interface TokenResponse {
   access_token: string;
@@ -41,6 +44,8 @@ export class AuthController {
     private readonly refreshTokenUseCase: RefreshTokenUseCase,
     private readonly registerUseCase: RegisterUseCase,
     private readonly createAdminUseCase: CreateAdminUseCase,
+    private readonly changePasswordUseCase: ChangePasswordUseCase,
+    private readonly emailService: EmailService,
   ) {}
 
   @Post('register')
@@ -179,8 +184,139 @@ export class AuthController {
     status: 403,
     description: 'Acceso denegado - Se requiere rol de administrador',
   })
-  @ApiResponse({ status: 409, description: 'El usuario, email o documento ya existe' })
+  @ApiResponse({
+    status: 409,
+    description: 'El usuario, email o documento ya existe',
+  })
   async createAdmin(@Body() createAdminDto: CreateAdminDto) {
     return await this.createAdminUseCase.execute(createAdminDto);
+  }
+
+  @Post('change-password/:username')
+  @ApiOperation({
+    summary: 'Cambiar contraseña temporal (por username)',
+    description:
+      'Permite cambiar la contraseña temporal. Usar este endpoint cuando se recibe el error PASSWORD_CHANGE_REQUIRED en el login.',
+  })
+  @ApiBody({ type: ChangePasswordDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Contraseña cambiada exitosamente',
+    schema: {
+      type: 'object',
+      properties: {
+        message: {
+          type: 'string',
+          example:
+            'Contraseña cambiada exitosamente. Ya puede iniciar sesión con su nueva contraseña.',
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Datos inválidos o contraseña no cumple requisitos',
+  })
+  @ApiResponse({ status: 401, description: 'Contraseña temporal incorrecta' })
+  async changePasswordByUsername(
+    @Body() changePasswordDto: ChangePasswordDto,
+    @Param('username') username: string,
+  ) {
+    return await this.changePasswordUseCase.execute(
+      username,
+      changePasswordDto,
+    );
+  }
+
+  @Post('test-email')
+  @ApiOperation({
+    summary: '[TEMPORAL] Probar envío de correo',
+    description:
+      'Endpoint temporal para probar el envío de correos con credenciales. Solo para desarrollo/testing.',
+  })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        email: {
+          type: 'string',
+          example: 'test@example.com',
+          description: 'Email del destinatario',
+        },
+        nombre: {
+          type: 'string',
+          example: 'Juan Pérez',
+          description: 'Nombre del usuario',
+        },
+        username: {
+          type: 'string',
+          example: 'juan.perez',
+          description: 'Username para login',
+        },
+        passwordTemporal: {
+          type: 'string',
+          example: 'TEMP_A3b7K9m2P5q',
+          description: 'Contraseña temporal',
+        },
+      },
+      required: ['email', 'nombre', 'username', 'passwordTemporal'],
+    },
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Correo de prueba enviado',
+    schema: {
+      type: 'object',
+      properties: {
+        message: {
+          type: 'string',
+          example: 'Correo de prueba enviado exitosamente',
+        },
+        email: {
+          type: 'string',
+          example: 'test@example.com',
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Error al enviar el correo',
+  })
+  async testEmail(
+    @Body()
+    body: {
+      email: string;
+      nombre: string;
+      username: string;
+      passwordTemporal: string;
+    },
+  ) {
+    try {
+      await this.emailService.enviarCredencialesTemporales(
+        body.email,
+        body.nombre,
+        body.username,
+        body.passwordTemporal,
+      );
+      return {
+        success: true,
+        message: 'Correo de prueba enviado exitosamente',
+        email: body.email,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: 'Error al enviar correo de prueba',
+        error: error.message,
+        email: body.email,
+        detalles: {
+          host: process.env.EMAIL_HOST || 'NO CONFIGURADO',
+          port: process.env.EMAIL_PORT || 'NO CONFIGURADO',
+          user: process.env.EMAIL_USER || 'NO CONFIGURADO',
+          secure: process.env.EMAIL_SECURE || 'NO CONFIGURADO',
+        },
+      };
+    }
   }
 }

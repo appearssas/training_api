@@ -40,6 +40,13 @@ export class Usuario {
   @Column({ type: 'tinyint', default: 1 })
   activo: boolean;
 
+  @Column({
+    type: 'tinyint',
+    default: 0,
+    name: 'debe_cambiar_password',
+  })
+  debeCambiarPassword: boolean;
+
   @Column({ type: 'datetime', nullable: true, name: 'ultimo_acceso' })
   ultimoAcceso: Date;
 

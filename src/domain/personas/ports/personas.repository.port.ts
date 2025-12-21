@@ -1,5 +1,6 @@
 import { Persona } from '@/entities/persona/persona.entity';
 import { Alumno } from '@/entities/alumnos/alumno.entity';
+import { Usuario } from '@/entities/usuarios/usuario.entity';
 
 /**
  * Puerto para el repositorio de Personas
@@ -16,11 +17,16 @@ export interface IPersonasRepository {
   findByEmail(email: string): Promise<Persona | null>;
 
   /**
-   * Crea un conductor externo (alumno externo sin usuario)
-   * El conductor queda en estado "No habilitado" (sin usuario asociado)
+   * Crea un conductor externo con usuario y contraseña temporal
+   * El usuario queda habilitado pero debe cambiar la contraseña en el primer login
    */
   createConductorExterno(
     personaData: Partial<Persona>,
-  ): Promise<{ persona: Persona; alumno: Alumno }>;
+  ): Promise<{
+    persona: Persona;
+    alumno: Alumno;
+    usuario: Usuario;
+    passwordTemporal: string;
+  }>;
 }
 
