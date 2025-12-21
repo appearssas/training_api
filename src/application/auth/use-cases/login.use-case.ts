@@ -24,7 +24,7 @@ export class LoginUseCase {
     const user = await this.authRepository.findByUsername(loginDto.username);
 
     if (!user) {
-      throw new NotFoundException('Usuario no encontrado o inactivo');
+      throw new UnauthorizedException('Usuario o contraseña inválidos');
     }
 
     if (!user.passwordHash) {
@@ -34,6 +34,13 @@ export class LoginUseCase {
     // Verificar que el usuario esté activo
     if (!user.activo) {
       throw new UnauthorizedException('Usuario inactivo');
+    }
+
+    // Verificar que el usuario esté habilitado (aprobado por admin)
+    if (!user.habilitado) {
+      throw new UnauthorizedException(
+        'Tu cuenta está pendiente de aprobación del administrador',
+      );
     }
 
     // Verificar que la persona esté activa

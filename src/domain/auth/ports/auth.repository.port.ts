@@ -16,6 +16,7 @@ export interface IAuthRepository {
     expires_in: string;
   };
   hashPassword(password: string): string;
+  updatePersona(id: number, data: Partial<Persona>): Promise<Persona>;
   findRolByCodigo(codigo: string): Promise<Rol | null>;
   createPersonaWithUsuario(
     personaData: Partial<Persona>,
@@ -23,4 +24,9 @@ export interface IAuthRepository {
     rolCodigo: string,
   ): Promise<Usuario>;
   updatePassword(usuarioId: number, nuevaPassword: string): Promise<void>;
+
+  /**
+   * Guardar una entidad de Usuario
+   */
+  saveUser(user: Usuario): Promise<Usuario>;
 }
