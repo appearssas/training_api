@@ -17,6 +17,11 @@ export interface IPersonasRepository {
   findByEmail(email: string): Promise<Persona | null>;
 
   /**
+   * Busca una persona por su ID con todas las relaciones necesarias
+   */
+  findById(id: number): Promise<Persona | null>;
+
+  /**
    * Crea un conductor externo con usuario y contraseña temporal
    * El usuario queda habilitado pero debe cambiar la contraseña en el primer login
    */

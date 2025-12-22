@@ -14,6 +14,7 @@ import { AuthModule } from './infrastructure/auth/auth.module';
 import { DatabaseModule } from './infrastructure/shared/database/database.module';
 import { PersonasModule } from './infrastructure/personas/personas.module';
 import { CertificatesModule } from './infrastructure/certificates/certificates.module';
+import { PagosModule } from './infrastructure/pagos/pagos.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { CertificatesModule } from './infrastructure/certificates/certificates.m
     CertificadosModule,
     PersonasModule,
     CertificatesModule,
+    PagosModule,
   ],
   controllers: [AppController],
   providers: [

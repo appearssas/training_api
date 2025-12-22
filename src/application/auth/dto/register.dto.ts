@@ -54,8 +54,21 @@ export class RegisterDto {
   @IsOptional()
   apellidos?: string;
 
+  @ApiProperty({
+    description: 'Tipo de persona: NATURAL o JURIDICA. Si no se especifica, se determina automáticamente: JURIDICA si tiene razón social, NATURAL en caso contrario.',
+    enum: ['NATURAL', 'JURIDICA'],
+    example: 'NATURAL',
+    default: 'NATURAL',
+    required: false,
+  })
+  @IsStrictEnum(['NATURAL', 'JURIDICA'], {
+    message: 'tipoPersona debe ser NATURAL o JURIDICA',
+  })
+  @IsOptional()
+  tipoPersona?: 'NATURAL' | 'JURIDICA';
+
   @ApiPropertyOptional({
-    description: 'Razón Social (solo jurídicas)',
+    description: 'Razón Social (obligatorio para personas jurídicas). Si se proporciona razón social, el tipoPersona se establecerá automáticamente como JURIDICA.',
     example: 'Empresa SAS',
   })
   @IsString()

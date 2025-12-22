@@ -87,23 +87,37 @@ export class AuthController {
 
 
   @Post('register')
-  @ApiOperation({ summary: 'Registrar un nuevo usuario' })
+  @ApiOperation({
+    summary: 'Registrar un nuevo usuario',
+    description: `Registra un nuevo usuario en el sistema como persona natural o jurídica.
+    
+**Tipos de registro disponibles:**
+- **ALUMNO**: Estudiante que puede inscribirse y tomar capacitaciones
+- **INSTRUCTOR**: Instructor que puede crear y gestionar capacitaciones
+- **OPERADOR**: Operador del sistema con permisos básicos
+
+**Tipos de persona:**
+- **NATURAL**: Persona física (por defecto)
+- **JURIDICA**: Persona jurídica (requiere razón social)
+
+**Nota:** El usuario queda en estado "No habilitado" hasta que un administrador lo apruebe.`,
+  })
   @ApiBody({ type: RegisterDto })
   @ApiResponse({
     status: 201,
-    description: 'Usuario registrado exitosamente',
+    description: 'Usuario registrado exitosamente. El usuario queda pendiente de aprobación por el administrador.',
     schema: {
       type: 'object',
       properties: {
         message: {
           type: 'string',
-          example: 'Guardado exitoso; espere aprobacion por el administrador',
+          example: 'Registro exitoso. Espere aprobación del administrador.',
         },
       },
     },
   })
   @ApiResponse({ status: 400, description: 'Datos de registro inválidos' })
-  @ApiResponse({ status: 409, description: 'El usuario ya existe' })
+  @ApiResponse({ status: 409, description: 'El usuario, email o documento ya existe' })
   async register(@Body() registerDto: RegisterDto): Promise<{ message: string }> {
     const result = await this.registerUseCase.execute(registerDto);
     return result;
