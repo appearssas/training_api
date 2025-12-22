@@ -25,8 +25,8 @@ import { GetUser } from '@/infrastructure/shared/auth/decorators/get-user.decora
 import { Usuario } from '@/entities/usuarios/usuario.entity';
 import { RolesGuard, Roles } from '@/infrastructure/shared/guards/roles.guard';
 
-@ApiTags('pagos')
-@Controller('pagos')
+@ApiTags('payments')
+@Controller('payments')
 @UseGuards(AuthGuard('jwt'), RolesGuard)
 @ApiBearerAuth('JWT-auth')
 export class PagosController {
@@ -78,12 +78,14 @@ export class PagosController {
     return await this.createPagoUseCase.execute(createPagoDto, usuario);
   }
 
-  @Post(':estudianteId/habilitar')
+  @Post(':studentId/enable')
   @Roles('ADMIN')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Habilitar conductor externo tras pago',
     description: `Habilita un conductor externo después de que se haya registrado el pago.
+
+**Endpoint:** \`POST /payments/:studentId/enable\`
     
 **Requisitos:**
 - El conductor debe ser externo
@@ -95,7 +97,7 @@ export class PagosController {
 - El conductor puede recibir cursos`,
   })
   @ApiParam({
-    name: 'estudianteId',
+    name: 'studentId',
     type: Number,
     description: 'ID del estudiante (conductor externo) a habilitar',
     example: 1,
@@ -130,9 +132,9 @@ export class PagosController {
     description: 'Estudiante no encontrado',
   })
   async habilitarConductor(
-    @Param('estudianteId', ParseIntPipe) estudianteId: number,
+    @Param('studentId', ParseIntPipe) studentId: number,
   ): Promise<{ message: string }> {
-    return await this.habilitarConductorUseCase.execute(estudianteId);
+    return await this.habilitarConductorUseCase.execute(studentId);
   }
 }
 

@@ -25,8 +25,8 @@ import { ConductorExternoResponseDto } from '@/application/personas/dto/conducto
 import { CargaMasivaResponseDto } from '@/application/personas/dto/carga-masiva-response.dto';
 import { RolesGuard, Roles } from '@/infrastructure/shared/guards/roles.guard';
 
-@ApiTags('personas')
-@Controller('personas')
+@ApiTags('people')
+@Controller('people')
 @UseGuards(AuthGuard('jwt'), RolesGuard)
 @ApiBearerAuth('JWT-auth')
 export class PersonasController {
@@ -35,7 +35,7 @@ export class PersonasController {
     private readonly cargaMasivaConductoresUseCase: CargaMasivaConductoresUseCase,
   ) {}
 
-  @Post('conductores-externos')
+  @Post('external-drivers')
   @Roles('ADMIN')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
@@ -207,7 +207,7 @@ export class PersonasController {
     );
   }
 
-  @Post('conductores-externos/carga-masiva')
+  @Post('external-drivers/bulk-upload')
   @Roles('CLIENTE', 'ADMIN')
   @HttpCode(HttpStatus.OK)
   @UseInterceptors(FileInterceptor('file'))

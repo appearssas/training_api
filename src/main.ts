@@ -56,11 +56,18 @@ async function bootstrap() {
 - **Pagos manuales**: Registro de pagos para habilitar conductores externos
 - **Habilitación de conductores**: Proceso de habilitación tras registro de pago
 
+### Cumplimiento Normativo
+- **Aceptación de términos y políticas**: Sistema obligatorio de aceptación de documentos legales
+- **Bloqueo de acceso**: Los usuarios deben aceptar términos antes de acceder al sistema
+- **Trazabilidad**: Registro completo de aceptaciones con fecha, IP y user agent
+- **Gestión de documentos legales**: Administración de términos y condiciones, políticas de privacidad
+
 ### Autenticación
 - Login y registro de usuarios
 - Gestión de perfiles
 - Recuperación de contraseña
 - Refresh tokens
+- **Validación de términos**: El login verifica que el usuario haya aceptado los términos activos
 
 ### Capacitaciones
 - Creación y gestión de capacitaciones
@@ -81,8 +88,9 @@ async function bootstrap() {
       'JWT-auth', // Este nombre se usará en los decoradores @ApiBearerAuth()
     )
     .addTag('auth', 'Endpoints de autenticación y registro de usuarios')
-    .addTag('personas', 'Endpoints de gestión de personas y conductores externos')
-    .addTag('pagos', 'Endpoints de gestión de pagos y habilitación de conductores')
+    .addTag('people', 'Endpoints de gestión de personas y conductores externos')
+    .addTag('payments', 'Endpoints de gestión de pagos y habilitación de conductores')
+    .addTag('terms', 'Endpoints de aceptación de términos y políticas')
     .addTag('capacitaciones', 'Endpoints de gestión de capacitaciones')
     .addTag('inscripciones', 'Endpoints de gestión de inscripciones')
     .addTag('evaluaciones', 'Endpoints de gestión de evaluaciones')

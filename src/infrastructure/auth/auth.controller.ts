@@ -124,7 +124,27 @@ export class AuthController {
   }
 
   @Post('login')
-  @ApiOperation({ summary: 'Iniciar sesión' })
+  @ApiOperation({
+    summary: 'Iniciar sesión',
+    description: `Inicia sesión en el sistema con credenciales de usuario.
+
+**Autenticación flexible:**
+- Puede autenticarse usando su **username** o su **email**
+- El sistema detecta automáticamente el tipo de input (username o email)
+- Ejemplo con username: \`"username": "juan.perez"\`
+- Ejemplo con email: \`"username": "juan.perez@example.com"\`
+
+**Validaciones realizadas:**
+1. Verifica credenciales (username/email y password)
+2. Verifica que el usuario esté activo
+3. Verifica que el usuario esté habilitado (aprobado por administrador)
+4. Verifica que el usuario haya aceptado los términos y condiciones
+
+**Errores posibles:**
+- \`401 Unauthorized\`: Credenciales inválidas, usuario inactivo o no habilitado
+- \`401 TERMS_NOT_ACCEPTED\`: El usuario no ha aceptado los términos y condiciones (requiere aceptación)
+- \`400 PASSWORD_CHANGE_REQUIRED\`: El usuario debe cambiar su contraseña temporal`,
+  })
   @ApiBody({ type: LoginDto })
   @ApiResponse({
     status: 200,
@@ -141,7 +161,41 @@ export class AuthController {
       },
     },
   })
-  @ApiResponse({ status: 401, description: 'Credenciales inválidas' })
+  @ApiResponse({
+    status: 401,
+    description: 'Credenciales inválidas, usuario inactivo, no habilitado o términos no aceptados',
+    schema: {
+      type: 'object',
+      properties: {
+        message: { type: 'string' },
+        error: {
+          type: 'string',
+          enum: ['Unauthorized', 'TERMS_NOT_ACCEPTED'],
+          example: 'TERMS_NOT_ACCEPTED',
+        },
+        statusCode: { type: 'number', example: 401 },
+        requiereAceptacionTerminos: {
+          type: 'boolean',
+          example: true,
+          description: 'Indica que el usuario debe aceptar los términos antes de acceder',
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Debe cambiar su contraseña temporal',
+    schema: {
+      type: 'object',
+      properties: {
+        message: { type: 'string', example: 'Debe cambiar su contraseña antes de continuar' },
+        error: { type: 'string', example: 'PASSWORD_CHANGE_REQUIRED' },
+        statusCode: { type: 'number', example: 400 },
+        debeCambiarPassword: { type: 'boolean', example: true },
+        username: { type: 'string', example: 'usuario.ejemplo' },
+      },
+    },
+  })
   async login(@Body() loginDto: LoginDto): Promise<TokenResponse> {
     const result = await this.loginUseCase.execute(loginDto);
     return result as TokenResponse;
