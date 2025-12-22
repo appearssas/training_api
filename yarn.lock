@@ -1479,9 +1479,9 @@
     tslib "2.8.1"
 
 "@nestjs/schedule@^5.0.0":
-  version "5.0.1"
-  resolved "https://registry.npmjs.org/@nestjs/schedule/-/schedule-5.0.1.tgz"
-  integrity sha512-kFoel84I4RyS2LNPH6yHYTKxB16tb3auAEciFuc788C3ph6nABkUfzX5IE+unjVaRX+3GuruJwurNepMlHXpQg==
+  version "5.0.0"
+  resolved "https://registry.npmjs.org/@nestjs/schedule/-/schedule-5.0.0.tgz"
+  integrity sha512-RHqJIOo3AQvdeq0WuIFDqa5N0CkgxgqwmWRla96S6GmFV6qkQD1//EeH4k19MeCu4Ac9PzZ2y/Hu0zK9f//BQg==
   dependencies:
     cron "3.5.0"
 
@@ -2024,29 +2024,29 @@
     slash "3.0.0"
     source-map "^0.7.3"
 
-"@swc/core-win32-x64-msvc@1.15.7":
-  version "1.15.7"
-  resolved "https://registry.npmjs.org/@swc/core-win32-x64-msvc/-/core-win32-x64-msvc-1.15.7.tgz"
-  integrity sha512-4BK06EGdPnuplgcNhmSbOIiLdRgHYX3v1nl4HXo5uo4GZMfllXaCyBUes+0ePRfwbn9OFgVhCWPcYYjMT6hycQ==
+"@swc/core-win32-x64-msvc@1.15.5":
+  version "1.15.5"
+  resolved "https://registry.npmjs.org/@swc/core-win32-x64-msvc/-/core-win32-x64-msvc-1.15.5.tgz"
+  integrity sha512-EPXJRf0A8eOi8woXf/qgVIWRl9yeSl0oN1ykGZNCGI7oElsfxUobJFmpJFJoVqKFfd1l0c+GPmWsN2xavTFkNw==
 
 "@swc/core@^1.10.7":
-  version "1.15.7"
-  resolved "https://registry.npmjs.org/@swc/core/-/core-1.15.7.tgz"
-  integrity sha512-kTGB8XI7P+pTKW83tnUEDVP4zduF951u3UAOn5eTi0vyW6MvL56A3+ggMdfuVFtDI0/DsbSzf5z34HVBbuScWw==
+  version "1.15.5"
+  resolved "https://registry.npmjs.org/@swc/core/-/core-1.15.5.tgz"
+  integrity sha512-VRy+AEO0zqUkwV9uOgqXtdI5tNj3y3BZI+9u28fHNjNVTtWYVNIq3uYhoGgdBOv7gdzXlqfHKuxH5a9IFAvopQ==
   dependencies:
     "@swc/counter" "^0.1.3"
     "@swc/types" "^0.1.25"
   optionalDependencies:
-    "@swc/core-darwin-arm64" "1.15.7"
-    "@swc/core-darwin-x64" "1.15.7"
-    "@swc/core-linux-arm-gnueabihf" "1.15.7"
-    "@swc/core-linux-arm64-gnu" "1.15.7"
-    "@swc/core-linux-arm64-musl" "1.15.7"
-    "@swc/core-linux-x64-gnu" "1.15.7"
-    "@swc/core-linux-x64-musl" "1.15.7"
-    "@swc/core-win32-arm64-msvc" "1.15.7"
-    "@swc/core-win32-ia32-msvc" "1.15.7"
-    "@swc/core-win32-x64-msvc" "1.15.7"
+    "@swc/core-darwin-arm64" "1.15.5"
+    "@swc/core-darwin-x64" "1.15.5"
+    "@swc/core-linux-arm-gnueabihf" "1.15.5"
+    "@swc/core-linux-arm64-gnu" "1.15.5"
+    "@swc/core-linux-arm64-musl" "1.15.5"
+    "@swc/core-linux-x64-gnu" "1.15.5"
+    "@swc/core-linux-x64-musl" "1.15.5"
+    "@swc/core-win32-arm64-msvc" "1.15.5"
+    "@swc/core-win32-ia32-msvc" "1.15.5"
+    "@swc/core-win32-x64-msvc" "1.15.5"
 
 "@swc/counter@^0.1.3":
   version "0.1.3"
@@ -2177,6 +2177,13 @@
   resolved "https://registry.npmjs.org/@types/cookiejar/-/cookiejar-2.1.5.tgz"
   integrity sha512-he+DHOWReW0nghN24E1WUqM0efK4kI9oTqDm6XmK8ZPe2djZ90BSNdGnIyCLzCPw7/pogPlGbzI2wHGGmi4O/Q==
 
+"@types/csv-parse@^1.1.12":
+  version "1.1.12"
+  resolved "https://registry.npmjs.org/@types/csv-parse/-/csv-parse-1.1.12.tgz"
+  integrity sha512-p6uZznjJOcFaymduLYf45ik28IYzChnkt+ofJOWa16bb2JRCHdxs/ai03q6raizCc5JuunVsbgtlDxfu9y2Nag==
+  dependencies:
+    "@types/node" "*"
+
 "@types/eslint-scope@^3.7.7":
   version "3.7.7"
   resolved "https://registry.npmjs.org/@types/eslint-scope/-/eslint-scope-3.7.7.tgz"
@@ -2296,14 +2303,7 @@
   dependencies:
     "@types/express" "*"
 
-"@types/node@*":
-  version "25.0.3"
-  resolved "https://registry.npmjs.org/@types/node/-/node-25.0.3.tgz"
-  integrity sha512-W609buLVRVmeW693xKfzHeIV6nJGGz98uCPfeXI1ELMLXVeKYZ9m15fAMSaUPBHYLGFsVRcMmSCksQOrZV9BYA==
-  dependencies:
-    undici-types "~7.16.0"
-
-"@types/node@^22.10.7":
+"@types/node@*", "@types/node@^22.10.7":
   version "22.19.3"
   resolved "https://registry.npmjs.org/@types/node/-/node-22.19.3.tgz"
   integrity sha512-1N9SBnWYOJTrNZCdh/yJE+t910Y128BoyY+zBLWhL3r0TYzlTmFdXrPwHL9DyFZmlEXNQQolTZh3KHV31QDhyA==
@@ -3043,9 +3043,9 @@ base64-js@0.0.8:
   integrity sha512-3XSA2cR/h/73EzlXXdU6YNycmYI7+kicTxks4eJg2g39biHR84slg2+des+p7iHYhbRg/udIS4TD53WabcOUkw==
 
 baseline-browser-mapping@^2.9.0:
-  version "2.9.11"
-  resolved "https://registry.npmjs.org/baseline-browser-mapping/-/baseline-browser-mapping-2.9.11.tgz"
-  integrity sha512-Sg0xJUNDU1sJNGdfGWhVHX0kkZ+HWcvmVymJbj6NSgZZmW/8S9Y2HQ5euytnIgakgxN6papOAWiwDo1ctFDcoQ==
+  version "2.9.9"
+  resolved "https://registry.npmjs.org/baseline-browser-mapping/-/baseline-browser-mapping-2.9.9.tgz"
+  integrity sha512-V8fbOCSeOFvlDj7LLChUcqbZrdKD9RU/VR260piF1790vT0mfLSwGc/Qzxv3IqiTukOpNtItePa0HBpMAj7MDg==
 
 bcrypt@^6.0.0:
   version "6.0.0"
@@ -3247,7 +3247,12 @@ callsites@^3.0.0:
   resolved "https://registry.npmjs.org/callsites/-/callsites-3.1.0.tgz"
   integrity sha512-P8BjAsXvZS+VIDUI11hHCQEv74YT67YUi5JJFNWIqL235sBmjX4+qx9Muvls5ivyNENctx46xQLQ3aTuE7ssaQ==
 
-camelcase@^5.0.0, camelcase@^5.3.1:
+camelcase@^5.0.0:
+  version "5.3.1"
+  resolved "https://registry.npmjs.org/camelcase/-/camelcase-5.3.1.tgz"
+  integrity sha512-L28STB170nwWS63UjtlEOE3dldQApaJXZkOI1uMFfzf3rRuPegHaHesyee+YxQ+W6SvRDQV6UrdOdRiR153wJg==
+
+camelcase@^5.3.1:
   version "5.3.1"
   resolved "https://registry.npmjs.org/camelcase/-/camelcase-5.3.1.tgz"
   integrity sha512-L28STB170nwWS63UjtlEOE3dldQApaJXZkOI1uMFfzf3rRuPegHaHesyee+YxQ+W6SvRDQV6UrdOdRiR153wJg==
@@ -3258,9 +3263,9 @@ camelcase@^6.2.0:
   integrity sha512-Gmy6FhYlCY7uOElZUSbxo2UCDH8owEk996gkbrpsgGtrJLM3J7jGxl9Ic7Qwwj4ivOE5AWZWRMecDdF7hqGjFA==
 
 caniuse-lite@^1.0.30001759:
-  version "1.0.30001761"
-  resolved "https://registry.npmjs.org/caniuse-lite/-/caniuse-lite-1.0.30001761.tgz"
-  integrity sha512-JF9ptu1vP2coz98+5051jZ4PwQgd2ni8A+gYSN7EA7dPKIMf0pDlSUxhdmVOaV3/fYK5uWBkgSXJaRLr4+3A6g==
+  version "1.0.30001760"
+  resolved "https://registry.npmjs.org/caniuse-lite/-/caniuse-lite-1.0.30001760.tgz"
+  integrity sha512-7AAMPcueWELt1p3mi13HR/LHH0TJLT11cnwDJEs3xA4+CK/PLKeO9Kl1oru24htkyUKtkGCvAx4ohB0Ttry8Dw==
 
 chalk@^4.0.0, chalk@^4.1.0, chalk@^4.1.2:
   version "4.1.2"
@@ -3552,6 +3557,11 @@ crypto-js@^4.2.0:
   version "4.2.0"
   resolved "https://registry.npmjs.org/crypto-js/-/crypto-js-4.2.0.tgz"
   integrity sha512-KALDyEYgpY+Rlob/iriUtjV6d5Eq+Y191A5g4UqLAi8CyGP9N1+FdVbkc1SxKc2r4YAYqG8JzO2KGL+AizD70Q==
+
+csv-parse@^6.1.0:
+  version "6.1.0"
+  resolved "https://registry.npmjs.org/csv-parse/-/csv-parse-6.1.0.tgz"
+  integrity sha512-CEE+jwpgLn+MmtCpVcPtiCZpVtB6Z2OKPTr34pycYYoL7sxdOkXDdQ4lRiw6ioC0q6BLqhc6cKweCVvral8yhw==
 
 dayjs@^1.11.19:
   version "1.11.19"
@@ -5415,9 +5425,9 @@ levn@^0.4.1:
     type-check "~0.4.0"
 
 libphonenumber-js@^1.11.1:
-  version "1.12.33"
-  resolved "https://registry.npmjs.org/libphonenumber-js/-/libphonenumber-js-1.12.33.tgz"
-  integrity sha512-r9kw4OA6oDO4dPXkOrXTkArQAafIKAU71hChInV4FxZ69dxCfbwQGDPzqR5/vea94wU705/3AZroEbSoeVWrQw==
+  version "1.12.31"
+  resolved "https://registry.npmjs.org/libphonenumber-js/-/libphonenumber-js-1.12.31.tgz"
+  integrity sha512-Z3IhgVgrqO1S5xPYM3K5XwbkDasU67/Vys4heW+lfSBALcUZjeIIzI8zCLifY+OCzSq+fpDdywMDa7z+4srJPQ==
 
 linebreak@^1.0.2:
   version "1.1.0"
@@ -7259,9 +7269,9 @@ v8-to-istanbul@^9.0.1:
     convert-source-map "^2.0.0"
 
 validator@^13.15.20:
-  version "13.15.26"
-  resolved "https://registry.npmjs.org/validator/-/validator-13.15.26.tgz"
-  integrity sha512-spH26xU080ydGggxRyR1Yhcbgx+j3y5jbNXk/8L+iRvdIEQ4uTRH2Sgf2dokud6Q4oAtsbNvJ1Ft+9xmm6IZcA==
+  version "13.15.23"
+  resolved "https://registry.npmjs.org/validator/-/validator-13.15.23.tgz"
+  integrity sha512-4yoz1kEWqUjzi5zsPbAS/903QXSYp0UOtHsPpp7p9rHAw/W+dkInskAE386Fat3oKRROwO98d9ZB0G4cObgUyw==
 
 vary@^1, vary@^1.1.2:
   version "1.1.2"
