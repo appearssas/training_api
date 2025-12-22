@@ -19,9 +19,9 @@ export class Pago {
   @JoinColumn({ name: 'estudiante_id' })
   estudiante: Persona;
 
-  @ManyToOne(() => Capacitacion)
+  @ManyToOne(() => Capacitacion, { nullable: true })
   @JoinColumn({ name: 'capacitacion_id' })
-  capacitacion: Capacitacion;
+  capacitacion: Capacitacion | null;
 
   @Column({ type: 'decimal', precision: 10, scale: 2 })
   monto: number;

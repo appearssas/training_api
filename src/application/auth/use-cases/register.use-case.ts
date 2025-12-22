@@ -60,10 +60,21 @@ export class RegisterUseCase {
       // Hash de la contraseña
       const passwordHash = this.authRepository.hashPassword(registerDto.password);
 
+      // Determinar tipo de persona basado en si tiene razón social o no
+      const tipoPersona = registerDto.tipoPersona || (registerDto.razonSocial ? 'JURIDICA' : 'NATURAL');
+
+      // Validar que si es JURIDICA, tenga razón social
+      if (tipoPersona === 'JURIDICA' && !registerDto.razonSocial) {
+        throw new BadRequestException(
+          'La razón social es obligatoria para personas jurídicas',
+        );
+      }
+
       // Preparar datos de persona
       const personaData = {
         numeroDocumento: registerDto.numeroDocumento,
         tipoDocumento: registerDto.tipoDocumento || 'CC',
+        tipoPersona: tipoPersona as 'NATURAL' | 'JURIDICA',
         nombres: registerDto.nombres,
         apellidos: registerDto.apellidos || '',
         razonSocial: registerDto.razonSocial,
