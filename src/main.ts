@@ -10,6 +10,10 @@ async function bootstrap() {
 
   // Servir archivos estáticos
   app.useStaticAssets(join(process.cwd(), 'public'));
+  // Servir archivos de materiales desde storage
+  app.useStaticAssets(join(process.cwd(), 'storage'), {
+    prefix: '/storage',
+  });
 
   // Habilitar CORS para permitir peticiones desde el frontend
   app.enableCors({

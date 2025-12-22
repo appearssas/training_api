@@ -7,6 +7,9 @@ import {
   Param,
   Body,
   ParseIntPipe,
+  UseInterceptors,
+  UploadedFile,
+  BadRequestException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -14,7 +17,9 @@ import {
   ApiResponse,
   ApiParam,
   ApiBody,
+  ApiConsumes,
 } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
 import {
   CreateMaterialDto,
   UpdateMaterialDto,
@@ -24,6 +29,7 @@ import { UpdateMaterialUseCase } from '@/application/materiales/use-cases/update
 import { RemoveMaterialUseCase } from '@/application/materiales/use-cases/remove-material.use-case';
 import { FindMaterialsByCapacitacionUseCase } from '@/application/materiales/use-cases/find-materials-by-capacitacion.use-case';
 import { FindOneMaterialUseCase } from '@/application/materiales/use-cases/find-one-material.use-case';
+import { StorageService } from '@/infrastructure/shared/services/storage.service';
 
 @ApiTags('materiales')
 @Controller('materiales')
@@ -34,7 +40,58 @@ export class MaterialesController {
     private readonly removeMaterialUseCase: RemoveMaterialUseCase,
     private readonly findMaterialsByCapacitacionUseCase: FindMaterialsByCapacitacionUseCase,
     private readonly findOneMaterialUseCase: FindOneMaterialUseCase,
+    private readonly storageService: StorageService,
   ) {}
+
+  @Post('upload')
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiOperation({
+    summary: 'Subir un archivo (PDF o imagen)',
+    description: 'Sube un archivo PDF o imagen y retorna la URL donde se almacenó',
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+          description: 'Archivo a subir (PDF, JPG, PNG, GIF, WEBP)',
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Archivo subido exitosamente',
+    schema: {
+      type: 'object',
+      properties: {
+        url: {
+          type: 'string',
+          example: '/storage/materials/1234567890-abc123.pdf',
+        },
+        originalName: {
+          type: 'string',
+          example: 'documento.pdf',
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 400, description: 'Archivo inválido o excede el tamaño máximo' })
+  async uploadFile(@UploadedFile() file: Express.Multer.File) {
+    if (!file) {
+      throw new BadRequestException('No se proporcionó ningún archivo');
+    }
+
+    const url = await this.storageService.saveImageOrPdf(file);
+
+    return {
+      url,
+      originalName: file.originalname,
+    };
+  }
 
   @Post()
   @ApiOperation({ summary: 'Crear un nuevo material' })

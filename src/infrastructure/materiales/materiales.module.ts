@@ -10,6 +10,7 @@ import { MaterialesRepositoryAdapter } from './materiales.repository.adapter';
 import { MaterialCapacitacion } from '@/entities/materiales/material-capacitacion.entity';
 import { TipoMaterial } from '@/entities/catalogos/tipo-material.entity';
 import { VideoUrlValidatorService } from '../shared/services/video-url-validator.service';
+import { StorageService } from '../shared/services/storage.service';
 
 @Module({
   controllers: [MaterialesController],
@@ -20,6 +21,7 @@ import { VideoUrlValidatorService } from '../shared/services/video-url-validator
     FindMaterialsByCapacitacionUseCase,
     FindOneMaterialUseCase,
     VideoUrlValidatorService,
+    StorageService,
     {
       provide: 'IMaterialesRepository',
       useClass: MaterialesRepositoryAdapter,
@@ -35,6 +37,7 @@ import { VideoUrlValidatorService } from '../shared/services/video-url-validator
     FindMaterialsByCapacitacionUseCase,
     FindOneMaterialUseCase,
     VideoUrlValidatorService,
+    StorageService,
   ],
 })
 export class MaterialesModule {}

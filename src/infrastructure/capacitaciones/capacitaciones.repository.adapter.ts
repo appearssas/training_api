@@ -14,6 +14,8 @@ import { OpcionRespuesta } from '@/entities/evaluaciones/opcion-respuesta.entity
 import { CreateCapacitacionDto } from '@/application/capacitaciones/dto/create-capacitacion.dto';
 import { UpdateCapacitacionDto } from '@/application/capacitaciones/dto/update-capacitacion.dto';
 import { PaginationDto } from '@/application/shared/dto/pagination.dto';
+import { appendFileSync } from 'fs';
+import { join } from 'path';
 
 @Injectable()
 export class CapacitacionesRepositoryAdapter implements ICapacitacionesRepository {
@@ -197,8 +199,14 @@ export class CapacitacionesRepositoryAdapter implements ICapacitacionesRepositor
   }
 
   async findOne(id: number): Promise<Capacitacion | null> {
+    // #region agent log
+    try{appendFileSync(join(process.cwd(),'.cursor','debug.log'),JSON.stringify({location:'capacitaciones.repository.adapter.ts:199',message:'findOne entry',data:{id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})+'\n');}catch(e){}
+    // #endregion
     try {
-      return await this.capacitacionRepository.findOne({
+      // #region agent log
+      try{appendFileSync(join(process.cwd(),'.cursor','debug.log'),JSON.stringify({location:'capacitaciones.repository.adapter.ts:201',message:'before repository.findOne',data:{id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})+'\n');}catch(e){}
+      // #endregion
+      const result = await this.capacitacionRepository.findOne({
         where: { id },
         relations: [
           'tipoCapacitacion',
@@ -212,8 +220,34 @@ export class CapacitacionesRepositoryAdapter implements ICapacitacionesRepositor
           'evaluaciones.preguntas',
         ],
       });
+      // #region agent log
+      try{appendFileSync(join(process.cwd(),'.cursor','debug.log'),JSON.stringify({location:'capacitaciones.repository.adapter.ts:214',message:'repository.findOne success',data:{id,found:!!result,hasId:result?.id!==undefined,hasRelations:result?{tipoCapacitacion:!!result.tipoCapacitacion,modalidad:!!result.modalidad,instructor:!!result.instructor,materiales:result.materiales?.length||0,secciones:result.secciones?.length||0,evaluaciones:result.evaluaciones?.length||0}:null},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})+'\n');}catch(e){}
+      // #endregion
+      return result;
     } catch (error) {
-      console.error(error);
+      // #region agent log
+      try{
+        const errorData: any = {
+          id,
+          errorName: error?.constructor?.name,
+          errorMessage: error?.message,
+          isQueryFailed: error instanceof QueryFailedError,
+        };
+        if (error instanceof QueryFailedError) {
+          errorData.query = error.query;
+          errorData.parameters = error.parameters;
+          errorData.driverError = error.driverError?.message || error.driverError;
+          errorData.code = error.driverError?.code;
+          errorData.sqlState = error.driverError?.sqlState;
+          errorData.sqlMessage = error.driverError?.sqlMessage;
+        }
+        if (error?.stack) {
+          errorData.stack = error.stack.split('\n').slice(0, 5).join('\n');
+        }
+        appendFileSync(join(process.cwd(),'.cursor','debug.log'),JSON.stringify({location:'capacitaciones.repository.adapter.ts:227',message:'repository.findOne error',data:errorData,timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})+'\n');
+      }catch(e){}
+      // #endregion
+      console.error('Error fetching capacitacion:', error);
       throw new InternalServerErrorException('Error fetching capacitacion');
     }
   }
@@ -225,51 +259,128 @@ export class CapacitacionesRepositoryAdapter implements ICapacitacionesRepositor
     try {
       const capacitacion = await this.capacitacionRepository.findOne({
         where: { id },
+        relations: ['tipoCapacitacion', 'modalidad', 'instructor', 'area'],
       });
 
       if (!capacitacion) {
         throw new NotFoundException(`Capacitación con ID ${id} no encontrada`);
       }
 
-      const updatedCapacitacion = {
-        ...capacitacion,
-        ...updateCapacitacionDto,
-      };
+      // Actualizar solo los campos que vienen en el DTO (no undefined)
+      if (updateCapacitacionDto.titulo !== undefined) {
+        capacitacion.titulo = updateCapacitacionDto.titulo;
+      }
+      if (updateCapacitacionDto.descripcion !== undefined) {
+        capacitacion.descripcion = updateCapacitacionDto.descripcion;
+      }
+      if (updateCapacitacionDto.publicoObjetivo !== undefined) {
+        capacitacion.publicoObjetivo = updateCapacitacionDto.publicoObjetivo;
+      }
+      if (updateCapacitacionDto.fechaInicio !== undefined) {
+        capacitacion.fechaInicio = updateCapacitacionDto.fechaInicio
+          ? new Date(updateCapacitacionDto.fechaInicio)
+          : null;
+      }
+      if (updateCapacitacionDto.fechaFin !== undefined) {
+        capacitacion.fechaFin = updateCapacitacionDto.fechaFin
+          ? new Date(updateCapacitacionDto.fechaFin)
+          : null;
+      }
+      if (updateCapacitacionDto.duracionHoras !== undefined) {
+        capacitacion.duracionHoras = updateCapacitacionDto.duracionHoras;
+      }
+      if (updateCapacitacionDto.capacidadMaxima !== undefined) {
+        capacitacion.capacidadMaxima = updateCapacitacionDto.capacidadMaxima;
+      }
+      if (updateCapacitacionDto.imagenPortadaUrl !== undefined) {
+        capacitacion.imagenPortadaUrl = updateCapacitacionDto.imagenPortadaUrl;
+      }
+      if (updateCapacitacionDto.videoPromocionalUrl !== undefined) {
+        capacitacion.videoPromocionalUrl = updateCapacitacionDto.videoPromocionalUrl;
+      }
+      if (updateCapacitacionDto.minimoAprobacion !== undefined) {
+        capacitacion.minimoAprobacion = updateCapacitacionDto.minimoAprobacion;
+      }
+      if (updateCapacitacionDto.estado !== undefined) {
+        capacitacion.estado = updateCapacitacionDto.estado;
+      }
+      if (updateCapacitacionDto.usuarioActualizacion !== undefined) {
+        capacitacion.usuarioActualizacion = updateCapacitacionDto.usuarioActualizacion;
+      }
 
+      // Actualizar relaciones solo si vienen en el DTO y no son null/undefined
       if (
-        'tipoCapacitacionId' in updateCapacitacionDto &&
-        updateCapacitacionDto.tipoCapacitacionId
+        updateCapacitacionDto.tipoCapacitacionId !== undefined &&
+        updateCapacitacionDto.tipoCapacitacionId !== null
       ) {
-        updatedCapacitacion.tipoCapacitacion = {
+        capacitacion.tipoCapacitacion = {
           id: updateCapacitacionDto.tipoCapacitacionId,
         } as any;
       }
 
       if (
-        'modalidadId' in updateCapacitacionDto &&
-        updateCapacitacionDto.modalidadId
+        updateCapacitacionDto.modalidadId !== undefined &&
+        updateCapacitacionDto.modalidadId !== null
       ) {
-        updatedCapacitacion.modalidad = {
+        capacitacion.modalidad = {
           id: updateCapacitacionDto.modalidadId,
         } as any;
       }
 
       if (
-        'instructorId' in updateCapacitacionDto &&
-        updateCapacitacionDto.instructorId
+        updateCapacitacionDto.instructorId !== undefined &&
+        updateCapacitacionDto.instructorId !== null
       ) {
-        updatedCapacitacion.instructor = {
+        capacitacion.instructor = {
           id: updateCapacitacionDto.instructorId,
         } as any;
       }
 
-      return this.capacitacionRepository.save(updatedCapacitacion);
+      if (
+        updateCapacitacionDto.areaId !== undefined &&
+        updateCapacitacionDto.areaId !== null
+      ) {
+        capacitacion.area = {
+          id: updateCapacitacionDto.areaId,
+        } as any;
+      }
+
+      const savedCapacitacion = await this.capacitacionRepository.save(capacitacion);
+
+      // Retornar la capacitación completa con relaciones
+      const capacitacionCompleta = await this.findOne(savedCapacitacion.id);
+      if (!capacitacionCompleta) {
+        throw new InternalServerErrorException(
+          'Error al recuperar la capacitación actualizada',
+        );
+      }
+      return capacitacionCompleta;
     } catch (error) {
       if (error instanceof NotFoundException) {
         throw error;
       }
-      console.error(error);
-      throw new InternalServerErrorException('Error updating capacitacion');
+      if (error instanceof QueryFailedError) {
+        const errorMessage = (error as QueryFailedError).message;
+        const errorCode = (error as QueryFailedError).code;
+        console.error('QueryFailedError updating capacitacion:', {
+          message: errorMessage,
+          code: errorCode,
+          sql: (error as QueryFailedError).sql,
+          parameters: (error as QueryFailedError).parameters,
+        });
+        throw new BadRequestException(
+          `Error de base de datos: ${errorMessage}`,
+        );
+      }
+      console.error('Error updating capacitacion:', {
+        error,
+        message: error instanceof Error ? error.message : 'Error desconocido',
+        stack: error instanceof Error ? error.stack : undefined,
+        updateDto: JSON.stringify(updateCapacitacionDto, null, 2),
+      });
+      throw new InternalServerErrorException(
+        `Error updating capacitacion: ${error instanceof Error ? error.message : 'Error desconocido'}`,
+      );
     }
   }
 
