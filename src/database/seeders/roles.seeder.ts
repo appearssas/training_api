@@ -31,6 +31,12 @@ export class RolesSeeder extends BaseSeeder {
         descripcion: 'Operador del sistema con permisos básicos',
         activo: true,
       },
+      {
+        nombre: 'Cliente',
+        codigo: 'CLIENTE',
+        descripcion: 'Cliente institucional que puede cargar conductores masivamente',
+        activo: true,
+      },
     ];
 
     for (const roleData of rolesData) {

@@ -39,6 +39,13 @@ export class PersonasRepositoryAdapter implements IPersonasRepository {
     });
   }
 
+  async findById(id: number): Promise<Persona | null> {
+    return await this.personaRepository.findOne({
+      where: { id },
+      relations: ['alumno', 'usuario'],
+    });
+  }
+
   async createConductorExterno(
     personaData: Partial<Persona>,
   ): Promise<{
@@ -92,7 +99,7 @@ export class PersonasRepositoryAdapter implements IPersonasRepository {
         username: finalUsername,
         passwordHash,
         rolPrincipal: rolAlumno,
-        habilitado: true, // Habilitado para que pueda iniciar sesión
+        habilitado: false, // No habilitado hasta que se registre el pago
         activo: true,
         debeCambiarPassword: true, // Debe cambiar la contraseña en el primer login
       });

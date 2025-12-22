@@ -87,30 +87,64 @@ export class AuthController {
 
 
   @Post('register')
-  @ApiOperation({ summary: 'Registrar un nuevo usuario' })
+  @ApiOperation({
+    summary: 'Registrar un nuevo usuario',
+    description: `Registra un nuevo usuario en el sistema como persona natural o jurídica.
+    
+**Tipos de registro disponibles:**
+- **ALUMNO**: Estudiante que puede inscribirse y tomar capacitaciones
+- **INSTRUCTOR**: Instructor que puede crear y gestionar capacitaciones
+- **OPERADOR**: Operador del sistema con permisos básicos
+
+**Tipos de persona:**
+- **NATURAL**: Persona física (por defecto)
+- **JURIDICA**: Persona jurídica (requiere razón social)
+
+**Nota:** El usuario queda en estado "No habilitado" hasta que un administrador lo apruebe.`,
+  })
   @ApiBody({ type: RegisterDto })
   @ApiResponse({
     status: 201,
-    description: 'Usuario registrado exitosamente',
+    description: 'Usuario registrado exitosamente. El usuario queda pendiente de aprobación por el administrador.',
     schema: {
       type: 'object',
       properties: {
         message: {
           type: 'string',
-          example: 'Guardado exitoso; espere aprobacion por el administrador',
+          example: 'Registro exitoso. Espere aprobación del administrador.',
         },
       },
     },
   })
   @ApiResponse({ status: 400, description: 'Datos de registro inválidos' })
-  @ApiResponse({ status: 409, description: 'El usuario ya existe' })
+  @ApiResponse({ status: 409, description: 'El usuario, email o documento ya existe' })
   async register(@Body() registerDto: RegisterDto): Promise<{ message: string }> {
     const result = await this.registerUseCase.execute(registerDto);
     return result;
   }
 
   @Post('login')
-  @ApiOperation({ summary: 'Iniciar sesión' })
+  @ApiOperation({
+    summary: 'Iniciar sesión',
+    description: `Inicia sesión en el sistema con credenciales de usuario.
+
+**Autenticación flexible:**
+- Puede autenticarse usando su **username** o su **email**
+- El sistema detecta automáticamente el tipo de input (username o email)
+- Ejemplo con username: \`"username": "juan.perez"\`
+- Ejemplo con email: \`"username": "juan.perez@example.com"\`
+
+**Validaciones realizadas:**
+1. Verifica credenciales (username/email y password)
+2. Verifica que el usuario esté activo
+3. Verifica que el usuario esté habilitado (aprobado por administrador)
+4. Verifica que el usuario haya aceptado los términos y condiciones
+
+**Errores posibles:**
+- \`401 Unauthorized\`: Credenciales inválidas, usuario inactivo o no habilitado
+- \`401 TERMS_NOT_ACCEPTED\`: El usuario no ha aceptado los términos y condiciones (requiere aceptación)
+- \`400 PASSWORD_CHANGE_REQUIRED\`: El usuario debe cambiar su contraseña temporal`,
+  })
   @ApiBody({ type: LoginDto })
   @ApiResponse({
     status: 200,
@@ -127,7 +161,41 @@ export class AuthController {
       },
     },
   })
-  @ApiResponse({ status: 401, description: 'Credenciales inválidas' })
+  @ApiResponse({
+    status: 401,
+    description: 'Credenciales inválidas, usuario inactivo, no habilitado o términos no aceptados',
+    schema: {
+      type: 'object',
+      properties: {
+        message: { type: 'string' },
+        error: {
+          type: 'string',
+          enum: ['Unauthorized', 'TERMS_NOT_ACCEPTED'],
+          example: 'TERMS_NOT_ACCEPTED',
+        },
+        statusCode: { type: 'number', example: 401 },
+        requiereAceptacionTerminos: {
+          type: 'boolean',
+          example: true,
+          description: 'Indica que el usuario debe aceptar los términos antes de acceder',
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Debe cambiar su contraseña temporal',
+    schema: {
+      type: 'object',
+      properties: {
+        message: { type: 'string', example: 'Debe cambiar su contraseña antes de continuar' },
+        error: { type: 'string', example: 'PASSWORD_CHANGE_REQUIRED' },
+        statusCode: { type: 'number', example: 400 },
+        debeCambiarPassword: { type: 'boolean', example: true },
+        username: { type: 'string', example: 'usuario.ejemplo' },
+      },
+    },
+  })
   async login(@Body() loginDto: LoginDto): Promise<TokenResponse> {
     const result = await this.loginUseCase.execute(loginDto);
     return result as TokenResponse;
