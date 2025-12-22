@@ -4,6 +4,7 @@ import { PassportModule } from '@nestjs/passport';
 import { PersonasController } from './personas.controller';
 import { PersonasRepositoryAdapter } from './personas.repository.adapter';
 import { CreateConductorExternoUseCase } from '@/application/personas/use-cases/create-conductor-externo.use-case';
+import { CargaMasivaConductoresUseCase } from '@/application/personas/use-cases/carga-masiva-conductores.use-case';
 import { Persona } from '@/entities/persona/persona.entity';
 import { Alumno } from '@/entities/alumnos/alumno.entity';
 import { Usuario } from '@/entities/usuarios/usuario.entity';
@@ -23,6 +24,7 @@ import { EmailModule } from '@/infrastructure/email/email.module';
   controllers: [PersonasController],
   providers: [
     CreateConductorExternoUseCase,
+    CargaMasivaConductoresUseCase,
     RolesGuard, // Registrar el guard como provider para que pueda ser inyectado
     {
       provide: 'IPersonasRepository',

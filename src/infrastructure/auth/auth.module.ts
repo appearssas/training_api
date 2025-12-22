@@ -17,6 +17,7 @@ import { AuthRepositoryAdapter } from '@/infrastructure/auth/auth.repository.ada
 import { PasswordResetRepository } from '@/infrastructure/auth/password-reset.repository.adapter';
 import { RolesGuard } from '@/infrastructure/shared/guards/roles.guard';
 import { EmailModule } from '@/infrastructure/email/email.module';
+import { AceptacionesModule } from '@/infrastructure/aceptaciones/aceptaciones.module';
 import { Usuario } from '@/entities/usuarios/usuario.entity';
 import { Persona } from '@/entities/persona/persona.entity';
 import { Rol } from '@/entities/roles/rol.entity';
@@ -61,6 +62,7 @@ import { PasswordResetToken } from '@/entities/password-reset/password-reset-tok
     PassportModule.register({ defaultStrategy: 'jwt' }),
     ConfigModule,
     EmailModule,
+    AceptacionesModule,
     JwtModule.registerAsync({
       inject: [ConfigService],
       imports: [ConfigModule],
