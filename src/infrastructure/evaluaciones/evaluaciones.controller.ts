@@ -1,5 +1,7 @@
-import { Controller, Get, Param, ParseIntPipe, Patch, Body } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBody } from '@nestjs/swagger';
+import { Controller, Get, Param, ParseIntPipe, Patch, Body, UseGuards } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBody, ApiBearerAuth } from '@nestjs/swagger';
+import { AuthGuard } from '@nestjs/passport';
+import { RolesGuard, Roles } from '@/infrastructure/shared/guards/roles.guard';
 import { FindOneEvaluacionUseCase, UpdateEvaluacionUseCase } from '@/application/evaluaciones/use-cases';
 import { UpdateEvaluacionDto } from '@/application/evaluaciones/dto';
 import { Evaluacion } from '@/entities/evaluaciones/evaluacion.entity';
@@ -11,6 +13,8 @@ import { Evaluacion } from '@/entities/evaluaciones/evaluacion.entity';
  */
 @ApiTags('evaluaciones')
 @Controller('evaluaciones')
+@UseGuards(AuthGuard('jwt'), RolesGuard)
+@ApiBearerAuth('JWT-auth')
 export class EvaluacionesController {
   constructor(
     private readonly findOneEvaluacionUseCase: FindOneEvaluacionUseCase,
@@ -21,9 +25,10 @@ export class EvaluacionesController {
    * Obtiene una evaluación por ID con sus preguntas y opciones
    */
   @Get(':id')
+  @Roles('ADMIN', 'INSTRUCTOR', 'ALUMNO', 'CLIENTE', 'OPERADOR')
   @ApiOperation({
     summary: 'Obtener una evaluación por ID',
-    description: 'Retorna una evaluación completa con todas sus preguntas y opciones de respuesta ordenadas',
+    description: 'Retorna una evaluación completa con todas sus preguntas y opciones de respuesta ordenadas. Todos los roles autenticados pueden ver evaluaciones.',
   })
   @ApiParam({
     name: 'id',
@@ -53,12 +58,13 @@ export class EvaluacionesController {
    * Permite actualizar la evaluación, sus preguntas y opciones de respuesta
    */
   @Patch(':id')
+  @Roles('ADMIN', 'INSTRUCTOR')
   @ApiOperation({
     summary: 'Actualizar una evaluación',
     description:
       'Actualiza una evaluación existente. Permite modificar los datos de la evaluación, ' +
       'sus preguntas y opciones de respuesta. Las preguntas y opciones se sincronizan: ' +
-      'se crean las nuevas, se actualizan las existentes y se eliminan las que ya no están en la lista.',
+      'se crean las nuevas, se actualizan las existentes y se eliminan las que ya no están en la lista. Solo ADMIN e INSTRUCTOR pueden actualizar evaluaciones.',
   })
   @ApiParam({
     name: 'id',

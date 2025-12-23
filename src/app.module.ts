@@ -16,6 +16,7 @@ import { PersonasModule } from './infrastructure/personas/personas.module';
 import { CertificatesModule } from './infrastructure/certificates/certificates.module';
 import { PagosModule } from './infrastructure/pagos/pagos.module';
 import { AceptacionesModule } from './infrastructure/aceptaciones/aceptaciones.module';
+import { UsuariosModule } from './infrastructure/usuarios/usuarios.module';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { AceptacionesModule } from './infrastructure/aceptaciones/aceptaciones.m
     CertificatesModule,
     PagosModule,
     AceptacionesModule,
+    UsuariosModule,
   ],
   controllers: [AppController],
   providers: [
