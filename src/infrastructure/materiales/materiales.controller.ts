@@ -10,6 +10,7 @@ import {
   UseInterceptors,
   UploadedFile,
   BadRequestException,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -18,8 +19,11 @@ import {
   ApiParam,
   ApiBody,
   ApiConsumes,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { AuthGuard } from '@nestjs/passport';
+import { RolesGuard, Roles } from '@/infrastructure/shared/guards/roles.guard';
 import {
   CreateMaterialDto,
   UpdateMaterialDto,
@@ -33,6 +37,8 @@ import { StorageService } from '@/infrastructure/shared/services/storage.service
 
 @ApiTags('materiales')
 @Controller('materiales')
+@UseGuards(AuthGuard('jwt'), RolesGuard)
+@ApiBearerAuth('JWT-auth')
 export class MaterialesController {
   constructor(
     private readonly createMaterialUseCase: CreateMaterialUseCase,
@@ -94,7 +100,8 @@ export class MaterialesController {
   }
 
   @Post()
-  @ApiOperation({ summary: 'Crear un nuevo material' })
+  @Roles('ADMIN', 'INSTRUCTOR')
+  @ApiOperation({ summary: 'Crear un nuevo material. Solo ADMIN e INSTRUCTOR pueden crear materiales.' })
   @ApiBody({ type: CreateMaterialDto })
   @ApiResponse({ status: 201, description: 'Material creado exitosamente' })
   @ApiResponse({ status: 400, description: 'Datos inválidos' })
@@ -103,8 +110,10 @@ export class MaterialesController {
   }
 
   @Get('capacitacion/:capacitacionId')
+  @Roles('ADMIN', 'INSTRUCTOR', 'ALUMNO', 'CLIENTE', 'OPERADOR')
   @ApiOperation({
     summary: 'Obtener todos los materiales de una capacitación',
+    description: 'Todos los roles autenticados pueden ver materiales de capacitaciones.',
   })
   @ApiParam({
     name: 'capacitacionId',
@@ -120,7 +129,8 @@ export class MaterialesController {
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Obtener un material por ID' })
+  @Roles('ADMIN', 'INSTRUCTOR', 'ALUMNO', 'CLIENTE', 'OPERADOR')
+  @ApiOperation({ summary: 'Obtener un material por ID. Todos los roles autenticados pueden ver materiales.' })
   @ApiParam({
     name: 'id',
     type: 'number',
@@ -133,7 +143,8 @@ export class MaterialesController {
   }
 
   @Patch(':id')
-  @ApiOperation({ summary: 'Actualizar un material' })
+  @Roles('ADMIN', 'INSTRUCTOR')
+  @ApiOperation({ summary: 'Actualizar un material. Solo ADMIN e INSTRUCTOR pueden actualizar materiales.' })
   @ApiParam({
     name: 'id',
     type: 'number',
@@ -153,7 +164,8 @@ export class MaterialesController {
   }
 
   @Delete(':id')
-  @ApiOperation({ summary: 'Eliminar un material' })
+  @Roles('ADMIN', 'INSTRUCTOR')
+  @ApiOperation({ summary: 'Eliminar un material. Solo ADMIN e INSTRUCTOR pueden eliminar materiales.' })
   @ApiParam({
     name: 'id',
     type: 'number',

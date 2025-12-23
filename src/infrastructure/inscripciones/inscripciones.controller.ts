@@ -8,6 +8,7 @@ import {
   Body,
   ParseIntPipe,
   BadRequestException,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -15,7 +16,10 @@ import {
   ApiResponse,
   ApiParam,
   ApiBody,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
+import { AuthGuard } from '@nestjs/passport';
+import { RolesGuard, Roles } from '@/infrastructure/shared/guards/roles.guard';
 import {
   CreateInscripcionDto,
   UpdateInscripcionDto,
@@ -35,6 +39,8 @@ import { PaginationDto } from '@/application/shared/dto/pagination.dto';
  */
 @ApiTags('inscripciones')
 @Controller('inscripciones')
+@UseGuards(AuthGuard('jwt'), RolesGuard)
+@ApiBearerAuth('JWT-auth')
 export class InscripcionesController {
   constructor(
     private readonly createInscripcionUseCase: CreateInscripcionUseCase,
@@ -47,12 +53,13 @@ export class InscripcionesController {
   ) {}
 
   @Post()
+  @Roles('ADMIN', 'ALUMNO', 'CLIENTE')
   @ApiOperation({
     summary: 'Crear una nueva inscripción',
     description:
       'Inscribe un estudiante a una capacitación. Valida que la capacitación esté disponible (PUBLICADA o EN_CURSO), ' +
       'que el estudiante no esté ya inscrito, y que no se exceda la capacidad máxima si está definida. ' +
-      'Para conductores externos, el pago es requerido.',
+      'Para conductores externos, el pago es requerido. ADMIN, ALUMNO y CLIENTE pueden crear inscripciones.',
   })
   @ApiBody({ type: CreateInscripcionDto })
   @ApiResponse({
@@ -83,10 +90,11 @@ export class InscripcionesController {
   }
 
   @Post('list')
+  @Roles('ADMIN', 'INSTRUCTOR', 'CLIENTE', 'OPERADOR')
   @ApiOperation({
     summary: 'Obtener lista de inscripciones con paginación',
     description:
-      'Obtiene todas las inscripciones del sistema con opciones de paginación, búsqueda y filtrado.',
+      'Obtiene todas las inscripciones del sistema con opciones de paginación, búsqueda y filtrado. ADMIN, INSTRUCTOR, CLIENTE y OPERADOR pueden ver todas las inscripciones.',
   })
   @ApiBody({ type: PaginationDto })
   @ApiResponse({
@@ -111,9 +119,10 @@ export class InscripcionesController {
   }
 
   @Get(':id')
+  @Roles('ADMIN', 'INSTRUCTOR', 'ALUMNO', 'CLIENTE', 'OPERADOR')
   @ApiOperation({
     summary: 'Obtener una inscripción por ID',
-    description: 'Obtiene los detalles completos de una inscripción específica, incluyendo relaciones con capacitación y estudiante.',
+    description: 'Obtiene los detalles completos de una inscripción específica, incluyendo relaciones con capacitación y estudiante. Todos los roles autenticados pueden ver inscripciones.',
   })
   @ApiParam({
     name: 'id',
@@ -146,10 +155,11 @@ export class InscripcionesController {
   }
 
   @Patch(':id')
+  @Roles('ADMIN', 'INSTRUCTOR')
   @ApiOperation({
     summary: 'Actualizar una inscripción',
     description:
-      'Actualiza los datos de una inscripción existente. Permite actualizar estado, progreso, fechas, calificación y aprobación.',
+      'Actualiza los datos de una inscripción existente. Permite actualizar estado, progreso, fechas, calificación y aprobación. Solo ADMIN e INSTRUCTOR pueden actualizar inscripciones.',
   })
   @ApiParam({
     name: 'id',
@@ -178,9 +188,10 @@ export class InscripcionesController {
   }
 
   @Delete(':id')
+  @Roles('ADMIN')
   @ApiOperation({
     summary: 'Eliminar una inscripción',
-    description: 'Elimina una inscripción del sistema. Esta acción no se puede deshacer.',
+    description: 'Elimina una inscripción del sistema. Esta acción no se puede deshacer. Solo ADMIN puede eliminar inscripciones.',
   })
   @ApiParam({
     name: 'id',
@@ -201,10 +212,11 @@ export class InscripcionesController {
   }
 
   @Post('estudiante/:estudianteId')
+  @Roles('ADMIN', 'ALUMNO', 'CLIENTE', 'INSTRUCTOR', 'OPERADOR')
   @ApiOperation({
     summary: 'Obtener inscripciones de un estudiante',
     description:
-      'Obtiene todas las inscripciones de un estudiante específico con paginación. Útil para ver el historial de cursos de un estudiante.',
+      'Obtiene todas las inscripciones de un estudiante específico con paginación. Útil para ver el historial de cursos de un estudiante. Todos los roles autenticados pueden ver inscripciones de estudiantes.',
   })
   @ApiParam({
     name: 'estudianteId',
@@ -238,10 +250,11 @@ export class InscripcionesController {
   }
 
   @Post('capacitacion/:capacitacionId')
+  @Roles('ADMIN', 'INSTRUCTOR', 'CLIENTE', 'OPERADOR')
   @ApiOperation({
     summary: 'Obtener inscripciones de una capacitación',
     description:
-      'Obtiene todas las inscripciones de una capacitación específica con paginación. Útil para ver la lista de estudiantes inscritos en un curso.',
+      'Obtiene todas las inscripciones de una capacitación específica con paginación. Útil para ver la lista de estudiantes inscritos en un curso. ADMIN, INSTRUCTOR, CLIENTE y OPERADOR pueden ver inscripciones de capacitaciones.',
   })
   @ApiParam({
     name: 'capacitacionId',
