@@ -8,6 +8,7 @@ import {
   Body,
   ParseIntPipe,
   BadRequestException,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -17,6 +18,8 @@ import {
   ApiBody,
   ApiBearerAuth,
 } from '@nestjs/swagger';
+import { AuthGuard } from '@nestjs/passport';
+import { RolesGuard, Roles } from '@/infrastructure/shared/guards/roles.guard';
 import {
   CreateCapacitacionDto,
   UpdateCapacitacionDto,
@@ -34,6 +37,8 @@ import { PaginationDto } from '@/application/shared/dto/pagination.dto';
 
 @ApiTags('capacitaciones')
 @Controller('capacitaciones')
+@UseGuards(AuthGuard('jwt'), RolesGuard)
+@ApiBearerAuth('JWT-auth')
 export class CapacitacionesController {
   constructor(
     private readonly createCapacitacionUseCase: CreateCapacitacionUseCase,
@@ -46,9 +51,10 @@ export class CapacitacionesController {
   ) {}
 
   @Post()
+  @Roles('ADMIN', 'INSTRUCTOR')
   @ApiOperation({
     summary: 'Crear una nueva capacitación',
-    description: 'Crea una nueva capacitación en el sistema con los datos proporcionados',
+    description: 'Crea una nueva capacitación en el sistema con los datos proporcionados. Solo ADMIN e INSTRUCTOR pueden crear capacitaciones.',
   })
   @ApiBody({ type: CreateCapacitacionDto })
   @ApiResponse({
@@ -70,10 +76,11 @@ export class CapacitacionesController {
   }
 
   @Post('list')
+  @Roles('ADMIN', 'INSTRUCTOR', 'ALUMNO', 'CLIENTE', 'OPERADOR')
   @ApiOperation({
     summary: 'Obtener lista de capacitaciones con paginación',
     description:
-      'Obtiene una lista paginada de todas las capacitaciones disponibles en el sistema',
+      'Obtiene una lista paginada de todas las capacitaciones disponibles en el sistema. Todos los roles autenticados pueden ver las capacitaciones.',
   })
   @ApiBody({ type: PaginationDto })
   @ApiResponse({
@@ -98,6 +105,7 @@ export class CapacitacionesController {
   }
 
   @Get(':id')
+  @Roles('ADMIN', 'INSTRUCTOR', 'ALUMNO', 'CLIENTE', 'OPERADOR')
   @ApiOperation({ summary: 'Obtener una capacitación por ID' })
   @ApiParam({
     name: 'id',
@@ -111,9 +119,10 @@ export class CapacitacionesController {
   }
 
   @Patch(':id')
+  @Roles('ADMIN', 'INSTRUCTOR')
   @ApiOperation({
     summary: 'Actualizar una capacitación',
-    description: 'Actualiza los datos de una capacitación existente. Solo se actualizan los campos proporcionados.',
+    description: 'Actualiza los datos de una capacitación existente. Solo se actualizan los campos proporcionados. Solo ADMIN e INSTRUCTOR pueden actualizar capacitaciones.',
   })
   @ApiParam({
     name: 'id',
@@ -143,10 +152,11 @@ export class CapacitacionesController {
   }
 
   @Delete(':id')
+  @Roles('ADMIN')
   @ApiOperation({
     summary: 'Eliminar una capacitación',
     description:
-      'Elimina una capacitación del sistema. Esta acción puede tener efectos en cascada si hay inscripciones asociadas.',
+      'Elimina una capacitación del sistema. Esta acción puede tener efectos en cascada si hay inscripciones asociadas. Solo ADMIN puede eliminar capacitaciones.',
   })
   @ApiParam({
     name: 'id',
@@ -177,7 +187,8 @@ export class CapacitacionesController {
   }
 
   @Post(':id/evaluaciones')
-  @ApiOperation({ summary: 'Vincular una evaluación a una capacitación' })
+  @Roles('ADMIN', 'INSTRUCTOR')
+  @ApiOperation({ summary: 'Vincular una evaluación a una capacitación. Solo ADMIN e INSTRUCTOR pueden vincular evaluaciones.' })
   @ApiParam({
     name: 'id',
     type: 'number',
@@ -198,10 +209,11 @@ export class CapacitacionesController {
   }
 
   @Patch(':id/toggle-status')
+  @Roles('ADMIN')
   @ApiOperation({
     summary: 'Cambiar el estado de una capacitación (RF-10)',
     description:
-      'Permite activar/desactivar cursos. Los certificados ya emitidos no se afectan.',
+      'Permite activar/desactivar cursos. Los certificados ya emitidos no se afectan. Solo ADMIN puede cambiar el estado de capacitaciones.',
   })
   @ApiParam({
     name: 'id',
@@ -239,10 +251,11 @@ export class CapacitacionesController {
   }
 
   @Patch(':id/toggle-activo')
+  @Roles('ADMIN')
   @ApiOperation({
     summary: 'Toggle rápido entre activo/inactivo (RF-10)',
     description:
-      'Alterna entre activo (PUBLICADA) e inactivo (BORRADOR). Los certificados no se afectan.',
+      'Alterna entre activo (PUBLICADA) e inactivo (BORRADOR). Los certificados no se afectan. Solo ADMIN puede activar/desactivar capacitaciones.',
   })
   @ApiParam({
     name: 'id',

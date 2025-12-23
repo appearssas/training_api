@@ -17,6 +17,7 @@ import {
   ApiBody,
 } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
+import { RolesGuard, Roles } from '@/infrastructure/shared/guards/roles.guard';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ConfiguracionAlerta } from '@/entities/alertas/configuracion-alerta.entity';
@@ -27,8 +28,8 @@ import { CheckExpirationsCron } from '@/application/certificates/jobs/check-expi
 
 @ApiTags('Certificates')
 @Controller('certificates')
-@UseGuards(AuthGuard('jwt'))
-@ApiBearerAuth()
+@UseGuards(AuthGuard('jwt'), RolesGuard)
+@ApiBearerAuth('JWT-auth')
 export class CertificatesController {
   constructor(
     @InjectRepository(ConfiguracionAlerta)
@@ -38,10 +39,11 @@ export class CertificatesController {
   ) {}
 
   @Get('expiring-report')
+  @Roles('ADMIN', 'CLIENTE', 'OPERADOR')
   @ApiOperation({
     summary: 'Obtener reporte de certificados próximos a vencer',
     description:
-      'Obtiene un reporte paginado de certificados que están próximos a vencer, ya vencidos o activos. Permite filtrar por rango de fechas, estado y búsqueda por texto.',
+      'Obtiene un reporte paginado de certificados que están próximos a vencer, ya vencidos o activos. Permite filtrar por rango de fechas, estado y búsqueda por texto. ADMIN, CLIENTE y OPERADOR pueden ver reportes de vencimientos.',
   })
   @ApiQuery({ name: 'fechaVencimientoDesde', required: false, type: String })
   @ApiQuery({ name: 'fechaVencimientoHasta', required: false, type: String })
@@ -77,10 +79,11 @@ export class CertificatesController {
   }
 
   @Get('alert-configurations')
+  @Roles('ADMIN', 'CLIENTE', 'OPERADOR')
   @ApiOperation({
     summary: 'Obtener configuraciones de alertas',
     description:
-      'Obtiene todas las configuraciones de alertas ordenadas por días antes del vencimiento (descendente)',
+      'Obtiene todas las configuraciones de alertas ordenadas por días antes del vencimiento (descendente). ADMIN, CLIENTE y OPERADOR pueden ver configuraciones de alertas.',
   })
   @ApiResponse({
     status: 200,
@@ -105,10 +108,11 @@ export class CertificatesController {
   }
 
   @Patch('alert-configurations/:id')
+  @Roles('ADMIN')
   @ApiOperation({
     summary: 'Actualizar configuración de alerta',
     description:
-      'Actualiza una configuración de alerta existente. Permite modificar los días antes del vencimiento y el estado activo/inactivo.',
+      'Actualiza una configuración de alerta existente. Permite modificar los días antes del vencimiento y el estado activo/inactivo. Solo ADMIN puede actualizar configuraciones de alertas.',
   })
   @ApiParam({
     name: 'id',
@@ -151,10 +155,11 @@ export class CertificatesController {
   }
 
   @Get('check-expirations-manual')
+  @Roles('ADMIN')
   @ApiOperation({
     summary: 'Ejecutar verificación de vencimientos manualmente (testing)',
     description:
-      'Ejecuta manualmente el proceso de verificación de certificados próximos a vencer y envía las alertas correspondientes. Útil para testing y ejecución manual del proceso que normalmente se ejecuta automáticamente mediante cron.',
+      'Ejecuta manualmente el proceso de verificación de certificados próximos a vencer y envía las alertas correspondientes. Útil para testing y ejecución manual del proceso que normalmente se ejecuta automáticamente mediante cron. Solo ADMIN puede ejecutar verificaciones manuales.',
   })
   @ApiResponse({
     status: 200,

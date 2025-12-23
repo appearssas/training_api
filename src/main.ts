@@ -50,6 +50,9 @@ async function bootstrap() {
 
 ### Gestión de Usuarios
 - **Registro de usuarios**: Registro de personas naturales o jurídicas con asignación de roles
+- **Listado y búsqueda de usuarios**: Paginación, filtros por rol/estado y búsqueda avanzada
+- **Edición de usuarios**: Actualización de datos, roles y estados de usuarios
+- **Eliminación de usuarios**: Soft-delete para mantener integridad de datos
 - **Carga masiva de conductores**: Importación de conductores mediante archivo CSV
 - **Gestión de roles**: Sistema de roles (ADMIN, CLIENTE, INSTRUCTOR, ALUMNO, OPERADOR)
 - **Conductores externos**: Creación y gestión de conductores externos
@@ -88,6 +91,7 @@ async function bootstrap() {
       'JWT-auth', // Este nombre se usará en los decoradores @ApiBearerAuth()
     )
     .addTag('auth', 'Endpoints de autenticación y registro de usuarios')
+    .addTag('users', 'Endpoints de gestión de usuarios (listar, editar, eliminar) - Solo ADMIN')
     .addTag('people', 'Endpoints de gestión de personas y conductores externos')
     .addTag('payments', 'Endpoints de gestión de pagos y habilitación de conductores')
     .addTag('terms', 'Endpoints de aceptación de términos y políticas')
