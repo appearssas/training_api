@@ -279,12 +279,12 @@ export class CapacitacionesRepositoryAdapter implements ICapacitacionesRepositor
       if (updateCapacitacionDto.fechaInicio !== undefined) {
         capacitacion.fechaInicio = updateCapacitacionDto.fechaInicio
           ? new Date(updateCapacitacionDto.fechaInicio)
-          : null;
+          : (null as any);
       }
       if (updateCapacitacionDto.fechaFin !== undefined) {
         capacitacion.fechaFin = updateCapacitacionDto.fechaFin
           ? new Date(updateCapacitacionDto.fechaFin)
-          : null;
+          : (null as any);
       }
       if (updateCapacitacionDto.duracionHoras !== undefined) {
         capacitacion.duracionHoras = updateCapacitacionDto.duracionHoras;
@@ -303,9 +303,6 @@ export class CapacitacionesRepositoryAdapter implements ICapacitacionesRepositor
       }
       if (updateCapacitacionDto.estado !== undefined) {
         capacitacion.estado = updateCapacitacionDto.estado;
-      }
-      if (updateCapacitacionDto.usuarioActualizacion !== undefined) {
-        capacitacion.usuarioActualizacion = updateCapacitacionDto.usuarioActualizacion;
       }
 
       // Actualizar relaciones solo si vienen en el DTO y no son null/undefined
@@ -340,9 +337,7 @@ export class CapacitacionesRepositoryAdapter implements ICapacitacionesRepositor
         updateCapacitacionDto.areaId !== undefined &&
         updateCapacitacionDto.areaId !== null
       ) {
-        capacitacion.area = {
-          id: updateCapacitacionDto.areaId,
-        } as any;
+        capacitacion.areaId = updateCapacitacionDto.areaId;
       }
 
       const savedCapacitacion = await this.capacitacionRepository.save(capacitacion);
@@ -361,12 +356,9 @@ export class CapacitacionesRepositoryAdapter implements ICapacitacionesRepositor
       }
       if (error instanceof QueryFailedError) {
         const errorMessage = (error as QueryFailedError).message;
-        const errorCode = (error as QueryFailedError).code;
         console.error('QueryFailedError updating capacitacion:', {
           message: errorMessage,
-          code: errorCode,
-          sql: (error as QueryFailedError).sql,
-          parameters: (error as QueryFailedError).parameters,
+          error: error,
         });
         throw new BadRequestException(
           `Error de base de datos: ${errorMessage}`,

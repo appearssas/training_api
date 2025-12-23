@@ -21,6 +21,7 @@ import {
 import { Response } from 'express';
 import { AuthGuard } from '@nestjs/passport';
 import { GetUser } from '../shared/auth/decorators/get-user.decorator';
+import { RolesGuard, Roles } from '@/infrastructure/shared/guards/roles.guard';
 import {
   CreateCertificadoDto,
   UpdateCertificadoDto,
@@ -41,8 +42,8 @@ import { ConfigService } from '@nestjs/config';
  */
 @ApiTags('certificados')
 @Controller('certificados')
-@UseGuards(AuthGuard('jwt'))
-@ApiBearerAuth()
+@UseGuards(AuthGuard('jwt'), RolesGuard)
+@ApiBearerAuth('JWT-auth')
 export class CertificadosController {
   constructor(
     private readonly createCertificadoUseCase: CreateCertificadoUseCase,
@@ -53,9 +54,10 @@ export class CertificadosController {
   ) {}
 
   @Post()
+  @Roles('ADMIN')
   @ApiOperation({
     summary: 'Crear un nuevo certificado',
-    description: 'RF-22: Generación automática de certificado PDF con QR',
+    description: 'RF-22: Generación automática de certificado PDF con QR. Solo ADMIN puede crear certificados.',
   })
   @ApiBody({ type: CreateCertificadoDto })
   @ApiResponse({ status: 201, description: 'Certificado creado exitosamente' })
@@ -66,8 +68,10 @@ export class CertificadosController {
   }
 
   @Post('list')
+  @Roles('ADMIN', 'ALUMNO', 'CLIENTE', 'INSTRUCTOR', 'OPERADOR')
   @ApiOperation({
     summary: 'Obtener lista de certificados con paginación',
+    description: 'Todos los roles autenticados pueden ver la lista de certificados.',
   })
   @ApiBody({ type: PaginationDto })
   @ApiResponse({ status: 200, description: 'Lista de certificados' })
@@ -76,7 +80,8 @@ export class CertificadosController {
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Obtener un certificado por ID' })
+  @Roles('ADMIN', 'ALUMNO', 'CLIENTE', 'INSTRUCTOR', 'OPERADOR')
+  @ApiOperation({ summary: 'Obtener un certificado por ID. Todos los roles autenticados pueden ver certificados.' })
   @ApiParam({
     name: 'id',
     type: 'number',
@@ -89,9 +94,10 @@ export class CertificadosController {
   }
 
   @Get(':id/download')
+  @Roles('ADMIN', 'ALUMNO', 'CLIENTE', 'INSTRUCTOR', 'OPERADOR')
   @ApiOperation({
     summary: 'Descargar certificado en formato PDF',
-    description: 'RF-24: Descarga de certificado PDF',
+    description: 'RF-24: Descarga de certificado PDF. Todos los roles autenticados pueden descargar certificados.',
   })
   @ApiParam({
     name: 'id',
@@ -132,6 +138,7 @@ export class CertificadosController {
   }
 
   @Patch(':id/retroactivo')
+  @Roles('ADMIN')
   @ApiOperation({
     summary: 'Actualizar certificado con fecha retroactiva',
     description: 'RF-25 a RF-31: Solo administrador puede emitir certificado retroactivo',
@@ -157,7 +164,8 @@ export class CertificadosController {
   }
 
   @Delete(':id')
-  @ApiOperation({ summary: 'Eliminar un certificado' })
+  @Roles('ADMIN')
+  @ApiOperation({ summary: 'Eliminar un certificado. Solo ADMIN puede eliminar certificados.' })
   @ApiParam({
     name: 'id',
     type: 'number',
