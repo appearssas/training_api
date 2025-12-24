@@ -168,6 +168,13 @@ export class CapacitacionesRepositoryAdapter implements ICapacitacionesRepositor
       const queryBuilder =
         this.capacitacionRepository.createQueryBuilder('capacitacion');
 
+      // Incluir relaciones necesarias para el frontend
+      queryBuilder
+        .leftJoinAndSelect('capacitacion.tipoCapacitacion', 'tipoCapacitacion')
+        .leftJoinAndSelect('capacitacion.modalidad', 'modalidad')
+        .leftJoinAndSelect('capacitacion.instructor', 'instructor')
+        .leftJoinAndSelect('capacitacion.evaluaciones', 'evaluaciones');
+
       if (search) {
         queryBuilder.where(
           'capacitacion.titulo LIKE :search OR capacitacion.descripcion LIKE :search',

@@ -68,6 +68,7 @@ interface UserProfileResponse {
   biografia?: string;
   fotoUrl?: string;
   numeroDocumento?: string;
+  personaId?: number; // ID de la persona asociada al usuario
 }
 
 @ApiTags('auth')
@@ -239,6 +240,7 @@ export class AuthController {
       biografia: user.persona?.biografia,
       fotoUrl: user.persona?.fotoUrl,
       numeroDocumento: user.persona?.numeroDocumento,
+      personaId: user.persona?.id, // Incluir el ID de la persona
     };
   }
 

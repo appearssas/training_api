@@ -235,6 +235,9 @@ export class InscripcionesRepositoryAdapter implements IInscripcionesRepository 
         .leftJoinAndSelect('capacitacion.tipoCapacitacion', 'tipoCapacitacion')
         .leftJoinAndSelect('capacitacion.modalidad', 'modalidad')
         .leftJoinAndSelect('capacitacion.instructor', 'instructor')
+        .leftJoinAndSelect('capacitacion.evaluaciones', 'evaluaciones')
+        .leftJoinAndSelect('inscripcion.intentosEvaluacion', 'intentosEvaluacion')
+        .leftJoinAndSelect('intentosEvaluacion.evaluacion', 'intentoEvaluacion')
         .where('inscripcion.estudiante_id = :estudianteId', { estudianteId });
 
       // Ordenamiento
