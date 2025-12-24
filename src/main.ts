@@ -80,7 +80,21 @@ async function bootstrap() {
 - Creación y gestión de capacitaciones
 - Materiales y evaluaciones
 - Inscripciones de estudiantes
-- Certificados`,
+- Certificados
+
+### Certificados (RF-22 a RF-34)
+- **Generación automática de certificados PDF**: Creación de certificados con número único, QR code y almacenamiento en servidor
+- **Certificados retroactivos**: Emisión de certificados con fecha anterior, justificación y auditoría completa
+- **Descarga de certificados**: Endpoint para descargar certificados en formato PDF
+- **Verificación pública**: Sistema de verificación pública de certificados mediante token UUID sin autenticación
+- **Auditoría completa**: Registro de quién emitió/modificó certificados retroactivos y cuándo
+
+### Evaluaciones (RF-16 a RF-21)
+- **Gestión de evaluaciones**: Creación, actualización y consulta de evaluaciones asociadas a capacitaciones
+- **Tipos de preguntas**: Soporte para 5 tipos de preguntas (single, multiple, image, true_false, yes_no)
+- **Calificación automática**: Sistema de calificación automática con porcentaje mínimo configurable
+- **Intentos limitados**: Control de número máximo de intentos permitidos por evaluación
+- **Consulta de evaluaciones**: Endpoints para obtener evaluaciones por ID o por curso`,
     )
     .setVersion('1.0')
     .addBearerAuth(
