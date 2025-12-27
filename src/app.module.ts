@@ -9,6 +9,9 @@ import { GlobalExceptionFilter } from '@/infrastructure/shared/filters/global-ex
 import { AuthModule } from './infrastructure/auth/auth.module';
 import { DatabaseModule } from './infrastructure/shared/database/database.module';
 import { CertificatesModule } from './infrastructure/certificates/certificates.module';
+import { TermsModule } from './infrastructure/terms/terms.module';
+import { DashboardModule } from './infrastructure/dashboard/dashboard.module';
+import { ReportsModule } from './infrastructure/reports/reports.module';
 
 @Module({
   imports: [
@@ -21,6 +24,9 @@ import { CertificatesModule } from './infrastructure/certificates/certificates.m
     AuthModule,
     CapacitacionesModule,
     CertificatesModule,
+    TermsModule,
+    DashboardModule,
+    ReportsModule,
   ],
   controllers: [AppController],
   providers: [

@@ -12,6 +12,9 @@ COPY package.json yarn.lock ./
 # Instalar TODAS las dependencias (incluyendo dev)
 RUN yarn install
 
+# Crear directorio para archivos públicos
+RUN mkdir -p /app/public
+
 # Exponer el puerto
 EXPOSE 3000
 

@@ -13,7 +13,14 @@ export class SendExpirationAlertsUseCase {
     diasRestantes: number,
   ): Promise<void> {
     // Obtener datos del alumno (conductor)
-    const alumno = certificado.inscripcion?.alumno;
+    if (!certificado.inscripcion) {
+      this.logger.warn(
+        `⚠️  No se puede enviar alerta: certificado ${certificado.numeroCertificado} sin inscripción`,
+      );
+      return;
+    }
+
+    const alumno = (certificado.inscripcion as any).alumno;
     const persona = alumno?.persona;
 
     if (!persona?.email) {

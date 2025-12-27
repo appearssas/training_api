@@ -13,7 +13,7 @@ export interface CertificadoConDias extends Certificado {
 }
 
 export interface ExpiringCertificatesReport {
-  certificados: Certificado Dias[];
+  certificados: CertificadoConDias[];
   total: number;
   pagina: number;
   totalPaginas: number;
