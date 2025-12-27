@@ -17,6 +17,7 @@ import { CertificatesModule } from './infrastructure/certificates/certificates.m
 import { PagosModule } from './infrastructure/pagos/pagos.module';
 import { AceptacionesModule } from './infrastructure/aceptaciones/aceptaciones.module';
 import { UsuariosModule } from './infrastructure/usuarios/usuarios.module';
+import { IntentosModule } from './infrastructure/intentos/intentos.module';
 
 @Module({
   imports: [
@@ -29,8 +30,11 @@ import { UsuariosModule } from './infrastructure/usuarios/usuarios.module';
     AuthModule,
     CapacitacionesModule,
     MaterialesModule,
-    EvaluacionesModule,
     InscripcionesModule,
+    // IntentosModule debe ir ANTES de EvaluacionesModule para evitar conflictos de rutas
+    // porque IntentosController tiene rutas más específicas: evaluaciones/:evaluacionId/intentos/*
+    IntentosModule,
+    EvaluacionesModule,
     CertificadosModule,
     PersonasModule,
     CertificatesModule,

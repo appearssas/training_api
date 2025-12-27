@@ -93,6 +93,51 @@ export class CertificadosController {
     return this.findOneCertificadoUseCase.execute(id);
   }
 
+  @Get(':id/view')
+  @Roles('ADMIN', 'ALUMNO', 'CLIENTE', 'INSTRUCTOR', 'OPERADOR')
+  @ApiOperation({
+    summary: 'Visualizar certificado en formato PDF',
+    description: 'RF-24: Visualización de certificado PDF en navegador. Todos los roles autenticados pueden visualizar certificados.',
+  })
+  @ApiParam({
+    name: 'id',
+    type: 'number',
+    description: 'ID del certificado',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'PDF del certificado para visualización',
+    content: {
+      'application/pdf': {},
+    },
+  })
+  @ApiResponse({ status: 404, description: 'Certificado no encontrado' })
+  async viewPDF(
+    @Param('id', ParseIntPipe) id: number,
+    @Res() res: Response,
+  ) {
+    const certificado = await this.findOneCertificadoUseCase.execute(id);
+
+    if (!certificado.urlCertificado) {
+      return res.status(404).json({ message: 'PDF no disponible para este certificado' });
+    }
+
+    // Extraer nombre del archivo de la URL
+    const fileName = certificado.urlCertificado.split('/').pop();
+    const storagePath = this.configService.get<string>('PDF_STORAGE_PATH') || './storage/certificates';
+    const filePath = path.join(storagePath, fileName || `certificado-${id}.pdf`);
+
+    try {
+      const fileBuffer = await fs.readFile(filePath);
+      res.setHeader('Content-Type', 'application/pdf');
+      // Usar 'inline' para visualización en navegador/iframe
+      res.setHeader('Content-Disposition', `inline; filename="certificado-${id}.pdf"`);
+      res.send(fileBuffer);
+    } catch (error) {
+      res.status(404).json({ message: 'Archivo PDF no encontrado' });
+    }
+  }
+
   @Get(':id/download')
   @Roles('ADMIN', 'ALUMNO', 'CLIENTE', 'INSTRUCTOR', 'OPERADOR')
   @ApiOperation({

@@ -43,6 +43,10 @@ import { InscripcionValidatorService } from '../shared/services/inscripcion-vali
     FindByEstudianteUseCase,
     FindByCapacitacionUseCase,
     InscripcionValidatorService,
+    {
+      provide: 'IInscripcionesRepository',
+      useClass: InscripcionesRepositoryAdapter,
+    },
   ],
 })
 export class InscripcionesModule {}

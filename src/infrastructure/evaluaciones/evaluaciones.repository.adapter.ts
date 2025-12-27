@@ -101,9 +101,8 @@ export class EvaluacionesRepositoryAdapter implements IEvaluacionesRepository {
       if (updateEvaluacionDto.mostrarRespuestasCorrectas !== undefined) {
         existingEvaluacion.mostrarRespuestasCorrectas = updateEvaluacionDto.mostrarRespuestasCorrectas;
       }
-      if (updateEvaluacionDto.puntajeTotal !== undefined) {
-        existingEvaluacion.puntajeTotal = updateEvaluacionDto.puntajeTotal;
-      }
+      // El puntajeTotal se calculará automáticamente después de sincronizar las preguntas
+      // No se actualiza manualmente aquí para mantener consistencia
       if (updateEvaluacionDto.minimoAprobacion !== undefined) {
         existingEvaluacion.minimoAprobacion = updateEvaluacionDto.minimoAprobacion;
       }
@@ -121,6 +120,19 @@ export class EvaluacionesRepositoryAdapter implements IEvaluacionesRepository {
           updateEvaluacionDto.preguntas,
           existingEvaluacion.preguntas || [],
         );
+
+        // Recalcular el puntaje total automáticamente después de sincronizar las preguntas
+        const updatedPreguntas = await queryRunner.manager.find(Pregunta, {
+          where: { evaluacion: { id: savedEvaluacion.id } },
+        });
+
+        const puntajeTotalCalculado = updatedPreguntas.reduce(
+          (sum, pregunta) => sum + Number(pregunta.puntaje || 0),
+          0
+        );
+
+        savedEvaluacion.puntajeTotal = puntajeTotalCalculado;
+        await queryRunner.manager.save(savedEvaluacion);
       }
 
       await queryRunner.commitTransaction();
@@ -164,6 +176,15 @@ export class EvaluacionesRepositoryAdapter implements IEvaluacionesRepository {
     existingPreguntas: Pregunta[],
   ): Promise<void> {
     if (!newPreguntas) return;
+
+    // Validar que todas las preguntas tengan puntaje válido
+    for (const preguntaData of newPreguntas) {
+      if (!preguntaData.puntaje || preguntaData.puntaje <= 0) {
+        throw new BadRequestException(
+          `La pregunta "${preguntaData.enunciado}" debe tener un puntaje mayor a 0`,
+        );
+      }
+    }
 
     // IDs de preguntas nuevas (las que tienen id son existentes)
     const newPreguntaIds = new Set(
