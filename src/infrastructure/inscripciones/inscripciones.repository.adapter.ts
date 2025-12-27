@@ -231,6 +231,7 @@ export class InscripcionesRepositoryAdapter implements IInscripcionesRepository 
 
       const queryBuilder = this.inscripcionRepository
         .createQueryBuilder('inscripcion')
+        .leftJoinAndSelect('inscripcion.estudiante', 'estudiante')
         .leftJoinAndSelect('inscripcion.capacitacion', 'capacitacion')
         .leftJoinAndSelect('capacitacion.tipoCapacitacion', 'tipoCapacitacion')
         .leftJoinAndSelect('capacitacion.modalidad', 'modalidad')
