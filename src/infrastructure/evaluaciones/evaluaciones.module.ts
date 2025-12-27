@@ -31,6 +31,10 @@ import {
   exports: [
     FindOneEvaluacionUseCase,
     UpdateEvaluacionUseCase,
+    {
+      provide: 'IEvaluacionesRepository',
+      useClass: EvaluacionesRepositoryAdapter,
+    },
   ],
 })
 export class EvaluacionesModule {}

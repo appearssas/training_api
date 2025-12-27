@@ -82,6 +82,15 @@ export class CapacitacionesRepositoryAdapter implements ICapacitacionesRepositor
 
         const savedEvaluacion = await queryRunner.manager.save(newEvaluacion);
 
+        // Validar que todas las preguntas tengan puntaje válido
+        for (const preguntaData of evaluacionData.preguntas) {
+          if (!preguntaData.puntaje || preguntaData.puntaje <= 0) {
+            throw new BadRequestException(
+              `La pregunta "${preguntaData.enunciado}" debe tener un puntaje mayor a 0`,
+            );
+          }
+        }
+
         // Crear las preguntas y sus opciones
         for (let i = 0; i < evaluacionData.preguntas.length; i++) {
           const preguntaData = evaluacionData.preguntas[i];
@@ -130,6 +139,24 @@ export class CapacitacionesRepositoryAdapter implements ICapacitacionesRepositor
 
             await queryRunner.manager.save(newOpcion);
           }
+        }
+
+        // Calcular el puntaje total automáticamente como la suma de los puntajes de todas las preguntas
+        // Primero obtener las preguntas guardadas para usar sus puntajes reales
+        const preguntasGuardadas = await queryRunner.manager.find(Pregunta, {
+          where: { evaluacion: { id: savedEvaluacion.id } },
+        });
+
+        const puntajeTotalCalculado = preguntasGuardadas.reduce(
+          (sum, pregunta) => sum + Number(pregunta.puntaje || 0),
+          0
+        );
+
+        // Actualizar el puntajeTotal de la evaluación con el valor calculado
+        // Si el cálculo es 0, mantener el valor por defecto o el enviado
+        if (puntajeTotalCalculado > 0) {
+          savedEvaluacion.puntajeTotal = puntajeTotalCalculado;
+          await queryRunner.manager.save(savedEvaluacion);
         }
       }
 
@@ -266,7 +293,7 @@ export class CapacitacionesRepositoryAdapter implements ICapacitacionesRepositor
     try {
       const capacitacion = await this.capacitacionRepository.findOne({
         where: { id },
-        relations: ['tipoCapacitacion', 'modalidad', 'instructor', 'area'],
+        relations: ['tipoCapacitacion', 'modalidad', 'instructor'],
       });
 
       if (!capacitacion) {

@@ -64,20 +64,61 @@ export class CertificadosRepositoryAdapter implements ICertificadosRepository {
 
   async findAll(pagination: PaginationDto): Promise<any> {
     try {
-      const { page = 1, limit = 10, search, sortField, sortOrder } = pagination;
+      const { page = 1, limit = 10, search, sortField, sortOrder, filters } = pagination;
       const skip = (page - 1) * limit;
 
       const queryBuilder = this.certificadoRepository
         .createQueryBuilder('certificado')
         .leftJoinAndSelect('certificado.inscripcion', 'inscripcion')
         .leftJoinAndSelect('inscripcion.estudiante', 'estudiante')
-        .leftJoinAndSelect('inscripcion.capacitacion', 'capacitacion');
+        .leftJoinAndSelect('inscripcion.capacitacion', 'capacitacion')
+        .leftJoinAndSelect('capacitacion.instructor', 'instructor')
+        .leftJoinAndSelect('capacitacion.tipoCapacitacion', 'tipoCapacitacion');
 
+      // Filtro por estudiante (studentId)
+      if (filters?.studentId) {
+        const studentId = parseInt(filters.studentId);
+        if (!isNaN(studentId)) {
+          queryBuilder.andWhere('estudiante.id = :studentId', { studentId });
+          console.log(`🔍 Filtrado por estudiante ID: ${studentId}`);
+        }
+      }
+
+      // Filtro por curso (courseId)
+      if (filters?.courseId) {
+        const courseId = parseInt(filters.courseId);
+        if (!isNaN(courseId)) {
+          queryBuilder.andWhere('capacitacion.id = :courseId', { courseId });
+          console.log(`🔍 Filtrado por curso ID: ${courseId}`);
+        }
+      }
+
+      // Filtro por estado (status)
+      if (filters?.status) {
+        if (filters.status === 'valid') {
+          queryBuilder.andWhere('certificado.activo = :activo', { activo: true });
+          queryBuilder.andWhere(
+            '(certificado.fechaVencimiento IS NULL OR certificado.fechaVencimiento > :now)',
+            { now: new Date() },
+          );
+        } else if (filters.status === 'expired') {
+          queryBuilder.andWhere(
+            'certificado.fechaVencimiento IS NOT NULL AND certificado.fechaVencimiento <= :now',
+            { now: new Date() },
+          );
+        } else if (filters.status === 'revoked') {
+          queryBuilder.andWhere('certificado.activo = :activo', { activo: false });
+        }
+        console.log(`🔍 Filtrado por estado: ${filters.status}`);
+      }
+
+      // Filtro de búsqueda general
       if (search) {
-        queryBuilder.where(
+        queryBuilder.andWhere(
           '(certificado.numeroCertificado LIKE :search OR estudiante.nombres LIKE :search OR estudiante.apellidos LIKE :search OR capacitacion.titulo LIKE :search)',
           { search: `%${search}%` },
         );
+        console.log(`🔍 Búsqueda: ${search}`);
       }
 
       if (sortField) {
@@ -90,6 +131,10 @@ export class CertificadosRepositoryAdapter implements ICertificadosRepository {
 
       const [data, total] = await queryBuilder.getManyAndCount();
 
+      console.log(
+        `✅ Certificados encontrados: ${total} (página ${page}, límite ${limit})`,
+      );
+
       return {
         data,
         total,
@@ -98,7 +143,7 @@ export class CertificadosRepositoryAdapter implements ICertificadosRepository {
         totalPages: Math.ceil(total / limit),
       };
     } catch (error: unknown) {
-      console.error(error);
+      console.error('❌ Error en findAll certificados:', error);
       throw new InternalServerErrorException('Error al obtener los certificados');
     }
   }
