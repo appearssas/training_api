@@ -1,6 +1,6 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class InsertDefaultAlertConfigurations1734736000000
+export class InsertDefaultAlertConfigurations1766251000000
   implements MigrationInterface
 {
   public async up(queryRunner: QueryRunner): Promise<void> {
