@@ -23,4 +23,3 @@ import { DocumentoLegal } from '@/entities/documentos/documento-legal.entity';
   exports: ['IAceptacionesRepository', VerificarAceptacionUseCase],
 })
 export class AceptacionesModule {}
-

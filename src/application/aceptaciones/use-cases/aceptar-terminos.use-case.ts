@@ -61,18 +61,16 @@ export class AceptarTerminosUseCase {
 
       if (yaAceptado) {
         // Si ya fue aceptado, obtener el documento para la versión
-        const documento = await this.aceptacionesRepository.findDocumentoById(
-          documentoId,
-        );
+        const documento =
+          await this.aceptacionesRepository.findDocumentoById(documentoId);
         if (documento) {
           // Actualizar la aceptación existente (o crear una nueva para la nueva versión)
           // Por ahora, creamos una nueva aceptación para mantener historial
         }
       }
 
-      const documento = await this.aceptacionesRepository.findDocumentoById(
-        documentoId,
-      );
+      const documento =
+        await this.aceptacionesRepository.findDocumentoById(documentoId);
 
       if (!documento) {
         throw new NotFoundException(
@@ -100,4 +98,3 @@ export class AceptarTerminosUseCase {
     return aceptaciones;
   }
 }
-

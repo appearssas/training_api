@@ -35,4 +35,3 @@ export interface IMaterialesRepository {
    */
   remove(id: number): Promise<void>;
 }
-

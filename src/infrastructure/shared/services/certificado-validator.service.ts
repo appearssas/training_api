@@ -30,7 +30,8 @@ export class CertificadoValidatorService {
     });
 
     return inscripciones.some(
-      (inscripcion) => inscripcion.certificados && inscripcion.certificados.length > 0,
+      (inscripcion) =>
+        inscripcion.certificados && inscripcion.certificados.length > 0,
     );
   }
 
@@ -46,8 +47,7 @@ export class CertificadoValidatorService {
     });
 
     return inscripciones.reduce(
-      (total, inscripcion) =>
-        total + (inscripcion.certificados?.length || 0),
+      (total, inscripcion) => total + (inscripcion.certificados?.length || 0),
       0,
     );
   }
@@ -70,4 +70,3 @@ export class CertificadoValidatorService {
     return { hasCertificados, count };
   }
 }
-

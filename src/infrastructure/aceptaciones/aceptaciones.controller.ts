@@ -101,7 +101,8 @@ export class AceptacionesController {
   })
   @ApiResponse({
     status: 200,
-    description: 'Términos aceptados exitosamente. Retorna un array con las aceptaciones creadas.',
+    description:
+      'Términos aceptados exitosamente. Retorna un array con las aceptaciones creadas.',
     type: [AceptacionResponseDto],
     examples: {
       ejemploRespuesta: {
@@ -125,14 +126,16 @@ export class AceptacionesController {
   })
   @ApiResponse({
     status: 400,
-    description: 'Error de validación: debe aceptar todos los documentos legales activos o documentos inválidos',
+    description:
+      'Error de validación: debe aceptar todos los documentos legales activos o documentos inválidos',
     schema: {
       type: 'object',
       properties: {
         statusCode: { type: 'number', example: 400 },
         message: {
           type: 'string',
-          example: 'Debe aceptar todos los documentos legales activos. Faltan: 2',
+          example:
+            'Debe aceptar todos los documentos legales activos. Faltan: 2',
         },
         error: { type: 'string', example: 'Bad Request' },
       },
@@ -175,7 +178,10 @@ export class AceptacionesController {
       type: 'object',
       properties: {
         aceptado: { type: 'boolean', example: true },
-        message: { type: 'string', example: 'Todos los términos han sido aceptados' },
+        message: {
+          type: 'string',
+          example: 'Todos los términos han sido aceptados',
+        },
       },
     },
   })
@@ -194,4 +200,3 @@ export class AceptacionesController {
     };
   }
 }
-

@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  BadRequestException,
-  Logger,
-} from '@nestjs/common';
+import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import { parse } from 'csv-parse/sync';
 import { CreateConductorExternoDto } from '../dto/create-conductor-externo.dto';
 import { CargaMasivaResponseDto } from '../dto/carga-masiva-response.dto';
@@ -28,9 +24,7 @@ export class CargaMasivaConductoresUseCase {
     private readonly createConductorExternoUseCase: CreateConductorExternoUseCase,
   ) {}
 
-  async execute(
-    fileBuffer: Buffer,
-  ): Promise<CargaMasivaResponseDto> {
+  async execute(fileBuffer: Buffer): Promise<CargaMasivaResponseDto> {
     // Validar que el archivo no esté vacío
     if (!fileBuffer || fileBuffer.length === 0) {
       throw new BadRequestException('El archivo CSV está vacío');
@@ -147,9 +141,10 @@ export class CargaMasivaConductoresUseCase {
     if (fila.fechaNacimiento && fila.fechaNacimiento.trim()) {
       const fecha = new Date(fila.fechaNacimiento.trim());
       if (isNaN(fecha.getTime())) {
-        throw new Error('El formato de la fecha de nacimiento es inválido (use YYYY-MM-DD)');
+        throw new Error(
+          'El formato de la fecha de nacimiento es inválido (use YYYY-MM-DD)',
+        );
       }
     }
   }
 }
-

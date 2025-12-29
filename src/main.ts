@@ -109,9 +109,15 @@ async function bootstrap() {
       'JWT-auth', // Este nombre se usará en los decoradores @ApiBearerAuth()
     )
     .addTag('auth', 'Endpoints de autenticación y registro de usuarios')
-    .addTag('users', 'Endpoints de gestión de usuarios (listar, editar, eliminar) - Solo ADMIN')
+    .addTag(
+      'users',
+      'Endpoints de gestión de usuarios (listar, editar, eliminar) - Solo ADMIN',
+    )
     .addTag('people', 'Endpoints de gestión de personas y conductores externos')
-    .addTag('payments', 'Endpoints de gestión de pagos y habilitación de conductores')
+    .addTag(
+      'payments',
+      'Endpoints de gestión de pagos y habilitación de conductores',
+    )
     .addTag('terms', 'Endpoints de aceptación de términos y políticas')
     .addTag('capacitaciones', 'Endpoints de gestión de capacitaciones')
     .addTag('inscripciones', 'Endpoints de gestión de inscripciones')

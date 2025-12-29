@@ -57,7 +57,8 @@ export class CertificadosController {
   @Roles('ADMIN')
   @ApiOperation({
     summary: 'Crear un nuevo certificado',
-    description: 'RF-22: Generación automática de certificado PDF con QR. Solo ADMIN puede crear certificados.',
+    description:
+      'RF-22: Generación automática de certificado PDF con QR. Solo ADMIN puede crear certificados.',
   })
   @ApiBody({ type: CreateCertificadoDto })
   @ApiResponse({ status: 201, description: 'Certificado creado exitosamente' })
@@ -71,7 +72,8 @@ export class CertificadosController {
   @Roles('ADMIN', 'ALUMNO', 'CLIENTE', 'INSTRUCTOR', 'OPERADOR')
   @ApiOperation({
     summary: 'Obtener lista de certificados con paginación',
-    description: 'Todos los roles autenticados pueden ver la lista de certificados.',
+    description:
+      'Todos los roles autenticados pueden ver la lista de certificados.',
   })
   @ApiBody({ type: PaginationDto })
   @ApiResponse({ status: 200, description: 'Lista de certificados' })
@@ -81,7 +83,10 @@ export class CertificadosController {
 
   @Get(':id')
   @Roles('ADMIN', 'ALUMNO', 'CLIENTE', 'INSTRUCTOR', 'OPERADOR')
-  @ApiOperation({ summary: 'Obtener un certificado por ID. Todos los roles autenticados pueden ver certificados.' })
+  @ApiOperation({
+    summary:
+      'Obtener un certificado por ID. Todos los roles autenticados pueden ver certificados.',
+  })
   @ApiParam({
     name: 'id',
     type: 'number',
@@ -97,7 +102,8 @@ export class CertificadosController {
   @Roles('ADMIN', 'ALUMNO', 'CLIENTE', 'INSTRUCTOR', 'OPERADOR')
   @ApiOperation({
     summary: 'Descargar certificado en formato PDF',
-    description: 'RF-24: Descarga de certificado PDF. Todos los roles autenticados pueden descargar certificados.',
+    description:
+      'RF-24: Descarga de certificado PDF. Todos los roles autenticados pueden descargar certificados.',
   })
   @ApiParam({
     name: 'id',
@@ -119,18 +125,28 @@ export class CertificadosController {
     const certificado = await this.findOneCertificadoUseCase.execute(id);
 
     if (!certificado.urlCertificado) {
-      return res.status(404).json({ message: 'PDF no disponible para este certificado' });
+      return res
+        .status(404)
+        .json({ message: 'PDF no disponible para este certificado' });
     }
 
     // Extraer nombre del archivo de la URL
     const fileName = certificado.urlCertificado.split('/').pop();
-    const storagePath = this.configService.get<string>('PDF_STORAGE_PATH') || './storage/certificates';
-    const filePath = path.join(storagePath, fileName || `certificado-${id}.pdf`);
+    const storagePath =
+      this.configService.get<string>('PDF_STORAGE_PATH') ||
+      './storage/certificates';
+    const filePath = path.join(
+      storagePath,
+      fileName || `certificado-${id}.pdf`,
+    );
 
     try {
       const fileBuffer = await fs.readFile(filePath);
       res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', `attachment; filename="certificado-${id}.pdf"`);
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename="certificado-${id}.pdf"`,
+      );
       res.send(fileBuffer);
     } catch (error) {
       res.status(404).json({ message: 'Archivo PDF no encontrado' });
@@ -141,7 +157,8 @@ export class CertificadosController {
   @Roles('ADMIN')
   @ApiOperation({
     summary: 'Actualizar certificado con fecha retroactiva',
-    description: 'RF-25 a RF-31: Solo administrador puede emitir certificado retroactivo',
+    description:
+      'RF-25 a RF-31: Solo administrador puede emitir certificado retroactivo',
   })
   @ApiParam({
     name: 'id',
@@ -160,22 +177,33 @@ export class CertificadosController {
     @Body() updateDto: UpdateCertificadoDto,
     @GetUser() user: any,
   ) {
-    return this.updateCertificadoRetroactivoUseCase.execute(id, updateDto, user.id);
+    return this.updateCertificadoRetroactivoUseCase.execute(
+      id,
+      updateDto,
+      user.id,
+    );
   }
 
   @Delete(':id')
   @Roles('ADMIN')
-  @ApiOperation({ summary: 'Eliminar un certificado. Solo ADMIN puede eliminar certificados.' })
+  @ApiOperation({
+    summary: 'Eliminar un certificado. Solo ADMIN puede eliminar certificados.',
+  })
   @ApiParam({
     name: 'id',
     type: 'number',
     description: 'ID del certificado',
   })
-  @ApiResponse({ status: 200, description: 'Certificado eliminado exitosamente' })
+  @ApiResponse({
+    status: 200,
+    description: 'Certificado eliminado exitosamente',
+  })
   @ApiResponse({ status: 404, description: 'Certificado no encontrado' })
   remove(@Param('id', ParseIntPipe) id: number) {
     // TODO: Implementar caso de uso de eliminación si es necesario
-    return { message: 'Eliminación de certificados no permitida por políticas de auditoría' };
+    return {
+      message:
+        'Eliminación de certificados no permitida por políticas de auditoría',
+    };
   }
 }
-

@@ -20,9 +20,7 @@ export class UpdateCapacitacionUseCase {
     // Obtener la capacitación actual para conocer el estado actual
     const capacitacionActual = await this.capacitacionesRepository.findOne(id);
     if (!capacitacionActual) {
-      throw new BadRequestException(
-        `Capacitación con ID ${id} no encontrada`,
-      );
+      throw new BadRequestException(`Capacitación con ID ${id} no encontrada`);
     }
 
     // Determinar el estado final después de la actualización

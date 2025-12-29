@@ -53,7 +53,8 @@ export class CreateOpcionRespuestaDto {
 
 export class CreatePreguntaDto {
   @ApiProperty({
-    description: 'ID del tipo de pregunta (1: única, 2: múltiple, 3: imagen, 4: verdadero/falso, 5: sí/no)',
+    description:
+      'ID del tipo de pregunta (1: única, 2: múltiple, 3: imagen, 4: verdadero/falso, 5: sí/no)',
     example: 1,
   })
   @IsInt()
@@ -218,4 +219,3 @@ export class CreateEvaluacionInlineDto {
   @Type(() => CreatePreguntaDto)
   preguntas: CreatePreguntaDto[];
 }
-

@@ -27,7 +27,9 @@ export class PersonasRepositoryAdapter implements IPersonasRepository {
     private readonly dataSource: DataSource,
   ) {}
 
-  async findByNumeroDocumento(numeroDocumento: string): Promise<Persona | null> {
+  async findByNumeroDocumento(
+    numeroDocumento: string,
+  ): Promise<Persona | null> {
     return await this.personaRepository.findOne({
       where: { numeroDocumento },
     });
@@ -46,9 +48,7 @@ export class PersonasRepositoryAdapter implements IPersonasRepository {
     });
   }
 
-  async createConductorExterno(
-    personaData: Partial<Persona>,
-  ): Promise<{
+  async createConductorExterno(personaData: Partial<Persona>): Promise<{
     persona: Persona;
     alumno: Alumno;
     usuario: Usuario;
@@ -77,7 +77,7 @@ export class PersonasRepositoryAdapter implements IPersonasRepository {
       // 3. Crear Usuario con contraseña temporal
       // Generar un username único basado en el número de documento
       const username = `ext_${savedPersona.numeroDocumento}`;
-      
+
       // Verificar que el username no exista (aunque es poco probable)
       let finalUsername = username;
       let counter = 1;
@@ -143,7 +143,9 @@ export class PersonasRepositoryAdapter implements IPersonasRepository {
     // Buscar el último código de estudiante del año actual
     const ultimoAlumno = await alumnoRepository
       .createQueryBuilder('alumno')
-      .where('alumno.codigoEstudiante LIKE :prefijo', { prefijo: `${prefijo}%` })
+      .where('alumno.codigoEstudiante LIKE :prefijo', {
+        prefijo: `${prefijo}%`,
+      })
       .andWhere('alumno.codigoEstudiante IS NOT NULL')
       .orderBy('alumno.codigoEstudiante', 'DESC')
       .getOne();
@@ -162,4 +164,3 @@ export class PersonasRepositoryAdapter implements IPersonasRepository {
     return generarCodigoEstudiante(siguienteNumero - 1);
   }
 }
-

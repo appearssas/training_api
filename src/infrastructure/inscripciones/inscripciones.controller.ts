@@ -122,7 +122,8 @@ export class InscripcionesController {
   @Roles('ADMIN', 'INSTRUCTOR', 'ALUMNO', 'CLIENTE', 'OPERADOR')
   @ApiOperation({
     summary: 'Obtener una inscripción por ID',
-    description: 'Obtiene los detalles completos de una inscripción específica, incluyendo relaciones con capacitación y estudiante. Todos los roles autenticados pueden ver inscripciones.',
+    description:
+      'Obtiene los detalles completos de una inscripción específica, incluyendo relaciones con capacitación y estudiante. Todos los roles autenticados pueden ver inscripciones.',
   })
   @ApiParam({
     name: 'id',
@@ -191,7 +192,8 @@ export class InscripcionesController {
   @Roles('ADMIN')
   @ApiOperation({
     summary: 'Eliminar una inscripción',
-    description: 'Elimina una inscripción del sistema. Esta acción no se puede deshacer. Solo ADMIN puede eliminar inscripciones.',
+    description:
+      'Elimina una inscripción del sistema. Esta acción no se puede deshacer. Solo ADMIN puede eliminar inscripciones.',
   })
   @ApiParam({
     name: 'id',

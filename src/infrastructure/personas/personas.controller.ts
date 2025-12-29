@@ -93,7 +93,8 @@ export class PersonasController {
   })
   @ApiResponse({
     status: 201,
-    description: 'Conductor externo creado exitosamente. El conductor queda en estado "No habilitado" hasta que se registre el pago y se habilite manualmente.',
+    description:
+      'Conductor externo creado exitosamente. El conductor queda en estado "No habilitado" hasta que se registre el pago y se habilite manualmente.',
     type: ConductorExternoResponseDto,
     examples: {
       ejemploRespuesta: {
@@ -172,7 +173,8 @@ export class PersonasController {
         statusCode: { type: 'number', example: 403 },
         message: {
           type: 'string',
-          example: 'Acceso denegado. Se requiere uno de los siguientes roles: ADMIN',
+          example:
+            'Acceso denegado. Se requiere uno de los siguientes roles: ADMIN',
         },
         error: {
           type: 'string',
@@ -183,7 +185,8 @@ export class PersonasController {
   })
   @ApiResponse({
     status: 409,
-    description: 'Conflicto - El número de documento o email ya está registrado en el sistema',
+    description:
+      'Conflicto - El número de documento o email ya está registrado en el sistema',
     schema: {
       type: 'object',
       properties: {
@@ -314,4 +317,3 @@ numeroDocumento,tipoDocumento,nombres,apellidos,email,telefono,fechaNacimiento,g
     return await this.cargaMasivaConductoresUseCase.execute(file.buffer);
   }
 }
-

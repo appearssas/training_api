@@ -49,7 +49,9 @@ export class CreateAdminUseCase {
     }
 
     // Hash de la contraseña
-    const passwordHash = this.authRepository.hashPassword(createAdminDto.password);
+    const passwordHash = this.authRepository.hashPassword(
+      createAdminDto.password,
+    );
 
     // Preparar datos de persona
     const personaData = {
@@ -87,4 +89,3 @@ export class CreateAdminUseCase {
     };
   }
 }
-

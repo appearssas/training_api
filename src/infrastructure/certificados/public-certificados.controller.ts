@@ -1,15 +1,5 @@
-import {
-  Controller,
-  Get,
-  Param,
-  NotFoundException,
-} from '@nestjs/common';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
-  ApiParam,
-} from '@nestjs/swagger';
+import { Controller, Get, Param, NotFoundException } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
 import { VerifyCertificadoUseCase } from '@/application/certificados/use-cases/verify-certificado.use-case';
 
 /**
@@ -28,7 +18,8 @@ export class PublicCertificadosController {
   @Get('verify/:token')
   @ApiOperation({
     summary: 'Verificar un certificado por token público',
-    description: 'RF-32, RF-33, RF-34: Verificación pública de certificados sin autenticación',
+    description:
+      'RF-32, RF-33, RF-34: Verificación pública de certificados sin autenticación',
   })
   @ApiParam({
     name: 'token',
@@ -45,7 +36,11 @@ export class PublicCertificadosController {
         isValid: { type: 'boolean', example: true },
         isExpired: { type: 'boolean', example: false },
         fechaEmision: { type: 'string', format: 'date-time' },
-        fechaVencimiento: { type: 'string', format: 'date-time', nullable: true },
+        fechaVencimiento: {
+          type: 'string',
+          format: 'date-time',
+          nullable: true,
+        },
         certificado: {
           type: 'object',
           properties: {
@@ -56,7 +51,10 @@ export class PublicCertificadosController {
       },
     },
   })
-  @ApiResponse({ status: 404, description: 'Certificado no encontrado o inválido' })
+  @ApiResponse({
+    status: 404,
+    description: 'Certificado no encontrado o inválido',
+  })
   async verify(@Param('token') token: string) {
     try {
       const result = await this.verifyCertificadoUseCase.execute(token);
@@ -92,4 +90,3 @@ export class PublicCertificadosController {
     }
   }
 }
-

@@ -6,7 +6,7 @@ import { InscripcionValidatorService } from '@/infrastructure/shared/services/in
 
 /**
  * Caso de uso: Crear una nueva inscripción
- * 
+ *
  * Reglas de negocio aplicadas:
  * - Valida que la capacitación esté disponible (PUBLICADA o EN_CURSO)
  * - Valida que el estudiante exista y esté activo
@@ -22,7 +22,9 @@ export class CreateInscripcionUseCase {
     private readonly inscripcionValidator: InscripcionValidatorService,
   ) {}
 
-  async execute(createInscripcionDto: CreateInscripcionDto): Promise<Inscripcion> {
+  async execute(
+    createInscripcionDto: CreateInscripcionDto,
+  ): Promise<Inscripcion> {
     // 1. Validar que la capacitación esté disponible para inscripciones
     await this.inscripcionValidator.validateCapacitacionDisponible(
       createInscripcionDto.capacitacionId,

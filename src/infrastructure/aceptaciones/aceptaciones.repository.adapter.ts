@@ -6,9 +6,7 @@ import { AceptacionPolitica } from '@/entities/aceptaciones/aceptacion-politica.
 import { DocumentoLegal } from '@/entities/documentos/documento-legal.entity';
 
 @Injectable()
-export class AceptacionesRepositoryAdapter
-  implements IAceptacionesRepository
-{
+export class AceptacionesRepositoryAdapter implements IAceptacionesRepository {
   constructor(
     @InjectRepository(DocumentoLegal)
     private readonly documentoLegalRepository: Repository<DocumentoLegal>,
@@ -90,4 +88,3 @@ export class AceptacionesRepositoryAdapter
     return await this.aceptacionRepository.save(aceptacion);
   }
 }
-

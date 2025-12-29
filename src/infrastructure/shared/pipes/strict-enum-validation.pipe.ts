@@ -71,4 +71,3 @@ export class StrictEnumValidationPipe implements PipeTransform<any> {
     return messages;
   }
 }
-

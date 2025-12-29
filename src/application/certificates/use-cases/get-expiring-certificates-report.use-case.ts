@@ -99,10 +99,9 @@ export class GetExpiringCertificatesReportUseCase {
     let certificadosConDias: CertificadoConDias[] = certificados.map(
       (cert) => ({
         ...cert,
-        diasRestantes:
-          this.vigencyHelper.calculateDaysUntilExpiration(
-            cert.fechaVencimiento,
-          ),
+        diasRestantes: this.vigencyHelper.calculateDaysUntilExpiration(
+          cert.fechaVencimiento,
+        ),
       }),
     );
 

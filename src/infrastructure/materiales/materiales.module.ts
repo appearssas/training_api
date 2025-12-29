@@ -27,9 +27,7 @@ import { StorageService } from '../shared/services/storage.service';
       useClass: MaterialesRepositoryAdapter,
     },
   ],
-  imports: [
-    TypeOrmModule.forFeature([MaterialCapacitacion, TipoMaterial]),
-  ],
+  imports: [TypeOrmModule.forFeature([MaterialCapacitacion, TipoMaterial])],
   exports: [
     CreateMaterialUseCase,
     UpdateMaterialUseCase,
@@ -41,4 +39,3 @@ import { StorageService } from '../shared/services/storage.service';
   ],
 })
 export class MaterialesModule {}
-

@@ -33,7 +33,8 @@ export class RegisterDto {
     default: TipoDocumento.CC,
   })
   @IsStrictEnum(TipoDocumento, {
-    message: 'tipoDocumento debe ser uno de los valores permitidos: CC, TI, CE, PA, RC, NIT',
+    message:
+      'tipoDocumento debe ser uno de los valores permitidos: CC, TI, CE, PA, RC, NIT',
   })
   @IsOptional()
   tipoDocumento?: TipoDocumento;
@@ -55,7 +56,8 @@ export class RegisterDto {
   apellidos?: string;
 
   @ApiProperty({
-    description: 'Tipo de persona: NATURAL o JURIDICA. Si no se especifica, se determina automáticamente: JURIDICA si tiene razón social, NATURAL en caso contrario.',
+    description:
+      'Tipo de persona: NATURAL o JURIDICA. Si no se especifica, se determina automáticamente: JURIDICA si tiene razón social, NATURAL en caso contrario.',
     enum: ['NATURAL', 'JURIDICA'],
     example: 'NATURAL',
     default: 'NATURAL',
@@ -68,7 +70,8 @@ export class RegisterDto {
   tipoPersona?: 'NATURAL' | 'JURIDICA';
 
   @ApiPropertyOptional({
-    description: 'Razón Social (obligatorio para personas jurídicas). Si se proporciona razón social, el tipoPersona se establecerá automáticamente como JURIDICA.',
+    description:
+      'Razón Social (obligatorio para personas jurídicas). Si se proporciona razón social, el tipoPersona se establecerá automáticamente como JURIDICA.',
     example: 'Empresa SAS',
   })
   @IsString()
@@ -105,7 +108,8 @@ export class RegisterDto {
     example: Genero.MASCULINO,
   })
   @IsStrictEnum(Genero, {
-    message: 'genero debe ser uno de los valores permitidos: M (MASCULINO), F (FEMENINO), O (OTRO)',
+    message:
+      'genero debe ser uno de los valores permitidos: M (MASCULINO), F (FEMENINO), O (OTRO)',
   })
   @IsOptional()
   genero?: Genero;

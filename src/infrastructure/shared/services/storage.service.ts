@@ -34,10 +34,7 @@ export class StorageService {
   /**
    * Valida el tipo de archivo permitido
    */
-  private validateFileType(
-    mimetype: string,
-    allowedTypes: string[],
-  ): boolean {
+  private validateFileType(mimetype: string, allowedTypes: string[]): boolean {
     return allowedTypes.some((type) => mimetype.includes(type));
   }
 
@@ -121,4 +118,3 @@ export class StorageService {
     return existsSync(filePath);
   }
 }
-

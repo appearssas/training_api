@@ -16,12 +16,12 @@ export const ROLES_KEY = 'roles';
 
 /**
  * Decorador para especificar qué roles pueden acceder a un endpoint
- * 
+ *
  * @example
  * @Roles('ADMIN')
  * @Post('conductores-externos')
  * createConductorExterno() { ... }
- * 
+ *
  * @example
  * @Roles('ADMIN', 'INSTRUCTOR')
  * @Get('capacitaciones')
@@ -31,13 +31,13 @@ export const Roles = (...roles: string[]) => SetMetadata(ROLES_KEY, roles);
 
 /**
  * Guard para validar roles de usuario
- * 
+ *
  * Implementa la autorización basada en roles siguiendo las mejores prácticas de NestJS.
  * Ver documentación: https://docs.nestjs.com/security/authorization
- * 
+ *
  * El guard verifica que el usuario autenticado tenga uno de los roles requeridos
  * especificados mediante el decorador @Roles().
- * 
+ *
  * @example
  * // En el controller:
  * @UseGuards(AuthGuard('jwt'), RolesGuard)
@@ -51,10 +51,10 @@ export class RolesGuard implements CanActivate {
 
   canActivate(context: ExecutionContext): boolean {
     // Obtener los roles requeridos del decorador @Roles()
-    const requiredRoles = this.reflector.getAllAndOverride<string[]>(ROLES_KEY, [
-      context.getHandler(),
-      context.getClass(),
-    ]);
+    const requiredRoles = this.reflector.getAllAndOverride<string[]>(
+      ROLES_KEY,
+      [context.getHandler(), context.getClass()],
+    );
 
     // Si no hay roles requeridos, permitir el acceso
     if (!requiredRoles || requiredRoles.length === 0) {
@@ -94,4 +94,3 @@ export class RolesGuard implements CanActivate {
     return true;
   }
 }
-

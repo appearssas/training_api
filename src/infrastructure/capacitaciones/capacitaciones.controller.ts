@@ -54,7 +54,8 @@ export class CapacitacionesController {
   @Roles('ADMIN', 'INSTRUCTOR')
   @ApiOperation({
     summary: 'Crear una nueva capacitación',
-    description: 'Crea una nueva capacitación en el sistema con los datos proporcionados. Solo ADMIN e INSTRUCTOR pueden crear capacitaciones.',
+    description:
+      'Crea una nueva capacitación en el sistema con los datos proporcionados. Solo ADMIN e INSTRUCTOR pueden crear capacitaciones.',
   })
   @ApiBody({ type: CreateCapacitacionDto })
   @ApiResponse({
@@ -65,7 +66,10 @@ export class CapacitacionesController {
       properties: {
         id: { type: 'number', example: 1 },
         titulo: { type: 'string', example: 'Capacitación en Seguridad Vial' },
-        descripcion: { type: 'string', example: 'Curso completo de seguridad vial' },
+        descripcion: {
+          type: 'string',
+          example: 'Curso completo de seguridad vial',
+        },
       },
     },
   })
@@ -99,7 +103,10 @@ export class CapacitacionesController {
       },
     },
   })
-  @ApiResponse({ status: 400, description: 'Parámetros de paginación inválidos' })
+  @ApiResponse({
+    status: 400,
+    description: 'Parámetros de paginación inválidos',
+  })
   findAll(@Body() pagination: PaginationDto) {
     return this.findAllCapacitacionesUseCase.execute(pagination);
   }
@@ -122,7 +129,8 @@ export class CapacitacionesController {
   @Roles('ADMIN', 'INSTRUCTOR')
   @ApiOperation({
     summary: 'Actualizar una capacitación',
-    description: 'Actualiza los datos de una capacitación existente. Solo se actualizan los campos proporcionados. Solo ADMIN e INSTRUCTOR pueden actualizar capacitaciones.',
+    description:
+      'Actualiza los datos de una capacitación existente. Solo se actualizan los campos proporcionados. Solo ADMIN e INSTRUCTOR pueden actualizar capacitaciones.',
   })
   @ApiParam({
     name: 'id',
@@ -180,7 +188,8 @@ export class CapacitacionesController {
   @ApiResponse({ status: 404, description: 'Capacitación no encontrada' })
   @ApiResponse({
     status: 409,
-    description: 'No se puede eliminar: la capacitación tiene inscripciones asociadas',
+    description:
+      'No se puede eliminar: la capacitación tiene inscripciones asociadas',
   })
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.removeCapacitacionUseCase.execute(id);
@@ -188,7 +197,10 @@ export class CapacitacionesController {
 
   @Post(':id/evaluaciones')
   @Roles('ADMIN', 'INSTRUCTOR')
-  @ApiOperation({ summary: 'Vincular una evaluación a una capacitación. Solo ADMIN e INSTRUCTOR pueden vincular evaluaciones.' })
+  @ApiOperation({
+    summary:
+      'Vincular una evaluación a una capacitación. Solo ADMIN e INSTRUCTOR pueden vincular evaluaciones.',
+  })
   @ApiParam({
     name: 'id',
     type: 'number',
@@ -199,8 +211,14 @@ export class CapacitacionesController {
     status: 200,
     description: 'Evaluación vinculada exitosamente',
   })
-  @ApiResponse({ status: 400, description: 'Datos inválidos o evaluación ya vinculada' })
-  @ApiResponse({ status: 404, description: 'Capacitación o evaluación no encontrada' })
+  @ApiResponse({
+    status: 400,
+    description: 'Datos inválidos o evaluación ya vinculada',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Capacitación o evaluación no encontrada',
+  })
   linkEvaluacion(
     @Param('id', ParseIntPipe) id: number,
     @Body() linkEvaluacionDto: LinkEvaluacionDto,
@@ -236,7 +254,10 @@ export class CapacitacionesController {
     status: 200,
     description: 'Estado cambiado exitosamente',
   })
-  @ApiResponse({ status: 400, description: 'Estado inválido o mismo estado actual' })
+  @ApiResponse({
+    status: 400,
+    description: 'Estado inválido o mismo estado actual',
+  })
   @ApiResponse({ status: 404, description: 'Capacitación no encontrada' })
   toggleStatus(
     @Param('id', ParseIntPipe) id: number,
@@ -266,7 +287,10 @@ export class CapacitacionesController {
     status: 200,
     description: 'Estado alternado exitosamente',
   })
-  @ApiResponse({ status: 400, description: 'No se puede activar sin evaluación' })
+  @ApiResponse({
+    status: 400,
+    description: 'No se puede activar sin evaluación',
+  })
   @ApiResponse({ status: 404, description: 'Capacitación no encontrada' })
   toggleActivoInactivo(@Param('id', ParseIntPipe) id: number) {
     return this.toggleStatusUseCase.toggleActivoInactivo(id);

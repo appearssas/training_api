@@ -62,4 +62,3 @@ export class UpdateCertificadoDto {
   @IsString()
   urlCertificado?: string;
 }
-

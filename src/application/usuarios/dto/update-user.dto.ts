@@ -1,5 +1,12 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsOptional, IsString, IsBoolean, IsNumber, MinLength, MaxLength } from 'class-validator';
+import {
+  IsOptional,
+  IsString,
+  IsBoolean,
+  IsNumber,
+  MinLength,
+  MaxLength,
+} from 'class-validator';
 
 export class UpdateUserDto {
   @ApiProperty({
@@ -49,4 +56,3 @@ export class UpdateUserDto {
   @IsBoolean()
   debeCambiarPassword?: boolean;
 }
-

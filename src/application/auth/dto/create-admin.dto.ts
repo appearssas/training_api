@@ -26,7 +26,8 @@ export class CreateAdminDto {
     default: TipoDocumento.CC,
   })
   @IsStrictEnum(TipoDocumento, {
-    message: 'tipoDocumento debe ser uno de los valores permitidos: CC, TI, CE, PA, RC, NIT',
+    message:
+      'tipoDocumento debe ser uno de los valores permitidos: CC, TI, CE, PA, RC, NIT',
   })
   @IsOptional()
   tipoDocumento?: TipoDocumento;
@@ -77,7 +78,8 @@ export class CreateAdminDto {
     example: Genero.MASCULINO,
   })
   @IsStrictEnum(Genero, {
-    message: 'genero debe ser uno de los valores permitidos: M (MASCULINO), F (FEMENINO), O (OTRO)',
+    message:
+      'genero debe ser uno de los valores permitidos: M (MASCULINO), F (FEMENINO), O (OTRO)',
   })
   @IsOptional()
   genero?: Genero;
@@ -110,4 +112,3 @@ export class CreateAdminDto {
   @MinLength(6, { message: 'La contraseña debe tener al menos 6 caracteres' })
   password: string;
 }
-

@@ -23,7 +23,7 @@ export function IsStrictEnum(
         validate(value: any, args: ValidationArguments) {
           const [enumObject] = args.constraints;
           const enumValues = Object.values(enumObject);
-          
+
           // Si el valor es undefined o null y el campo es opcional, permitirlo
           if (value === undefined || value === null) {
             return true; // La validación de @IsOptional se encargará de esto
@@ -45,4 +45,3 @@ export function IsStrictEnum(
     });
   };
 }
-

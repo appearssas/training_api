@@ -12,11 +12,11 @@
 export function generarCodigoEstudiante(ultimoNumero?: number): string {
   const año = new Date().getFullYear();
   const numero = ultimoNumero ? ultimoNumero + 1 : 1;
-  
+
   // Formato: EST + año (4 dígitos) + número secuencial (5 dígitos con ceros a la izquierda)
   // Ejemplo: EST20250001, EST20250002, etc.
   const numeroFormateado = numero.toString().padStart(5, '0');
-  
+
   return `EST${año}${numeroFormateado}`;
 }
 
@@ -29,11 +29,11 @@ export function extraerNumeroSecuencial(codigo: string): number | null {
   // Validar formato: EST seguido de 4 dígitos (año) y 5 dígitos (número)
   const regex = /^EST(\d{4})(\d{5})$/;
   const match = codigo.match(regex);
-  
+
   if (!match) {
     return null;
   }
-  
+
   return parseInt(match[2], 10);
 }
 
@@ -46,4 +46,3 @@ export function validarFormatoCodigoEstudiante(codigo: string): boolean {
   const regex = /^EST\d{9}$/; // EST + 4 dígitos (año) + 5 dígitos (número)
   return regex.test(codigo);
 }
-

@@ -50,4 +50,3 @@ import { QrGeneratorService } from '../shared/services/qr-generator.service';
   ],
 })
 export class CertificadosModule {}
-

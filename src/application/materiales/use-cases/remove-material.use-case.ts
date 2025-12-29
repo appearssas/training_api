@@ -18,4 +18,3 @@ export class RemoveMaterialUseCase {
     await this.materialesRepository.remove(id);
   }
 }
-

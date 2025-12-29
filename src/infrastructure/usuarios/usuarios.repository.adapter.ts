@@ -4,7 +4,10 @@ import { Repository, Like, ILike } from 'typeorm';
 import { IUsuariosRepository } from '@/domain/usuarios/ports/usuarios.repository.port';
 import { Usuario } from '@/entities/usuarios/usuario.entity';
 import { UpdateUserDto } from '@/application/usuarios/dto/update-user.dto';
-import { UserSortField, SortOrder } from '@/application/usuarios/dto/list-users.dto';
+import {
+  UserSortField,
+  SortOrder,
+} from '@/application/usuarios/dto/list-users.dto';
 
 @Injectable()
 export class UsuariosRepositoryAdapter implements IUsuariosRepository {
@@ -39,7 +42,9 @@ export class UsuariosRepositoryAdapter implements IUsuariosRepository {
 
     // Filtro por rol
     if (filters.role) {
-      queryBuilder.andWhere('rolPrincipal.codigo = :role', { role: filters.role });
+      queryBuilder.andWhere('rolPrincipal.codigo = :role', {
+        role: filters.role,
+      });
     }
 
     // Filtro por habilitado
@@ -101,7 +106,9 @@ export class UsuariosRepositoryAdapter implements IUsuariosRepository {
         where: { id: updateData.rolPrincipalId },
       });
       if (!rol) {
-        throw new Error(`Rol con ID ${updateData.rolPrincipalId} no encontrado`);
+        throw new Error(
+          `Rol con ID ${updateData.rolPrincipalId} no encontrado`,
+        );
       }
       updatePayload.rolPrincipal = rol;
     }
@@ -123,7 +130,9 @@ export class UsuariosRepositoryAdapter implements IUsuariosRepository {
     // Retornar el usuario actualizado con relaciones
     const updatedUser = await this.findById(id);
     if (!updatedUser) {
-      throw new Error(`Usuario con ID ${id} no encontrado después de la actualización`);
+      throw new Error(
+        `Usuario con ID ${id} no encontrado después de la actualización`,
+      );
     }
 
     return updatedUser;
@@ -133,7 +142,10 @@ export class UsuariosRepositoryAdapter implements IUsuariosRepository {
     await this.usuarioRepository.update(id, { activo: false });
   }
 
-  async isUsernameTaken(username: string, excludeUserId?: number): Promise<boolean> {
+  async isUsernameTaken(
+    username: string,
+    excludeUserId?: number,
+  ): Promise<boolean> {
     const queryBuilder = this.usuarioRepository
       .createQueryBuilder('usuario')
       .where('usuario.username = :username', { username });
@@ -160,4 +172,3 @@ export class UsuariosRepositoryAdapter implements IUsuariosRepository {
     return sortMap[sortBy] || 'usuario.fechaCreacion';
   }
 }
-

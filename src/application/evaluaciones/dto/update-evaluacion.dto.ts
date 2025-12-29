@@ -7,4 +7,3 @@ import { CreateEvaluacionDto } from './create-evaluacion.dto';
  * Permite actualizar parcialmente la evaluación, incluyendo preguntas y opciones
  */
 export class UpdateEvaluacionDto extends PartialType(CreateEvaluacionDto) {}
-

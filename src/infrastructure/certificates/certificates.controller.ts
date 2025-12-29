@@ -74,7 +74,9 @@ export class CertificatesController {
   })
   @ApiResponse({ status: 401, description: 'No autorizado' })
   @ApiResponse({ status: 400, description: 'Parámetros de consulta inválidos' })
-  async getExpiringCertificatesReport(@Query() dto: GetExpiringCertificatesDto) {
+  async getExpiringCertificatesReport(
+    @Query() dto: GetExpiringCertificatesDto,
+  ) {
     return await this.getExpiringReportUseCase.execute(dto);
   }
 
@@ -176,7 +178,10 @@ export class CertificatesController {
     },
   })
   @ApiResponse({ status: 401, description: 'No autorizado' })
-  @ApiResponse({ status: 500, description: 'Error al ejecutar la verificación' })
+  @ApiResponse({
+    status: 500,
+    description: 'Error al ejecutar la verificación',
+  })
   async checkExpirationsManually() {
     await this.checkExpirationsCron.executeManually();
     return {

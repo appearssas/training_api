@@ -1,5 +1,9 @@
 import { Usuario } from '@/entities/usuarios/usuario.entity';
-import { ListUsersDto, UserSortField, SortOrder } from '@/application/usuarios/dto/list-users.dto';
+import {
+  ListUsersDto,
+  UserSortField,
+  SortOrder,
+} from '@/application/usuarios/dto/list-users.dto';
 import { UpdateUserDto } from '@/application/usuarios/dto/update-user.dto';
 
 /**
@@ -9,18 +13,16 @@ export interface IUsuariosRepository {
   /**
    * Lista usuarios con paginación y filtros
    */
-  findAll(
-    filters: {
-      page: number;
-      limit: number;
-      search?: string;
-      role?: string;
-      habilitado?: boolean;
-      activo?: boolean;
-      sortBy: UserSortField;
-      sortOrder: SortOrder;
-    },
-  ): Promise<{ usuarios: Usuario[]; total: number }>;
+  findAll(filters: {
+    page: number;
+    limit: number;
+    search?: string;
+    role?: string;
+    habilitado?: boolean;
+    activo?: boolean;
+    sortBy: UserSortField;
+    sortOrder: SortOrder;
+  }): Promise<{ usuarios: Usuario[]; total: number }>;
 
   /**
    * Busca un usuario por su ID con todas las relaciones necesarias
@@ -47,4 +49,3 @@ export interface IUsuariosRepository {
    */
   isUsernameTaken(username: string, excludeUserId?: number): Promise<boolean>;
 }
-

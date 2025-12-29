@@ -29,7 +29,9 @@ export class AdminUserSeeder extends BaseSeeder {
     if (user) {
       // Si el usuario existe, NO sobrescribir la contraseña (ya fue creada por AdminSeeder)
       console.log('✓ Usuario admin ya existe. No se modifica la contraseña.');
-      console.log('   Usa la contraseña configurada en AdminSeeder: Admin123*.');
+      console.log(
+        '   Usa la contraseña configurada en AdminSeeder: Admin123*.',
+      );
       return;
     } else {
       // Solo crear si no existe
@@ -56,10 +58,10 @@ export class AdminUserSeeder extends BaseSeeder {
       });
 
       await usuarioRepository.save(user);
-      
+
       savedPersona.usuario = user;
       await personaRepository.save(savedPersona);
-      
+
       console.log('✓ Usuario admin creado: admin / admin123');
     }
   }

@@ -1,4 +1,9 @@
-import { Injectable, Inject, BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  Inject,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { ICertificadosRepository } from '@/domain/certificados/ports/certificados.repository.port';
 import { CreateCertificadoDto } from '@/application/certificados/dto/create-certificado.dto';
 import { Certificado } from '@/entities/certificados/certificado.entity';
@@ -30,7 +35,9 @@ export class CreateCertificadoUseCase {
     private readonly configService: ConfigService,
   ) {}
 
-  async execute(createCertificadoDto: CreateCertificadoDto): Promise<Certificado> {
+  async execute(
+    createCertificadoDto: CreateCertificadoDto,
+  ): Promise<Certificado> {
     // Validar que la inscripción existe y está aprobada
     const inscripcion = await this.inscripcionRepository.findOne({
       where: { id: createCertificadoDto.inscripcionId },
@@ -50,7 +57,10 @@ export class CreateCertificadoUseCase {
     }
 
     // Validar fecha retroactiva si aplica (RF-27)
-    if (createCertificadoDto.esRetroactivo && createCertificadoDto.fechaRetroactiva) {
+    if (
+      createCertificadoDto.esRetroactivo &&
+      createCertificadoDto.fechaRetroactiva
+    ) {
       const fechaRetroactiva = new Date(createCertificadoDto.fechaRetroactiva);
       const fechaActual = new Date();
       const mesesAtras = 6; // Configurable
@@ -98,12 +108,16 @@ export class CreateCertificadoUseCase {
     // Agregar datos retroactivos si aplica (RF-25 a RF-31)
     if (createCertificadoDto.esRetroactivo) {
       certificadoData.esRetroactivo = true;
-      certificadoData.fechaRetroactiva = new Date(createCertificadoDto.fechaRetroactiva!);
-      certificadoData.justificacionRetroactiva = createCertificadoDto.justificacionRetroactiva;
+      certificadoData.fechaRetroactiva = new Date(
+        createCertificadoDto.fechaRetroactiva!,
+      );
+      certificadoData.justificacionRetroactiva =
+        createCertificadoDto.justificacionRetroactiva;
     }
 
     // Crear el certificado en la base de datos
-    const certificado = await this.certificadosRepository.create(certificadoData);
+    const certificado =
+      await this.certificadosRepository.create(certificadoData);
 
     // Generar PDF del certificado (RF-22, RF-23)
     const pdfBuffer = await this.pdfGenerator.generateCertificate(certificado);
@@ -124,9 +138,14 @@ export class CreateCertificadoUseCase {
    * @param pdfBuffer Buffer del PDF
    * @returns URL del PDF guardado
    */
-  private async savePdf(certificadoId: number, pdfBuffer: Buffer): Promise<string> {
-    const storagePath = this.configService.get<string>('PDF_STORAGE_PATH') || './storage/certificates';
-    
+  private async savePdf(
+    certificadoId: number,
+    pdfBuffer: Buffer,
+  ): Promise<string> {
+    const storagePath =
+      this.configService.get<string>('PDF_STORAGE_PATH') ||
+      './storage/certificates';
+
     // Asegurar que el directorio existe
     await fs.mkdir(storagePath, { recursive: true });
 
@@ -136,8 +155,8 @@ export class CreateCertificadoUseCase {
     await fs.writeFile(filePath, pdfBuffer);
 
     // Retornar URL relativa o absoluta según configuración
-    const baseUrl = this.configService.get<string>('APP_URL') || 'http://localhost:3000';
+    const baseUrl =
+      this.configService.get<string>('APP_URL') || 'http://localhost:3000';
     return `${baseUrl}/certificates/${fileName}`;
   }
 }
-

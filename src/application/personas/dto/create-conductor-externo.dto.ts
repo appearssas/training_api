@@ -37,7 +37,8 @@ export class CreateConductorExternoDto {
     },
   })
   @IsStrictEnum(TipoDocumento, {
-    message: 'tipoDocumento debe ser uno de los valores permitidos: CC, TI, CE, PA, RC, NIT',
+    message:
+      'tipoDocumento debe ser uno de los valores permitidos: CC, TI, CE, PA, RC, NIT',
   })
   @IsNotEmpty({ message: 'El tipo de documento es obligatorio' })
   tipoDocumento: TipoDocumento;
@@ -63,13 +64,16 @@ export class CreateConductorExternoDto {
   apellidos: string;
 
   @ApiProperty({
-    description: 'Correo electrónico de contacto (obligatorio para enviar credenciales de acceso)',
+    description:
+      'Correo electrónico de contacto (obligatorio para enviar credenciales de acceso)',
     example: 'juan.perez@example.com',
     format: 'email',
     maxLength: 255,
   })
   @IsEmail({}, { message: 'El email debe tener un formato válido' })
-  @IsNotEmpty({ message: 'El email es obligatorio para enviar las credenciales de acceso' })
+  @IsNotEmpty({
+    message: 'El email es obligatorio para enviar las credenciales de acceso',
+  })
   email: string;
 
   @ApiPropertyOptional({
@@ -103,7 +107,8 @@ export class CreateConductorExternoDto {
     },
   })
   @IsStrictEnum(Genero, {
-    message: 'genero debe ser uno de los valores permitidos: M (MASCULINO), F (FEMENINO), O (OTRO)',
+    message:
+      'genero debe ser uno de los valores permitidos: M (MASCULINO), F (FEMENINO), O (OTRO)',
   })
   @IsOptional()
   genero?: Genero;
@@ -117,4 +122,3 @@ export class CreateConductorExternoDto {
   @IsOptional()
   direccion?: string;
 }
-

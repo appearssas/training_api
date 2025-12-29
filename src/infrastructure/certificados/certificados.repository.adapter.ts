@@ -27,7 +27,9 @@ export class CertificadosRepositoryAdapter implements ICertificadosRepository {
     private readonly inscripcionRepository: Repository<Inscripcion>,
   ) {}
 
-  async create(createCertificadoDto: CreateCertificadoDto): Promise<Certificado> {
+  async create(
+    createCertificadoDto: CreateCertificadoDto,
+  ): Promise<Certificado> {
     try {
       // Verificar que la inscripción existe
       const inscripcion = await this.inscripcionRepository.findOne({
@@ -47,8 +49,10 @@ export class CertificadosRepositoryAdapter implements ICertificadosRepository {
       newCertificado.fechaRetroactiva = createCertificadoDto.fechaRetroactiva
         ? new Date(createCertificadoDto.fechaRetroactiva)
         : null;
-      newCertificado.esRetroactivo = createCertificadoDto.esRetroactivo ?? false;
-      newCertificado.justificacionRetroactiva = createCertificadoDto.justificacionRetroactiva || null;
+      newCertificado.esRetroactivo =
+        createCertificadoDto.esRetroactivo ?? false;
+      newCertificado.justificacionRetroactiva =
+        createCertificadoDto.justificacionRetroactiva || null;
       newCertificado.activo = true;
 
       const saved = await this.certificadoRepository.save(newCertificado);
@@ -99,7 +103,9 @@ export class CertificadosRepositoryAdapter implements ICertificadosRepository {
       };
     } catch (error: unknown) {
       console.error(error);
-      throw new InternalServerErrorException('Error al obtener los certificados');
+      throw new InternalServerErrorException(
+        'Error al obtener los certificados',
+      );
     }
   }
 
@@ -133,7 +139,9 @@ export class CertificadosRepositoryAdapter implements ICertificadosRepository {
       });
     } catch (error) {
       console.error(error);
-      throw new InternalServerErrorException('Error al obtener los certificados de la inscripción');
+      throw new InternalServerErrorException(
+        'Error al obtener los certificados de la inscripción',
+      );
     }
   }
 
@@ -150,7 +158,9 @@ export class CertificadosRepositoryAdapter implements ICertificadosRepository {
       });
     } catch (error) {
       console.error(error);
-      throw new InternalServerErrorException('Error al verificar el certificado');
+      throw new InternalServerErrorException(
+        'Error al verificar el certificado',
+      );
     }
   }
 
@@ -181,7 +191,9 @@ export class CertificadosRepositoryAdapter implements ICertificadosRepository {
         throw error;
       }
       console.error(error);
-      throw new InternalServerErrorException('Error al actualizar el certificado');
+      throw new InternalServerErrorException(
+        'Error al actualizar el certificado',
+      );
     }
   }
 
@@ -201,8 +213,9 @@ export class CertificadosRepositoryAdapter implements ICertificadosRepository {
         throw error;
       }
       console.error(error);
-      throw new InternalServerErrorException('Error al eliminar el certificado');
+      throw new InternalServerErrorException(
+        'Error al eliminar el certificado',
+      );
     }
   }
 }
-

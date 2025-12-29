@@ -105,10 +105,9 @@ export class ResetPasswordUseCase {
   private getTokenRepository() {
     // Este es un workaround temporal
     // En una implementación más robusta, inyectarías el Repository directamente
-    const { repository } =
-      this.passwordResetRepository as any as {
-        repository: Repository<any>;
-      };
+    const { repository } = this.passwordResetRepository as any as {
+      repository: Repository<any>;
+    };
     return repository;
   }
 }

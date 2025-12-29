@@ -25,9 +25,10 @@ export class QrGeneratorService {
    * @returns URL pública completa
    */
   generateVerificationUrl(token: string): string {
-    const baseUrl = this.configService.get<string>('PUBLIC_VERIFICATION_URL') || 
-                    this.configService.get<string>('APP_URL') || 
-                    'https://plataforma.com';
+    const baseUrl =
+      this.configService.get<string>('PUBLIC_VERIFICATION_URL') ||
+      this.configService.get<string>('APP_URL') ||
+      'https://plataforma.com';
     return `${baseUrl}/verify/${token}`;
   }
 
@@ -61,4 +62,3 @@ export class QrGeneratorService {
     return token;
   }
 }
-

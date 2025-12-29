@@ -26,7 +26,10 @@ export interface IInscripcionesRepository {
   /**
    * Actualiza una inscripción existente
    */
-  update(id: number, updateInscripcionDto: UpdateInscripcionDto): Promise<Inscripcion>;
+  update(
+    id: number,
+    updateInscripcionDto: UpdateInscripcionDto,
+  ): Promise<Inscripcion>;
 
   /**
    * Elimina una inscripción
@@ -36,12 +39,18 @@ export interface IInscripcionesRepository {
   /**
    * Obtiene todas las inscripciones de un estudiante específico
    */
-  findByEstudiante(estudianteId: number, pagination?: PaginationDto): Promise<any>;
+  findByEstudiante(
+    estudianteId: number,
+    pagination?: PaginationDto,
+  ): Promise<any>;
 
   /**
    * Obtiene todas las inscripciones de una capacitación específica
    */
-  findByCapacitacion(capacitacionId: number, pagination?: PaginationDto): Promise<any>;
+  findByCapacitacion(
+    capacitacionId: number,
+    pagination?: PaginationDto,
+  ): Promise<any>;
 
   /**
    * Verifica si un estudiante ya está inscrito en una capacitación

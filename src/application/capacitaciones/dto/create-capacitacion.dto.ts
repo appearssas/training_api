@@ -149,7 +149,8 @@ export class CreateCapacitacionDto {
   })
   @IsOptional()
   @IsStrictEnum(EstadoCapacitacion, {
-    message: 'estado debe ser uno de los valores permitidos: borrador, publicada, en_curso, finalizada, cancelada',
+    message:
+      'estado debe ser uno de los valores permitidos: borrador, publicada, en_curso, finalizada, cancelada',
   })
   estado?: EstadoCapacitacion;
 
@@ -164,7 +165,8 @@ export class CreateCapacitacionDto {
   usuarioCreacion?: string;
 
   @ApiPropertyOptional({
-    description: 'Datos de la evaluación a crear junto con la capacitación (opcional)',
+    description:
+      'Datos de la evaluación a crear junto con la capacitación (opcional)',
     type: CreateEvaluacionInlineDto,
   })
   @IsOptional()

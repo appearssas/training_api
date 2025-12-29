@@ -27,7 +27,8 @@ export class CreateInscripcionDto {
   estudianteId: number;
 
   @ApiPropertyOptional({
-    description: 'ID del pago asociado (requerido solo para conductores externos)',
+    description:
+      'ID del pago asociado (requerido solo para conductores externos)',
     example: 1,
     type: Number,
     nullable: true,
@@ -45,6 +46,9 @@ export class CreateInscripcionDto {
     format: 'date-time',
   })
   @IsOptional()
-  @IsDateString({}, { message: 'La fecha de inicio debe tener un formato válido (ISO 8601)' })
+  @IsDateString(
+    {},
+    { message: 'La fecha de inicio debe tener un formato válido (ISO 8601)' },
+  )
   fechaInicio?: Date;
 }

@@ -53,7 +53,8 @@ export class MaterialesController {
   @UseInterceptors(FileInterceptor('file'))
   @ApiOperation({
     summary: 'Subir un archivo (PDF o imagen)',
-    description: 'Sube un archivo PDF o imagen y retorna la URL donde se almacenó',
+    description:
+      'Sube un archivo PDF o imagen y retorna la URL donde se almacenó',
   })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
@@ -85,7 +86,10 @@ export class MaterialesController {
       },
     },
   })
-  @ApiResponse({ status: 400, description: 'Archivo inválido o excede el tamaño máximo' })
+  @ApiResponse({
+    status: 400,
+    description: 'Archivo inválido o excede el tamaño máximo',
+  })
   async uploadFile(@UploadedFile() file: Express.Multer.File) {
     if (!file) {
       throw new BadRequestException('No se proporcionó ningún archivo');
@@ -101,7 +105,10 @@ export class MaterialesController {
 
   @Post()
   @Roles('ADMIN', 'INSTRUCTOR')
-  @ApiOperation({ summary: 'Crear un nuevo material. Solo ADMIN e INSTRUCTOR pueden crear materiales.' })
+  @ApiOperation({
+    summary:
+      'Crear un nuevo material. Solo ADMIN e INSTRUCTOR pueden crear materiales.',
+  })
   @ApiBody({ type: CreateMaterialDto })
   @ApiResponse({ status: 201, description: 'Material creado exitosamente' })
   @ApiResponse({ status: 400, description: 'Datos inválidos' })
@@ -113,7 +120,8 @@ export class MaterialesController {
   @Roles('ADMIN', 'INSTRUCTOR', 'ALUMNO', 'CLIENTE', 'OPERADOR')
   @ApiOperation({
     summary: 'Obtener todos los materiales de una capacitación',
-    description: 'Todos los roles autenticados pueden ver materiales de capacitaciones.',
+    description:
+      'Todos los roles autenticados pueden ver materiales de capacitaciones.',
   })
   @ApiParam({
     name: 'capacitacionId',
@@ -124,13 +132,18 @@ export class MaterialesController {
     status: 200,
     description: 'Lista de materiales de la capacitación',
   })
-  findByCapacitacion(@Param('capacitacionId', ParseIntPipe) capacitacionId: number) {
+  findByCapacitacion(
+    @Param('capacitacionId', ParseIntPipe) capacitacionId: number,
+  ) {
     return this.findMaterialsByCapacitacionUseCase.execute(capacitacionId);
   }
 
   @Get(':id')
   @Roles('ADMIN', 'INSTRUCTOR', 'ALUMNO', 'CLIENTE', 'OPERADOR')
-  @ApiOperation({ summary: 'Obtener un material por ID. Todos los roles autenticados pueden ver materiales.' })
+  @ApiOperation({
+    summary:
+      'Obtener un material por ID. Todos los roles autenticados pueden ver materiales.',
+  })
   @ApiParam({
     name: 'id',
     type: 'number',
@@ -144,7 +157,10 @@ export class MaterialesController {
 
   @Patch(':id')
   @Roles('ADMIN', 'INSTRUCTOR')
-  @ApiOperation({ summary: 'Actualizar un material. Solo ADMIN e INSTRUCTOR pueden actualizar materiales.' })
+  @ApiOperation({
+    summary:
+      'Actualizar un material. Solo ADMIN e INSTRUCTOR pueden actualizar materiales.',
+  })
   @ApiParam({
     name: 'id',
     type: 'number',
@@ -165,7 +181,10 @@ export class MaterialesController {
 
   @Delete(':id')
   @Roles('ADMIN', 'INSTRUCTOR')
-  @ApiOperation({ summary: 'Eliminar un material. Solo ADMIN e INSTRUCTOR pueden eliminar materiales.' })
+  @ApiOperation({
+    summary:
+      'Eliminar un material. Solo ADMIN e INSTRUCTOR pueden eliminar materiales.',
+  })
   @ApiParam({
     name: 'id',
     type: 'number',
@@ -180,4 +199,3 @@ export class MaterialesController {
     return this.removeMaterialUseCase.execute(id);
   }
 }
-

@@ -34,18 +34,22 @@ export class UpdateProfileUseCase {
         throw new UnauthorizedException('La contraseña actual es incorrecta');
       }
 
-      fullUser.passwordHash = this.authRepository.hashPassword(updateDto.newPassword);
+      fullUser.passwordHash = this.authRepository.hashPassword(
+        updateDto.newPassword,
+      );
     }
-    
+
     // --- Lógica para actualizar datos de persona ---
     if (fullUser.persona) {
       if (updateDto.email && updateDto.email !== fullUser.persona.email) {
-        const existingPersona = await this.authRepository.findByEmail(updateDto.email);
+        const existingPersona = await this.authRepository.findByEmail(
+          updateDto.email,
+        );
         if (existingPersona && existingPersona.id !== fullUser.persona.id) {
           throw new ConflictException('El email ya está en uso');
         }
       }
-      
+
       const personaDataToUpdate = {
         nombres: updateDto.nombres,
         apellidos: updateDto.apellidos,
@@ -59,14 +63,16 @@ export class UpdateProfileUseCase {
       };
 
       Object.keys(personaDataToUpdate).forEach(
-        (key) => personaDataToUpdate[key] === undefined && delete personaDataToUpdate[key],
+        (key) =>
+          personaDataToUpdate[key] === undefined &&
+          delete personaDataToUpdate[key],
       );
 
       if (Object.keys(personaDataToUpdate).length > 0) {
         Object.assign(fullUser.persona, personaDataToUpdate);
       }
     }
-    
+
     await this.authRepository.saveUser(fullUser);
 
     return {
@@ -74,4 +80,3 @@ export class UpdateProfileUseCase {
     };
   }
 }
-

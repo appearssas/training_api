@@ -86,7 +86,6 @@ export class AuthController {
     private readonly emailService: EmailService,
   ) {}
 
-
   @Post('register')
   @ApiOperation({
     summary: 'Registrar un nuevo usuario',
@@ -106,7 +105,8 @@ export class AuthController {
   @ApiBody({ type: RegisterDto })
   @ApiResponse({
     status: 201,
-    description: 'Usuario registrado exitosamente. El usuario queda pendiente de aprobación por el administrador.',
+    description:
+      'Usuario registrado exitosamente. El usuario queda pendiente de aprobación por el administrador.',
     schema: {
       type: 'object',
       properties: {
@@ -118,8 +118,13 @@ export class AuthController {
     },
   })
   @ApiResponse({ status: 400, description: 'Datos de registro inválidos' })
-  @ApiResponse({ status: 409, description: 'El usuario, email o documento ya existe' })
-  async register(@Body() registerDto: RegisterDto): Promise<{ message: string }> {
+  @ApiResponse({
+    status: 409,
+    description: 'El usuario, email o documento ya existe',
+  })
+  async register(
+    @Body() registerDto: RegisterDto,
+  ): Promise<{ message: string }> {
     const result = await this.registerUseCase.execute(registerDto);
     return result;
   }
@@ -164,7 +169,8 @@ export class AuthController {
   })
   @ApiResponse({
     status: 401,
-    description: 'Credenciales inválidas, usuario inactivo, no habilitado o términos no aceptados',
+    description:
+      'Credenciales inválidas, usuario inactivo, no habilitado o términos no aceptados',
     schema: {
       type: 'object',
       properties: {
@@ -178,7 +184,8 @@ export class AuthController {
         requiereAceptacionTerminos: {
           type: 'boolean',
           example: true,
-          description: 'Indica que el usuario debe aceptar los términos antes de acceder',
+          description:
+            'Indica que el usuario debe aceptar los términos antes de acceder',
         },
       },
     },
@@ -189,7 +196,10 @@ export class AuthController {
     schema: {
       type: 'object',
       properties: {
-        message: { type: 'string', example: 'Debe cambiar su contraseña antes de continuar' },
+        message: {
+          type: 'string',
+          example: 'Debe cambiar su contraseña antes de continuar',
+        },
         error: { type: 'string', example: 'PASSWORD_CHANGE_REQUIRED' },
         statusCode: { type: 'number', example: 400 },
         debeCambiarPassword: { type: 'boolean', example: true },
@@ -317,7 +327,8 @@ export class AuthController {
   @ApiParam({
     name: 'username',
     type: String,
-    description: 'Nombre de usuario del usuario que desea cambiar la contraseña',
+    description:
+      'Nombre de usuario del usuario que desea cambiar la contraseña',
     example: 'juan.perez',
   })
   @ApiBody({ type: ChangePasswordDto })
@@ -441,7 +452,10 @@ export class AuthController {
       },
     },
   })
-  @ApiResponse({ status: 400, description: 'No se subió ningún archivo o formato inválido' })
+  @ApiResponse({
+    status: 400,
+    description: 'No se subió ningún archivo o formato inválido',
+  })
   @ApiResponse({ status: 401, description: 'No autorizado' })
   uploadProfilePhoto(@UploadedFile() file?: Express.Multer.File) {
     if (!file) {

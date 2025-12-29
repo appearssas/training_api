@@ -1,7 +1,4 @@
-import {
-  Injectable,
-  Inject,
-} from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
 import { IAceptacionesRepository } from '@/domain/aceptaciones/ports/aceptaciones.repository.port';
 import { DocumentoLegalResponseDto } from '../dto/documento-legal-response.dto';
 
@@ -27,4 +24,3 @@ export class ObtenerDocumentosActivosUseCase {
     }));
   }
 }
-

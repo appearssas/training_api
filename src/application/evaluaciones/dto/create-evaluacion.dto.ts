@@ -34,7 +34,8 @@ export class CreateOpcionRespuestaDto {
   esCorrecta: boolean;
 
   @ApiPropertyOptional({
-    description: 'Puntaje parcial para esta opción (útil en múltiple respuesta)',
+    description:
+      'Puntaje parcial para esta opción (útil en múltiple respuesta)',
     example: 0.5,
     minimum: 0,
   })
@@ -59,7 +60,8 @@ export class CreateOpcionRespuestaDto {
  */
 export class CreatePreguntaDto {
   @ApiProperty({
-    description: 'ID del tipo de pregunta (1: Única respuesta, 2: Múltiple, 3: Imagen, 4: Falso/Verdadero, 5: Sí/No)',
+    description:
+      'ID del tipo de pregunta (1: Única respuesta, 2: Múltiple, 3: Imagen, 4: Falso/Verdadero, 5: Sí/No)',
     example: 1,
   })
   @IsInt()
@@ -116,7 +118,9 @@ export class CreatePreguntaDto {
     type: [CreateOpcionRespuestaDto],
     description: 'Opciones de respuesta para la pregunta',
   })
-  @ArrayMinSize(1, { message: 'Cada pregunta debe tener al menos una opción de respuesta' })
+  @ArrayMinSize(1, {
+    message: 'Cada pregunta debe tener al menos una opción de respuesta',
+  })
   @ValidateNested({ each: true })
   @Type(() => CreateOpcionRespuestaDto)
   opciones: CreateOpcionRespuestaDto[];
@@ -226,9 +230,10 @@ export class CreateEvaluacionDto {
     type: [CreatePreguntaDto],
     description: 'Lista de preguntas de la evaluación',
   })
-  @ArrayMinSize(1, { message: 'La evaluación debe tener al menos una pregunta' })
+  @ArrayMinSize(1, {
+    message: 'La evaluación debe tener al menos una pregunta',
+  })
   @ValidateNested({ each: true })
   @Type(() => CreatePreguntaDto)
   preguntas: CreatePreguntaDto[];
 }
-

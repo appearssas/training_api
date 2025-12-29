@@ -43,7 +43,9 @@ export class RegisterUseCase {
           registerDto.numeroDocumento,
         );
       if (existingPersonaByDoc) {
-        throw new ConflictException('El número de documento ya está registrado');
+        throw new ConflictException(
+          'El número de documento ya está registrado',
+        );
       }
 
       // Validar que el tipo de registro sea válido
@@ -58,10 +60,14 @@ export class RegisterUseCase {
       }
 
       // Hash de la contraseña
-      const passwordHash = this.authRepository.hashPassword(registerDto.password);
+      const passwordHash = this.authRepository.hashPassword(
+        registerDto.password,
+      );
 
       // Determinar tipo de persona basado en si tiene razón social o no
-      const tipoPersona = registerDto.tipoPersona || (registerDto.razonSocial ? 'JURIDICA' : 'NATURAL');
+      const tipoPersona =
+        registerDto.tipoPersona ||
+        (registerDto.razonSocial ? 'JURIDICA' : 'NATURAL');
 
       // Validar que si es JURIDICA, tenga razón social
       if (tipoPersona === 'JURIDICA' && !registerDto.razonSocial) {

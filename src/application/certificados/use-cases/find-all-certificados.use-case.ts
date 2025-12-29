@@ -16,4 +16,3 @@ export class FindAllCertificadosUseCase {
     return await this.certificadosRepository.findAll(pagination);
   }
 }
-

@@ -120,9 +120,7 @@ export class RequestPasswordResetUseCase {
 
     const [domainName, tld] = domain.split('.');
     const censoredDomain =
-      domainName && domainName.length > 2
-        ? `${domainName[0]}***`
-        : '***';
+      domainName && domainName.length > 2 ? `${domainName[0]}***` : '***';
 
     return `${censoredUsername}@${censoredDomain}.${tld || 'com'}`;
   }

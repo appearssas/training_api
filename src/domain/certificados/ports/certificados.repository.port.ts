@@ -13,7 +13,9 @@ export interface ICertificadosRepository {
   findOne(id: number): Promise<Certificado | null>;
   findByInscripcion(inscripcionId: number): Promise<Certificado[]>;
   findByHashVerificacion(hash: string): Promise<Certificado | null>;
-  update(id: number, updateCertificadoDto: UpdateCertificadoDto): Promise<Certificado>;
+  update(
+    id: number,
+    updateCertificadoDto: UpdateCertificadoDto,
+  ): Promise<Certificado>;
   remove(id: number): Promise<void>;
 }
-

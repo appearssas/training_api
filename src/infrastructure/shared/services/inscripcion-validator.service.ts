@@ -1,4 +1,9 @@
-import { Injectable, Inject, BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  Inject,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Capacitacion } from '@/entities/capacitacion/capacitacion.entity';
@@ -29,7 +34,9 @@ export class InscripcionValidatorService {
    * Valida que la capacitación esté disponible para inscripciones
    * Una capacitación está disponible si está en estado PUBLICADA o EN_CURSO
    */
-  async validateCapacitacionDisponible(capacitacionId: number): Promise<Capacitacion> {
+  async validateCapacitacionDisponible(
+    capacitacionId: number,
+  ): Promise<Capacitacion> {
     const capacitacion = await this.capacitacionRepository.findOne({
       where: { id: capacitacionId },
     });
@@ -115,14 +122,18 @@ export class InscripcionValidatorService {
 
     // Contar inscripciones activas (no abandonadas)
     // Usamos una consulta directa para evitar problemas de dependencia circular
-    const inscripcionesActivas = await this.inscripcionesRepository.findByCapacitacion(
-      capacitacionId,
-      { page: 1, limit: 1000 }, // Límite alto para obtener todas
-    );
+    const inscripcionesActivas =
+      await this.inscripcionesRepository.findByCapacitacion(
+        capacitacionId,
+        { page: 1, limit: 1000 }, // Límite alto para obtener todas
+      );
 
-    const totalActivas = inscripcionesActivas.data?.filter(
-      (inscripcion: any) => inscripcion.estado !== 'abandonado',
-    ).length || inscripcionesActivas.total || 0;
+    const totalActivas =
+      inscripcionesActivas.data?.filter(
+        (inscripcion: any) => inscripcion.estado !== 'abandonado',
+      ).length ||
+      inscripcionesActivas.total ||
+      0;
 
     if (totalActivas >= capacitacion.capacidadMaxima) {
       throw new BadRequestException(
@@ -144,7 +155,9 @@ export class InscripcionValidatorService {
     });
 
     if (!pago) {
-      throw new NotFoundException(`Pago con ID ${pagoId} no encontrado o inactivo`);
+      throw new NotFoundException(
+        `Pago con ID ${pagoId} no encontrado o inactivo`,
+      );
     }
   }
 }

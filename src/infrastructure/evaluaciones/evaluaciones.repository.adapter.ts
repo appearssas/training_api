@@ -10,7 +10,10 @@ import { IEvaluacionesRepository } from '@/domain/evaluaciones/ports/evaluacione
 import { Evaluacion } from '@/entities/evaluaciones/evaluacion.entity';
 import { Pregunta } from '@/entities/evaluaciones/pregunta.entity';
 import { OpcionRespuesta } from '@/entities/evaluaciones/opcion-respuesta.entity';
-import { UpdateEvaluacionDto, CreatePreguntaDto } from '@/application/evaluaciones/dto';
+import {
+  UpdateEvaluacionDto,
+  CreatePreguntaDto,
+} from '@/application/evaluaciones/dto';
 
 /**
  * Adaptador del repositorio de Evaluaciones
@@ -90,28 +93,34 @@ export class EvaluacionesRepositoryAdapter implements IEvaluacionesRepository {
         existingEvaluacion.descripcion = updateEvaluacionDto.descripcion;
       }
       if (updateEvaluacionDto.tiempoLimiteMinutos !== undefined) {
-        existingEvaluacion.tiempoLimiteMinutos = updateEvaluacionDto.tiempoLimiteMinutos;
+        existingEvaluacion.tiempoLimiteMinutos =
+          updateEvaluacionDto.tiempoLimiteMinutos;
       }
       if (updateEvaluacionDto.intentosPermitidos !== undefined) {
-        existingEvaluacion.intentosPermitidos = updateEvaluacionDto.intentosPermitidos;
+        existingEvaluacion.intentosPermitidos =
+          updateEvaluacionDto.intentosPermitidos;
       }
       if (updateEvaluacionDto.mostrarResultados !== undefined) {
-        existingEvaluacion.mostrarResultados = updateEvaluacionDto.mostrarResultados;
+        existingEvaluacion.mostrarResultados =
+          updateEvaluacionDto.mostrarResultados;
       }
       if (updateEvaluacionDto.mostrarRespuestasCorrectas !== undefined) {
-        existingEvaluacion.mostrarRespuestasCorrectas = updateEvaluacionDto.mostrarRespuestasCorrectas;
+        existingEvaluacion.mostrarRespuestasCorrectas =
+          updateEvaluacionDto.mostrarRespuestasCorrectas;
       }
       if (updateEvaluacionDto.puntajeTotal !== undefined) {
         existingEvaluacion.puntajeTotal = updateEvaluacionDto.puntajeTotal;
       }
       if (updateEvaluacionDto.minimoAprobacion !== undefined) {
-        existingEvaluacion.minimoAprobacion = updateEvaluacionDto.minimoAprobacion;
+        existingEvaluacion.minimoAprobacion =
+          updateEvaluacionDto.minimoAprobacion;
       }
       if (updateEvaluacionDto.orden !== undefined) {
         existingEvaluacion.orden = updateEvaluacionDto.orden;
       }
 
-      const savedEvaluacion = await queryRunner.manager.save(existingEvaluacion);
+      const savedEvaluacion =
+        await queryRunner.manager.save(existingEvaluacion);
 
       // Sincronizar preguntas si se proporcionan
       if (updateEvaluacionDto.preguntas !== undefined) {
@@ -128,7 +137,9 @@ export class EvaluacionesRepositoryAdapter implements IEvaluacionesRepository {
       // Retornar evaluación actualizada con relaciones
       const updatedEvaluacion = await this.findOne(id);
       if (!updatedEvaluacion) {
-        throw new InternalServerErrorException('Error al recuperar la evaluación actualizada');
+        throw new InternalServerErrorException(
+          'Error al recuperar la evaluación actualizada',
+        );
       }
 
       return updatedEvaluacion;
@@ -148,7 +159,9 @@ export class EvaluacionesRepositoryAdapter implements IEvaluacionesRepository {
       }
 
       console.error('Error al actualizar evaluación:', error);
-      throw new InternalServerErrorException('Error al actualizar la evaluación');
+      throw new InternalServerErrorException(
+        'Error al actualizar la evaluación',
+      );
     } finally {
       await queryRunner.release();
     }
@@ -167,9 +180,7 @@ export class EvaluacionesRepositoryAdapter implements IEvaluacionesRepository {
 
     // IDs de preguntas nuevas (las que tienen id son existentes)
     const newPreguntaIds = new Set(
-      newPreguntas
-        .filter((p) => (p as any).id)
-        .map((p) => (p as any).id),
+      newPreguntas.filter((p) => (p as any).id).map((p) => (p as any).id),
     );
 
     // Eliminar preguntas que ya no están en la lista
@@ -206,9 +217,13 @@ export class EvaluacionesRepositoryAdapter implements IEvaluacionesRepository {
 
       if (preguntaId) {
         // Actualizar pregunta existente
-        const existingPregunta = existingPreguntas.find((p) => p.id === preguntaId);
+        const existingPregunta = existingPreguntas.find(
+          (p) => p.id === preguntaId,
+        );
         if (!existingPregunta) {
-          throw new NotFoundException(`Pregunta con ID ${preguntaId} no encontrada`);
+          throw new NotFoundException(
+            `Pregunta con ID ${preguntaId} no encontrada`,
+          );
         }
 
         existingPregunta.enunciado = preguntaData.enunciado;
@@ -277,9 +292,7 @@ export class EvaluacionesRepositoryAdapter implements IEvaluacionesRepository {
 
     // IDs de opciones nuevas (las que tienen id son existentes)
     const newOpcionIds = new Set(
-      newOpciones
-        .filter((o) => (o as any).id)
-        .map((o) => (o as any).id),
+      newOpciones.filter((o) => (o as any).id).map((o) => (o as any).id),
     );
 
     // Eliminar opciones que ya no están en la lista
@@ -299,7 +312,9 @@ export class EvaluacionesRepositoryAdapter implements IEvaluacionesRepository {
         // Actualizar opción existente
         const existingOpcion = existingOpciones.find((o) => o.id === opcionId);
         if (!existingOpcion) {
-          throw new NotFoundException(`Opción con ID ${opcionId} no encontrada`);
+          throw new NotFoundException(
+            `Opción con ID ${opcionId} no encontrada`,
+          );
         }
 
         existingOpcion.texto = opcionData.texto;
@@ -323,4 +338,3 @@ export class EvaluacionesRepositoryAdapter implements IEvaluacionesRepository {
     }
   }
 }
-

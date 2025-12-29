@@ -29,7 +29,9 @@ export class CheckExpirationsCron {
    */
   @Cron(CronExpression.EVERY_DAY_AT_6AM)
   async handleCron() {
-    this.logger.log('🔍 Iniciando verificación de certificados próximos a vencer...');
+    this.logger.log(
+      '🔍 Iniciando verificación de certificados próximos a vencer...',
+    );
 
     try {
       // Obtener configuraciones activas
@@ -100,10 +102,9 @@ export class CheckExpirationsCron {
 
     for (const certificado of certificados) {
       // Verificar que realmente corresponde a esta configuración
-      const diasRestantes =
-        this.vigencyHelper.calculateDaysUntilExpiration(
-          certificado.fechaVencimiento,
-        );
+      const diasRestantes = this.vigencyHelper.calculateDaysUntilExpiration(
+        certificado.fechaVencimiento,
+      );
 
       if (diasRestantes !== diasAntesVencimiento) {
         continue; // No es el día exacto para esta configuración

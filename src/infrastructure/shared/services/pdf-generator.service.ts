@@ -36,7 +36,9 @@ export class PdfGeneratorService {
 
     // Membrete institucional (RF-23)
     // TODO: Cargar imagen del membrete desde configuración
-    const membreteUrl = this.configService.get<string>('CERTIFICATE_HEADER_IMAGE');
+    const membreteUrl = this.configService.get<string>(
+      'CERTIFICATE_HEADER_IMAGE',
+    );
     if (membreteUrl) {
       try {
         doc.image(membreteUrl, 50, 50, { width: 500, align: 'center' });
@@ -59,14 +61,18 @@ export class PdfGeneratorService {
     doc.moveDown(2);
 
     // Texto del certificado
-    doc.fontSize(12).font('Helvetica').text('Se certifica que:', { align: 'center' });
+    doc
+      .fontSize(12)
+      .font('Helvetica')
+      .text('Se certifica que:', { align: 'center' });
 
     doc.moveDown(1);
 
     // Nombre completo del conductor (RF-23)
-    const nombreCompleto = estudiante?.nombres && estudiante?.apellidos
-      ? `${estudiante.nombres} ${estudiante.apellidos}`
-      : 'N/A';
+    const nombreCompleto =
+      estudiante?.nombres && estudiante?.apellidos
+        ? `${estudiante.nombres} ${estudiante.apellidos}`
+        : 'N/A';
     doc
       .fontSize(16)
       .font('Helvetica-Bold')
@@ -100,9 +106,10 @@ export class PdfGeneratorService {
     doc.moveDown(2);
 
     // Fecha de emisión (RF-23, RF-28)
-    const fechaEmision = certificado.esRetroactivo && certificado.fechaRetroactiva
-      ? new Date(certificado.fechaRetroactiva)
-      : certificado.fechaEmision;
+    const fechaEmision =
+      certificado.esRetroactivo && certificado.fechaRetroactiva
+        ? new Date(certificado.fechaRetroactiva)
+        : certificado.fechaEmision;
     const fechaFormateada = fechaEmision.toLocaleDateString('es-CO', {
       year: 'numeric',
       month: 'long',
@@ -116,9 +123,10 @@ export class PdfGeneratorService {
     doc.moveDown(2);
 
     // Nombre del capacitador (RF-23)
-    const instructorNombre = instructor?.nombres && instructor?.apellidos
-      ? `${instructor.nombres} ${instructor.apellidos}`
-      : 'N/A';
+    const instructorNombre =
+      instructor?.nombres && instructor?.apellidos
+        ? `${instructor.nombres} ${instructor.apellidos}`
+        : 'N/A';
     doc
       .fontSize(12)
       .font('Helvetica')
@@ -194,4 +202,3 @@ export class PdfGeneratorService {
     });
   }
 }
-

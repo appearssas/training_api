@@ -37,7 +37,7 @@ export class UpdateProfileDto {
   @Transform(({ value }) => value || undefined)
   fechaNacimiento?: string;
 
-  @ApiPropertyOptional({ enum: ['M', 'F', 'O']})
+  @ApiPropertyOptional({ enum: ['M', 'F', 'O'] })
   @IsEnum(['M', 'F', 'O'])
   @IsOptional()
   @Transform(({ value }) => value || undefined)
@@ -47,7 +47,7 @@ export class UpdateProfileDto {
   @IsString()
   @IsOptional()
   direccion?: string;
-  
+
   @ApiPropertyOptional()
   @IsString()
   @IsOptional()
@@ -68,14 +68,20 @@ export class UpdateProfileDto {
   @IsOptional()
   biografia?: string;
 
-  @ApiPropertyOptional({ description: 'Contraseña actual (requerida si se cambia la contraseña)' })
+  @ApiPropertyOptional({
+    description: 'Contraseña actual (requerida si se cambia la contraseña)',
+  })
   @IsString()
-  @ValidateIf(o => o.newPassword)
+  @ValidateIf((o) => o.newPassword)
   currentPassword?: string;
 
-  @ApiPropertyOptional({ description: 'Nueva contraseña (mínimo 8 caracteres)' })
+  @ApiPropertyOptional({
+    description: 'Nueva contraseña (mínimo 8 caracteres)',
+  })
   @IsString()
-  @MinLength(8, { message: 'La nueva contraseña debe tener al menos 8 caracteres' })
+  @MinLength(8, {
+    message: 'La nueva contraseña debe tener al menos 8 caracteres',
+  })
   @IsOptional()
   newPassword?: string;
 }

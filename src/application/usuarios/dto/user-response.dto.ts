@@ -103,4 +103,3 @@ export class ListUsersResponseDto {
   @ApiProperty({ example: 10 })
   totalPages: number;
 }
-
