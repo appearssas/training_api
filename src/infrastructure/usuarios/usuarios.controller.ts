@@ -21,6 +21,7 @@ import {
 } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
 import { RolesGuard, Roles } from '@/infrastructure/shared/guards/roles.guard';
+import { GetUser } from '@/infrastructure/shared/auth/decorators/get-user.decorator';
 import { GetUsersUseCase } from '@/application/usuarios/use-cases/get-users.use-case';
 import { GetUserByIdUseCase } from '@/application/usuarios/use-cases/get-user-by-id.use-case';
 import { UpdateUserUseCase } from '@/application/usuarios/use-cases/update-user.use-case';
@@ -31,6 +32,7 @@ import {
   UserResponseDto,
   ListUsersResponseDto,
 } from '@/application/usuarios/dto/user-response.dto';
+import { Usuario } from '@/entities/usuarios/usuario.entity';
 
 @ApiTags('users')
 @Controller('users')
@@ -134,8 +136,9 @@ export class UsuariosController {
   })
   async findAll(
     @Query() listUsersDto: ListUsersDto,
+    @GetUser() currentUser: Usuario,
   ): Promise<ListUsersResponseDto> {
-    return await this.getUsersUseCase.execute(listUsersDto);
+    return await this.getUsersUseCase.execute(listUsersDto, currentUser);
   }
 
   @Get(':id')

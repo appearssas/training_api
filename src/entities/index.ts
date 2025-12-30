@@ -31,5 +31,6 @@ export * from './alertas/alerta-vencimiento.entity';
 export * from './documentos/documento-legal.entity';
 export * from './aceptaciones/aceptacion-politica.entity';
 export * from './password-reset/password-reset-token.entity';
+export * from './empresas/empresa.entity';
 // export * from './logs/log-importacion.entity';
 // export * from './logs/log-reporte.entity';
