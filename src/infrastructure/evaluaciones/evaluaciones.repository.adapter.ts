@@ -10,7 +10,7 @@ import { IEvaluacionesRepository } from '@/domain/evaluaciones/ports/evaluacione
 import { Evaluacion } from '@/entities/evaluaciones/evaluacion.entity';
 import { Pregunta } from '@/entities/evaluaciones/pregunta.entity';
 import { OpcionRespuesta } from '@/entities/evaluaciones/opcion-respuesta.entity';
-import { UpdateEvaluacionDto, CreatePreguntaDto } from '@/application/evaluaciones/dto';
+import { UpdateEvaluacionDto, UpdatePreguntaDto, UpdateOpcionRespuestaDto } from '@/application/evaluaciones/dto';
 
 /**
  * Adaptador del repositorio de Evaluaciones
@@ -189,8 +189,8 @@ export class EvaluacionesRepositoryAdapter implements IEvaluacionesRepository {
     // IDs de preguntas nuevas (las que tienen id son existentes)
     const newPreguntaIds = new Set(
       newPreguntas
-        .filter((p) => (p as any).id)
-        .map((p) => (p as any).id),
+        .filter((p) => p.id !== undefined && p.id !== null)
+        .map((p) => p.id!),
     );
 
     // Eliminar preguntas que ya no están en la lista
@@ -204,7 +204,7 @@ export class EvaluacionesRepositoryAdapter implements IEvaluacionesRepository {
     // Crear o actualizar preguntas
     for (let i = 0; i < newPreguntas.length; i++) {
       const preguntaData = newPreguntas[i];
-      const preguntaId = (preguntaData as any).id;
+      const preguntaId = preguntaData.id;
 
       // Validar que tenga al menos una opción
       if (!preguntaData.opciones || preguntaData.opciones.length === 0) {
@@ -232,16 +232,27 @@ export class EvaluacionesRepositoryAdapter implements IEvaluacionesRepository {
           throw new NotFoundException(`Pregunta con ID ${preguntaId} no encontrada`);
         }
 
-        existingPregunta.enunciado = preguntaData.enunciado;
+        // Actualizar solo los campos que están definidos
+        if (preguntaData.enunciado !== undefined) {
+          existingPregunta.enunciado = preguntaData.enunciado;
+        }
         if (preguntaData.imagenUrl !== undefined) {
           existingPregunta.imagenUrl = preguntaData.imagenUrl || null;
         }
-        existingPregunta.puntaje = preguntaData.puntaje ?? 1.0;
-        existingPregunta.orden = preguntaData.orden ?? i;
-        existingPregunta.requerida = preguntaData.requerida ?? true;
-        existingPregunta.tipoPregunta = {
-          id: preguntaData.tipoPreguntaId,
-        } as any;
+        if (preguntaData.puntaje !== undefined) {
+          existingPregunta.puntaje = preguntaData.puntaje;
+        }
+        if (preguntaData.orden !== undefined) {
+          existingPregunta.orden = preguntaData.orden;
+        }
+        if (preguntaData.requerida !== undefined) {
+          existingPregunta.requerida = preguntaData.requerida;
+        }
+        if (preguntaData.tipoPreguntaId !== undefined) {
+          existingPregunta.tipoPregunta = {
+            id: preguntaData.tipoPreguntaId,
+          } as any;
+        }
 
         pregunta = await queryRunner.manager.save(existingPregunta);
 
@@ -253,7 +264,14 @@ export class EvaluacionesRepositoryAdapter implements IEvaluacionesRepository {
           existingPregunta.opciones || [],
         );
       } else {
-        // Crear nueva pregunta
+        // Crear nueva pregunta - validar campos requeridos
+        if (!preguntaData.enunciado) {
+          throw new BadRequestException('El enunciado de la pregunta es requerido');
+        }
+        if (!preguntaData.tipoPreguntaId) {
+          throw new BadRequestException('El tipo de pregunta es requerido');
+        }
+
         const newPregunta = this.preguntaRepository.create({
           evaluacion,
           tipoPregunta: { id: preguntaData.tipoPreguntaId } as any,
@@ -270,6 +288,14 @@ export class EvaluacionesRepositoryAdapter implements IEvaluacionesRepository {
         // Crear opciones de la pregunta
         for (let j = 0; j < preguntaData.opciones.length; j++) {
           const opcionData = preguntaData.opciones[j];
+
+          // Validar campos requeridos
+          if (!opcionData.texto) {
+            throw new BadRequestException(`El texto de la opción ${j + 1} es requerido`);
+          }
+          if (opcionData.esCorrecta === undefined) {
+            throw new BadRequestException(`El campo esCorrecta de la opción ${j + 1} es requerido`);
+          }
 
           const newOpcion = this.opcionRespuestaRepository.create({
             pregunta,
@@ -291,7 +317,7 @@ export class EvaluacionesRepositoryAdapter implements IEvaluacionesRepository {
   private async syncOpciones(
     queryRunner: QueryRunner,
     pregunta: Pregunta,
-    newOpciones: CreatePreguntaDto['opciones'] | undefined,
+    newOpciones: UpdateOpcionRespuestaDto[] | undefined,
     existingOpciones: OpcionRespuesta[],
   ): Promise<void> {
     if (!newOpciones) return;
@@ -299,8 +325,8 @@ export class EvaluacionesRepositoryAdapter implements IEvaluacionesRepository {
     // IDs de opciones nuevas (las que tienen id son existentes)
     const newOpcionIds = new Set(
       newOpciones
-        .filter((o) => (o as any).id)
-        .map((o) => (o as any).id),
+        .filter((o) => o.id !== undefined && o.id !== null)
+        .map((o) => o.id!),
     );
 
     // Eliminar opciones que ya no están en la lista
@@ -314,7 +340,7 @@ export class EvaluacionesRepositoryAdapter implements IEvaluacionesRepository {
     // Crear o actualizar opciones
     for (let j = 0; j < newOpciones.length; j++) {
       const opcionData = newOpciones[j];
-      const opcionId = (opcionData as any).id;
+      const opcionId = opcionData.id;
 
       if (opcionId) {
         // Actualizar opción existente
@@ -323,14 +349,30 @@ export class EvaluacionesRepositoryAdapter implements IEvaluacionesRepository {
           throw new NotFoundException(`Opción con ID ${opcionId} no encontrada`);
         }
 
-        existingOpcion.texto = opcionData.texto;
-        existingOpcion.esCorrecta = opcionData.esCorrecta;
-        existingOpcion.puntajeParcial = opcionData.puntajeParcial || 0.0;
-        existingOpcion.orden = opcionData.orden ?? j;
+        // Actualizar solo los campos que están definidos
+        if (opcionData.texto !== undefined) {
+          existingOpcion.texto = opcionData.texto;
+        }
+        if (opcionData.esCorrecta !== undefined) {
+          existingOpcion.esCorrecta = opcionData.esCorrecta;
+        }
+        if (opcionData.puntajeParcial !== undefined) {
+          existingOpcion.puntajeParcial = opcionData.puntajeParcial;
+        }
+        if (opcionData.orden !== undefined) {
+          existingOpcion.orden = opcionData.orden;
+        }
 
         await queryRunner.manager.save(existingOpcion);
       } else {
-        // Crear nueva opción
+        // Crear nueva opción - validar campos requeridos
+        if (!opcionData.texto) {
+          throw new BadRequestException(`El texto de la opción ${j + 1} es requerido`);
+        }
+        if (opcionData.esCorrecta === undefined) {
+          throw new BadRequestException(`El campo esCorrecta de la opción ${j + 1} es requerido`);
+        }
+
         const newOpcion = this.opcionRespuestaRepository.create({
           pregunta,
           texto: opcionData.texto,
