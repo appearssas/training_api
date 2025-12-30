@@ -23,6 +23,7 @@ export interface IAuthRepository {
     usuarioData: { username: string; passwordHash: string },
     rolCodigo: string,
     habilitado?: boolean,
+    empresaId?: number,
   ): Promise<Usuario>;
   updatePassword(usuarioId: number, nuevaPassword: string): Promise<void>;
 

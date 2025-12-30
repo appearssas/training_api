@@ -119,5 +119,23 @@ export class CreateAdminDto {
   @IsBoolean()
   @IsOptional()
   habilitado?: boolean;
+
+  @ApiPropertyOptional({
+    description: 'Indica si el usuario acepta los términos y condiciones.',
+    example: true,
+    default: false,
+  })
+  @IsBoolean()
+  @IsOptional()
+  aceptaTerminos?: boolean;
+
+  @ApiPropertyOptional({
+    description: 'Indica si el usuario acepta la política de tratamiento de datos.',
+    example: true,
+    default: false,
+  })
+  @IsBoolean()
+  @IsOptional()
+  aceptaPoliticaDatos?: boolean;
 }
 

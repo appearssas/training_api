@@ -122,4 +122,13 @@ export class UpdateUserDto {
   @IsOptional()
   @IsString()
   direccion?: string;
+
+  @ApiProperty({
+    description: 'ID de la empresa a la que pertenece el usuario',
+    example: 1,
+    required: false,
+  })
+  @IsOptional()
+  @IsNumber()
+  empresaId?: number;
 }

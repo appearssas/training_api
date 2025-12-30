@@ -6,6 +6,8 @@ import {
   UpdateDateColumn,
   OneToOne,
   OneToMany,
+  ManyToOne,
+  JoinColumn,
   Index,
 } from 'typeorm';
 import { Usuario } from '../usuarios/usuario.entity';
@@ -14,6 +16,7 @@ import { Instructor } from '../instructores/instructor.entity';
 import { Capacitacion } from '../capacitacion/capacitacion.entity';
 import { Inscripcion } from '../inscripcion/inscripcion.entity';
 import { PersonaRol } from '../roles/persona-rol.entity';
+import { Empresa } from '../empresas/empresa.entity';
 import { Genero } from './types';
 
 @Entity('personas')
@@ -51,13 +54,18 @@ export class Persona {
   @Column({ type: 'varchar', length: 200, nullable: true })
   apellidos: string;
 
-  @Column({
-    type: 'varchar',
-    length: 500,
+
+  @Column({ type: 'int', nullable: true, name: 'empresa_id' })
+  empresaId: number;
+
+  // Relación con Empresa
+  // Una persona pertenece a una empresa (opcional)
+  @ManyToOne(() => Empresa, (empresa: Empresa) => empresa.personas, {
     nullable: true,
-    name: 'razon_social',
+    onDelete: 'SET NULL',
   })
-  razonSocial: string;
+  @JoinColumn({ name: 'empresa_id' })
+  empresa: Empresa;
 
   @Index()
   @Column({ type: 'varchar', length: 255, nullable: true })

@@ -26,10 +26,12 @@ export class UsuariosRepositoryAdapter implements IUsuariosRepository {
     activo?: boolean;
     sortBy: UserSortField;
     sortOrder: SortOrder;
+    empresaId?: number; // Filtro por empresa (para usuarios CLIENTE)
   }): Promise<{ usuarios: Usuario[]; total: number }> {
     const queryBuilder = this.usuarioRepository
       .createQueryBuilder('usuario')
       .leftJoinAndSelect('usuario.persona', 'persona')
+      .leftJoinAndSelect('persona.empresa', 'empresa')
       .leftJoinAndSelect('usuario.rolPrincipal', 'rolPrincipal');
 
     // Filtro por búsqueda (username, email, número de documento)
@@ -63,6 +65,13 @@ export class UsuariosRepositoryAdapter implements IUsuariosRepository {
     } else {
       // Por defecto, solo mostrar usuarios activos
       queryBuilder.andWhere('usuario.activo = :activo', { activo: true });
+    }
+
+    // Filtro por empresa (para usuarios CLIENTE que solo deben ver usuarios de su empresa)
+    if (filters.empresaId !== undefined) {
+      queryBuilder.andWhere('persona.empresaId = :empresaId', {
+        empresaId: filters.empresaId,
+      });
     }
 
     // Ordenamiento
@@ -149,6 +158,10 @@ export class UsuariosRepositoryAdapter implements IUsuariosRepository {
     }
     if (updateData.direccion !== undefined) {
       personaUpdateData.direccion = updateData.direccion;
+    }
+
+    if (updateData.empresaId !== undefined) {
+      personaUpdateData.empresaId = updateData.empresaId;
     }
 
     // Si hay datos de persona para actualizar, obtener el usuario primero para acceder a la persona

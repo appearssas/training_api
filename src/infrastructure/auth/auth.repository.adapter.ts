@@ -171,6 +171,7 @@ export class AuthRepositoryAdapter implements IAuthRepository {
     usuarioData: { username: string; passwordHash: string },
     rolCodigo: string,
     habilitado: boolean = false,
+    empresaId?: number,
   ): Promise<Usuario> {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
@@ -182,6 +183,7 @@ export class AuthRepositoryAdapter implements IAuthRepository {
       const persona = this.personaRepository.create({
         ...sanitizedPersonaData,
         activo: true,
+        empresaId: empresaId, // Asociar a empresa si se proporciona
       });
       const savedPersona = await queryRunner.manager.save(persona);
 

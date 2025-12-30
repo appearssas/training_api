@@ -19,6 +19,7 @@ export interface IUsuariosRepository {
       activo?: boolean;
       sortBy: UserSortField;
       sortOrder: SortOrder;
+      empresaId?: number; // Filtro por empresa (para usuarios CLIENTE)
     },
   ): Promise<{ usuarios: Usuario[]; total: number }>;
 
