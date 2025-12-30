@@ -15,6 +15,9 @@ RUN yarn install
 # Copiar archivos de configuración necesarios para el build
 COPY tsconfig.json tsconfig.build.json nest-cli.json ./
 
+# Crear directorio para archivos públicos
+RUN mkdir -p /app/public
+
 # Exponer el puerto
 EXPOSE 3000
 

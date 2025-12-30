@@ -1,6 +1,6 @@
 import { MigrationInterface, QueryRunner, Table, TableForeignKey } from 'typeorm';
 
-export class CreatePasswordResetTokensTable1734710879000
+export class CreatePasswordResetTokensTable1766250000000
   implements MigrationInterface
 {
   public async up(queryRunner: QueryRunner): Promise<void> {
