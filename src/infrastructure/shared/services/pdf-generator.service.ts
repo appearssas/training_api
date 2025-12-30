@@ -6,396 +6,191 @@ import { Certificado } from '@/entities/certificados/certificado.entity';
 import { Inscripcion } from '@/entities/inscripcion/inscripcion.entity';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const sharp = require('sharp');
-import { join } from 'path';
+// Usar ruta absoluta al SVG para evitar problemas de resolución de path
+const SVG_ABSOLUTE_PATH = '/app/public/assets/certificado_svg.svg';
 import { readFileSync, existsSync } from 'fs';
 
-/**
- * Servicio para generar certificados en formato PDF
- * RF-22: Generación automática de certificado PDF
- * RF-23: Campos del certificado (membrete, datos del conductor, QR, firma)
- */
 @Injectable()
 export class PdfGeneratorService {
   constructor(private readonly configService: ConfigService) {}
 
-  /**
-   * Genera un certificado en formato PDF
-   * @param certificado Entidad del certificado con todas las relaciones
-   * @returns Buffer del PDF generado
-   */
   async generateCertificate(certificado: Certificado): Promise<any> {
     const doc = new PDFDocument({
       size: 'LETTER',
-      layout: 'landscape', // Formato horizontal para el certificado
+      layout: 'landscape',
       margins: { top: 0, bottom: 0, left: 0, right: 0 },
     });
 
     const buffers: Buffer[] = [];
-
     doc.on('data', (buffer) => buffers.push(buffer));
 
-    // Obtener datos de la inscripción y relaciones
     const inscripcion = certificado.inscripcion as Inscripcion;
-    
-    // Validar que las relaciones estén cargadas
-    if (!inscripcion) {
-      throw new Error('El certificado no tiene una inscripción asociada');
-    }
-    
-    // IMPORTANTE: Asegurar que la capacitación esté cargada correctamente
-    // Si no está cargada, lanzar error para evitar usar datos incorrectos
-    if (!inscripcion.capacitacion) {
-      throw new Error(
-        `La inscripción ${inscripcion.id} no tiene una capacitación asociada. ` +
-        `Esto puede causar que el certificado muestre el nombre incorrecto de la capacitación.`,
-      );
+    if (!inscripcion || !inscripcion.capacitacion || !inscripcion.estudiante) {
+      throw new Error('Datos incompletos.');
     }
 
-    // Obtener datos de forma segura
     const estudiante = inscripcion.estudiante as any;
     const capacitacion = inscripcion.capacitacion as any;
-    const instructor = capacitacion?.instructor as any;
+    
+    // -- CONFIGURACIÓN --
+    const docWidth = doc.page.width; 
+    const centerX = docWidth / 2;
 
-    // Validar que el estudiante tenga datos
-    if (!estudiante) {
-      throw new Error('El certificado no tiene datos del estudiante asociado');
-    }
-
-    // Convertir fechaVencimiento a Date si es necesario
-    const fechaVencimientoDate = certificado.fechaVencimiento
-      ? certificado.fechaVencimiento instanceof Date
-        ? certificado.fechaVencimiento
-        : new Date(certificado.fechaVencimiento)
-      : null;
-
-    // Log detallado para debugging: verificar que se está usando la capacitación correcta
-    console.log('📄 Generando PDF con datos del certificado:', {
-      certificadoId: certificado.id,
-      inscripcionId: inscripcion.id,
-      capacitacionId: capacitacion?.id,
-      capacitacionTitulo: capacitacion?.titulo,
-      estudianteId: estudiante?.id,
-      estudianteNombre: estudiante?.nombres,
-      estudianteApellidos: estudiante?.apellidos,
-      estudianteDocumento: estudiante?.numeroDocumento,
-      instructorId: instructor?.id,
-      instructorNombre: instructor?.nombres,
-      instructorApellidos: instructor?.apellidos,
-      fechaVencimiento: fechaVencimientoDate?.toISOString(),
-    });
-
-    // Validación adicional: asegurar que el título de la capacitación no esté vacío
-    if (!capacitacion?.titulo || capacitacion.titulo.trim() === '') {
-      throw new Error(
-        `La capacitación ${capacitacion?.id} no tiene un título válido. ` +
-        `No se puede generar el certificado sin el nombre de la capacitación.`,
-      );
-    }
-
-    // Cargar y agregar fondo del certificado
+    // 1. FONDO
     await this.addCertificateBackground(doc);
 
-    // Agregar márgenes internos para el contenido
-    const margin = 50;
-    doc.x = margin;
-    doc.y = margin;
+    // 2. TÍTULO PRINCIPAL (Y=140)
+    doc.x = 0;
+    doc.y = 140; 
 
-    // Membrete institucional (RF-23)
-    // TODO: Cargar imagen del membrete desde configuración
-    const membreteUrl = this.configService.get<string>('CERTIFICATE_HEADER_IMAGE');
-    if (membreteUrl) {
-      try {
-        doc.image(membreteUrl, margin, margin, { width: 500, align: 'center' });
-        doc.y = doc.y + 80;
-      } catch (error) {
-        // Si no se puede cargar la imagen, omitir el membrete
-        // El membrete ahora se maneja desde el SVG del fondo
-        doc.y = doc.y + 20;
-      }
-    } else {
-      // Omitir el membrete de texto - se maneja desde el SVG del fondo
-      doc.y = doc.y + 20;
-    }
-
-    doc.moveDown(2);
-
-    // Título del certificado
     doc
-      .fontSize(20)
+      .fontSize(22)
+      .fillColor('#0D47A1')
       .font('Helvetica-Bold')
-      .text('CERTIFICADO DE CAPACITACIÓN', { align: 'center' });
-
-    doc.moveDown(2);
-
-    // Texto del certificado
-    doc.fontSize(12).font('Helvetica').text('Se certifica que:', { align: 'center' });
-
-    doc.moveDown(1);
-
-    // Nombre completo del conductor (RF-23)
-    const nombreCompleto = estudiante?.nombres && estudiante?.apellidos
-      ? `${estudiante.nombres} ${estudiante.apellidos}`
-      : 'N/A';
-    doc
-      .fontSize(16)
-      .font('Helvetica-Bold')
-      .text(nombreCompleto, { align: 'center' });
-
-    doc.moveDown(1);
-
-    // Número de documento (RF-23)
-    const documento = estudiante?.numeroDocumento || 'N/A';
-    doc
-      .fontSize(12)
-      .font('Helvetica')
-      .text(`Documento de Identidad: ${documento}`, { align: 'center' });
-
-    doc.moveDown(2);
-
-    // Nombre del curso (RF-23)
-    // IMPORTANTE: Usar directamente el título de la capacitación cargada
-    // No usar valores por defecto para evitar mostrar información incorrecta
-    const cursoNombre = capacitacion?.titulo;
-    
-    if (!cursoNombre) {
-      throw new Error('No se puede generar el certificado: el nombre de la capacitación no está disponible');
-    }
-    
-    doc
-      .fontSize(12)
-      .font('Helvetica')
-      .text('Ha completado exitosamente la capacitación:', { align: 'center' });
+      .text('CERTIFICADO DE APROBACIÓN', { align: 'center' });
 
     doc.moveDown(0.5);
 
+    // 3. HEADER TEXT
+    doc.fontSize(10).fillColor('black');
+    doc.font('Helvetica').text('Otorgado por', { align: 'center' });
+    doc.moveDown(0.2);
+    doc.fontSize(12).font('Helvetica-Bold').text('FORMAR360', { align: 'center' });
+    doc.moveDown(0.2);
+    doc.fontSize(10).font('Helvetica').text('con el respaldo de', { align: 'center' });
+    doc.moveDown(0.2);
+    doc.fontSize(12).font('Helvetica-Bold').text('ANDAR DEL LLANO', { align: 'center' });
+    doc.moveDown(0.2);
+    doc.fontSize(10).font('Helvetica').text('Centro de Enseñanza Automovilística', { align: 'center' });
+
+    doc.moveDown(1.2);
+
+    // 4. CERTIFICA QUE
+    const lineaY = doc.y + 6;
+    doc.lineWidth(0.5).strokeColor('#999999');
+    doc.moveTo(centerX - 120, lineaY).lineTo(centerX - 70, lineaY).stroke();
+    doc.moveTo(centerX + 70, lineaY).lineTo(centerX + 120, lineaY).stroke();
+
+    doc.fontSize(9).fillColor('#666666').font('Helvetica').text('CERTIFICA QUE:', { align: 'center' });
+
+    doc.moveDown(1.0);
+
+    // 5. NOMBRE ESTUDIANTE
+    const nombreCompleto = estudiante?.nombres && estudiante?.apellidos
+      ? `${estudiante.nombres} ${estudiante.apellidos}`.toUpperCase()
+      : 'ESTUDIANTE';
+    
     doc
-      .fontSize(14)
+      .fontSize(22) 
+      .fillColor('#0D47A1')
       .font('Helvetica-Bold')
-      .text(cursoNombre, { align: 'center' });
+      .text(nombreCompleto, { align: 'center' });
+    
+    doc.moveDown(0.3);
 
-    doc.moveDown(2);
-
-    // Fecha de emisión (RF-23, RF-28)
-    const fechaEmision = certificado.esRetroactivo && certificado.fechaRetroactiva
-      ? new Date(certificado.fechaRetroactiva)
-      : certificado.fechaEmision;
-    const fechaFormateada = fechaEmision.toLocaleDateString('es-CO', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
+    // 6. CÉDULA
+    const documento = estudiante?.numeroDocumento || 'N/A';
     doc
-      .fontSize(12)
+      .fontSize(11)
+      .fillColor('black')
       .font('Helvetica')
-      .text(`Fecha de emisión: ${fechaFormateada}`, { align: 'center' });
+      .text(`Cédula de ciudadanía N.° ${documento}`, { align: 'center' });
 
-    doc.moveDown(2);
+    doc.moveDown(1.2);
 
-    // Nombre del capacitador (RF-23)
-    const instructorNombre = instructor?.nombres && instructor?.apellidos
-      ? `${instructor.nombres} ${instructor.apellidos}`
-      : 'N/A';
+    // 7. DESCRIPCIÓN
     doc
-      .fontSize(12)
+      .fontSize(11)
+      .fillColor('#444444')
       .font('Helvetica')
-      .text(`Capacitador: ${instructorNombre}`, { align: 'center' });
+      .text('Ha realizado y aprobado satisfactoriamente el curso de:', { align: 'center' });
 
-    doc.moveDown(3);
+    doc.moveDown(0.8);
 
-    // Firma digital (RF-23)
-    const firmaDigitalUrl = certificado.firmaDigital;
-    if (firmaDigitalUrl) {
-      try {
-        doc.image(firmaDigitalUrl, doc.page.width / 2 - 100, doc.y, {
-          width: 200,
-          align: 'center',
-        });
-        doc.moveDown(2);
-      } catch (error) {
-        // Si no se puede cargar, usar texto
-        doc.text('_________________________', { align: 'center' });
-        doc.moveDown(0.5);
-        doc.fontSize(10).text('Firma Digital', { align: 'center' });
-      }
-    } else {
-      doc.text('_________________________', { align: 'center' });
-      doc.moveDown(0.5);
-      doc.fontSize(10).text('Firma Digital', { align: 'center' });
-    }
+    // 8. CURSO (BOTÓN AZUL)
+    const cursoNombre = (capacitacion?.titulo || 'CURSO SIN NOMBRE').toUpperCase();
+    
+    doc.fontSize(14).font('Helvetica-Bold');
+    const textWidth = doc.widthOfString(cursoNombre);
+    const boxPadding = 20;
+    const boxWidth = textWidth + (boxPadding * 2);
+    const boxHeight = 30;
+    const boxX = centerX - (boxWidth / 2);
+    const boxY = doc.y;
 
-    doc.moveDown(2);
+    doc.roundedRect(boxX, boxY, boxWidth, boxHeight, 8).fillColor('#0D47A1').fill();
+    doc.fillColor('white').text(cursoNombre, boxX, boxY + 8, { width: boxWidth, align: 'center' });
 
-    // Código QR (RF-24)
+    doc.y = boxY + boxHeight + 15;
+
+    // 9. DETALLES (FORZANDO CENTRADO ABSOLUTO)
+    // Reiniciamos X a 0 y usamos width del documento completo para garantizar centrado
+    doc.x = 0;
+    doc.fillColor('black');
+    doc.fontSize(10).font('Helvetica');
+    
+    // Usamos text con width explicito igual al de la página
+    doc.text('Con una intensidad de 20 horas', 0, doc.y, { width: docWidth, align: 'center' });
+    doc.text('Modalidad: Virtual', 0, doc.y, { width: docWidth, align: 'center' });
+
+    // 10. FIRMAS + GARABATOS FALSOS
+    const footerY = 500; 
+    const col1X = centerX - 180;
+    const col2X = centerX + 80;
+
+    doc.lineWidth(1).strokeColor('black');
+
+    // -- Firma Izquierda --
+    // Garabato Falso (Simulación de firma)
+    doc.save();
+    doc.strokeColor('#000066').lineWidth(2);
+    doc.moveTo(col1X - 30, footerY - 20)
+       .bezierCurveTo(col1X - 20, footerY - 40, col1X + 20, footerY - 10, col1X + 40, footerY - 30)
+       .stroke();
+    doc.restore();
+
+    // Línea y Texto
+    doc.moveTo(col1X - 80, footerY).lineTo(col1X + 80, footerY).stroke();
+    doc.text('Anderson Herrera Díaz', col1X - 80, footerY + 5, { width: 160, align: 'center' });
+    doc.fontSize(8).font('Helvetica').text('Instructor / Entrenador\nTSA REG 37544429\nLicencia SST', { width: 160, align: 'center' });
+
+    // -- Firma Derecha --
+    // Garabato Falso diferente
+    doc.save();
+    doc.strokeColor('#000066').lineWidth(2);
+    doc.moveTo(col2X - 40, footerY - 25)
+       .bezierCurveTo(col2X - 10, footerY - 10, col2X + 10, footerY - 45, col2X + 50, footerY - 20)
+       .stroke();
+    doc.restore();
+
+    // Línea y Texto
+    doc.moveTo(col2X - 80, footerY).lineTo(col2X + 80, footerY).stroke();
+    doc.fontSize(10).font('Helvetica-Bold').text('Edwin Julian Parra Morales', col2X - 80, footerY + 5, { width: 160, align: 'center' });
+    doc.fontSize(8).font('Helvetica').text('Representante Legal\nANDAR DEL LLANO', { width: 160, align: 'center' });
+
+    // 11. QR
     if (certificado.codigoQr) {
       try {
-        // El QR puede venir como base64 con o sin prefijo data:image
         let qrImageData = certificado.codigoQr;
-        
-        // Si no tiene el prefijo data:image, agregarlo
-        if (!qrImageData.startsWith('data:image')) {
-          qrImageData = `data:image/png;base64,${qrImageData}`;
-        }
-        
-        // Convertir base64 a buffer si es necesario
-        let qrBuffer: Buffer;
-        if (qrImageData.startsWith('data:image')) {
-          // Extraer el base64 del data URI
-          const base64Data = qrImageData.split(',')[1];
-          qrBuffer = Buffer.from(base64Data, 'base64');
-        } else {
-          // Asumir que ya es base64 puro
-          qrBuffer = Buffer.from(qrImageData, 'base64');
-        }
-        
-        // Posicionar el QR en la parte inferior derecha del certificado (formato horizontal)
-        const qrSize = 120;
-        const qrX = doc.page.width - qrSize - 80; // Margen derecho
-        const qrY = doc.page.height - qrSize - 80; // Parte inferior
-        
-        doc.image(qrBuffer, qrX, qrY, {
-          width: qrSize,
-          height: qrSize,
-        });
-        
-        // Texto del código de verificación debajo del QR
-        doc
-          .fontSize(8)
-          .font('Helvetica')
-          .text(
-            `Código: ${certificado.hashVerificacion || certificado.numeroCertificado}`,
-            qrX,
-            qrY + qrSize + 5,
-            {
-              width: qrSize,
-              align: 'center',
-            },
-          );
-      } catch (error) {
-        console.error('Error al cargar el QR en el PDF:', error);
-        // Si no se puede cargar el QR, mostrar el código en la parte inferior
-        doc
-          .fontSize(10)
-          .font('Helvetica')
-          .text(
-            `Código de verificación: ${certificado.hashVerificacion || certificado.numeroCertificado}`,
-            { align: 'center' },
-          );
-      }
-    } else {
-      // Si no hay QR, mostrar al menos el código de verificación
-      doc
-        .fontSize(10)
-        .font('Helvetica')
-        .text(
-          `Código de verificación: ${certificado.hashVerificacion || certificado.numeroCertificado}`,
-          { align: 'center' },
-        );
+        if (!qrImageData.startsWith('data:image')) qrImageData = `data:image/png;base64,${qrImageData}`;
+        const base64Data = qrImageData.split(',')[1];
+        const qrBuffer = Buffer.from(base64Data, 'base64');
+        const qrSize = 70; const qrX = 690; const qrY = 445; 
+        doc.image(qrBuffer, qrX, qrY, { width: qrSize, height: qrSize });
+      } catch (e) {}
     }
 
-    // Finalizar el documento
     doc.end();
-
-    // Esperar a que termine la generación
-    return new Promise((resolve, reject) => {
-      doc.on('end', () => {
-        const pdfBuffer = Buffer.concat(buffers);
-        resolve(pdfBuffer);
-      });
-
-      doc.on('error', (error) => {
-        reject(error);
-      });
-    });
+    return new Promise((r, j) => { doc.on('end', () => r(Buffer.concat(buffers))); doc.on('error', j); });
   }
 
-  /**
-   * Agrega el fondo oficial del certificado (SVG convertido a imagen)
-   * @param doc Documento PDF
-   */
   private async addCertificateBackground(doc: any): Promise<void> {
     try {
-      // Ruta al archivo SVG del fondo
-      const svgPath = join(process.cwd(), 'public', 'assets', 'cert_back.svg');
-      
-      console.log('🔍 Buscando fondo de certificado en:', svgPath);
-      
-      // Verificar si el archivo existe
-      if (!existsSync(svgPath)) {
-        console.warn(`⚠️ Fondo de certificado no encontrado en: ${svgPath}`);
-        console.warn(`📁 Directorio actual: ${process.cwd()}`);
-        return;
+      if (existsSync(SVG_ABSOLUTE_PATH)) {
+        const svgBuffer = readFileSync(SVG_ABSOLUTE_PATH);
+        const pngBuffer = await sharp(svgBuffer).png().toBuffer();
+        doc.image(pngBuffer, 0, 0, { width: 792, height: 612 });
       }
-
-      console.log('✅ Archivo SVG encontrado, leyendo...');
-      
-      // Leer el SVG
-      const svgBuffer = readFileSync(svgPath);
-      console.log(`📦 Tamaño del SVG: ${svgBuffer.length} bytes`);
-
-      // Convertir SVG a PNG usando sharp
-      // El tamaño del PDF es LETTER en formato horizontal (792x612 puntos)
-      console.log('🎨 Convirtiendo SVG a PNG...');
-      // Convertir SVG a PNG
-      // IMPORTANTE: El tamaño del PDF LETTER en formato horizontal es 792 (ancho) x 612 (alto) puntos
-      // El SVG tiene viewBox="0 0 792 612" (ancho x alto en formato horizontal)
-      // El SVG y el PDF ahora están en el mismo formato horizontal, no se necesita rotación
-      const PDF_WIDTH = 792;  // Ancho del PDF LETTER en horizontal
-      const PDF_HEIGHT = 612;  // Alto del PDF LETTER en horizontal
-      
-      console.log(`📐 Tamaño del PDF: ${PDF_WIDTH} x ${PDF_HEIGHT} puntos (horizontal)`);
-      console.log(`📐 Tamaño del SVG: 792 x 612 (viewBox - horizontal)`);
-      console.log('✅ SVG y PDF en el mismo formato horizontal, sin rotación necesaria');
-      
-      const pngBuffer = await sharp(svgBuffer, {
-        density: 300, // Alta resolución para mejor calidad
-      })
-        .resize(PDF_WIDTH, PDF_HEIGHT, {
-          fit: 'fill', // Llenar exactamente el tamaño sin mantener proporciones
-        })
-        .png()
-        .toBuffer();
-
-      console.log(`✅ PNG generado: ${pngBuffer.length} bytes`);
-
-      // Agregar el fondo como imagen en la posición (0, 0) cubriendo toda la página
-      // IMPORTANTE: Esto debe hacerse ANTES de agregar cualquier contenido
-      console.log('🖼️ Agregando fondo al PDF...');
-      
-      // Guardar el estado actual del documento
-      const savedX = doc.x;
-      const savedY = doc.y;
-      
-      // Resetear la posición del cursor a (0, 0) para agregar el fondo
-      doc.x = 0;
-      doc.y = 0;
-      
-      // Agregar el fondo en la posición (0, 0) sin márgenes
-      // PDFKit: doc.image(buffer, x, y, options)
-      // Usar las constantes ya declaradas arriba
-      try {
-        doc.image(pngBuffer, 0, 0, {
-          width: PDF_WIDTH,
-          height: PDF_HEIGHT,
-        });
-        console.log(`✅ Imagen de fondo agregada en posición (0, 0) con tamaño ${PDF_WIDTH}x${PDF_HEIGHT}`);
-      } catch (imageError) {
-        console.error('❌ Error al agregar imagen al PDF:', imageError);
-        throw imageError;
-      }
-      
-      // Resetear la posición para el contenido (después del fondo)
-      doc.x = 0;
-      doc.y = 0;
-      
-      console.log('✅ Fondo agregado exitosamente al certificado');
-    } catch (error) {
-      console.error('❌ Error al cargar el fondo del certificado:', error);
-      if (error instanceof Error) {
-        console.error('Error message:', error.message);
-        console.error('Error stack:', error.stack);
-      }
-      // Continuar sin fondo si hay error
-    }
+    } catch (e) { console.error(e); }
   }
 }
-

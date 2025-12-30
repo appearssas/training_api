@@ -11,6 +11,7 @@ import {
   ApiParam,
 } from '@nestjs/swagger';
 import { VerifyCertificadoUseCase } from '@/application/certificados/use-cases/verify-certificado.use-case';
+import { RegenerateCertificatesUseCase } from '@/application/certificados/use-cases/regenerate-certificates.use-case';
 
 /**
  * Controlador público de verificación de certificados
@@ -23,7 +24,13 @@ import { VerifyCertificadoUseCase } from '@/application/certificados/use-cases/v
 export class PublicCertificadosController {
   constructor(
     private readonly verifyCertificadoUseCase: VerifyCertificadoUseCase,
+    private readonly regenerateCertificatesUseCase: RegenerateCertificatesUseCase,
   ) {}
+
+  @Get('regenerate-all-temp')
+  async regenerateAllTemp() {
+    return this.regenerateCertificatesUseCase.execute();
+  }
 
   @Get('verify/:token')
   @ApiOperation({
