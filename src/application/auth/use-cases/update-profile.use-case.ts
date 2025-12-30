@@ -8,7 +8,9 @@ import {
 import { IAuthRepository } from '@/domain/auth/ports/auth.repository.port';
 import { UpdateProfileDto } from '@/application/auth/dto/update-profile.dto';
 import { Usuario } from '@/entities/usuarios/usuario.entity';
+import { Persona } from '@/entities/persona/persona.entity';
 import { Genero } from '@/entities/persona/types';
+import { sanitizePersonaData } from '@/infrastructure/shared/helpers/persona-sanitizer.helper';
 
 @Injectable()
 export class UpdateProfileUseCase {
@@ -46,12 +48,14 @@ export class UpdateProfileUseCase {
         }
       }
       
-      const personaDataToUpdate = {
+      const personaDataToUpdate: Partial<Persona> = {
         nombres: updateDto.nombres,
         apellidos: updateDto.apellidos,
         email: updateDto.email,
         telefono: updateDto.telefono,
-        fechaNacimiento: updateDto.fechaNacimiento,
+        fechaNacimiento: updateDto.fechaNacimiento
+          ? new Date(updateDto.fechaNacimiento)
+          : undefined,
         genero: updateDto.genero as Genero,
         direccion: updateDto.direccion,
         fotoUrl: updateDto.fotoUrl,
@@ -63,7 +67,9 @@ export class UpdateProfileUseCase {
       );
 
       if (Object.keys(personaDataToUpdate).length > 0) {
-        Object.assign(fullUser.persona, personaDataToUpdate);
+        // Sanitizar datos personales antes de actualizar
+        const sanitizedData = sanitizePersonaData(personaDataToUpdate);
+        Object.assign(fullUser.persona, sanitizedData);
       }
     }
     

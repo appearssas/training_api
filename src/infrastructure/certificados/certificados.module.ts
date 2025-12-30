@@ -11,6 +11,7 @@ import { FindAllCertificadosUseCase } from '@/application/certificados/use-cases
 import { FindOneCertificadoUseCase } from '@/application/certificados/use-cases/find-one-certificado.use-case';
 import { VerifyCertificadoUseCase } from '@/application/certificados/use-cases/verify-certificado.use-case';
 import { UpdateCertificadoRetroactivoUseCase } from '@/application/certificados/use-cases/update-certificado-retroactivo.use-case';
+import { RegenerateCertificatesUseCase } from '@/application/certificados/use-cases/regenerate-certificates.use-case';
 import { PdfGeneratorService } from '../shared/services/pdf-generator.service';
 import { QrGeneratorService } from '../shared/services/qr-generator.service';
 
@@ -26,6 +27,7 @@ import { QrGeneratorService } from '../shared/services/qr-generator.service';
     FindOneCertificadoUseCase,
     VerifyCertificadoUseCase,
     UpdateCertificadoRetroactivoUseCase,
+    RegenerateCertificatesUseCase,
     PdfGeneratorService,
     QrGeneratorService,
     {
@@ -47,6 +49,7 @@ import { QrGeneratorService } from '../shared/services/qr-generator.service';
     VerifyCertificadoUseCase,
     PdfGeneratorService,
     QrGeneratorService,
+    'ICertificadosRepository',
   ],
 })
 export class CertificadosModule {}

@@ -97,6 +97,7 @@ export class RegisterUseCase {
           passwordHash,
         },
         registerDto.tipoRegistro,
+        registerDto.habilitado ?? false, // Por defecto false, pero puede venir del frontend
       );
 
       // NO generar token automáticamente

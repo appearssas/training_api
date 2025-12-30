@@ -2,7 +2,8 @@ import { BaseSeeder } from './base.seeder';
 import { Usuario } from '@/entities/usuarios/usuario.entity';
 import { Persona } from '@/entities/persona/persona.entity';
 import { Rol } from '@/entities/roles/rol.entity';
-import * as bcrypt from 'bcrypt';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const bcrypt = require('bcryptjs');
 
 export class AdminUserSeeder extends BaseSeeder {
   async run(): Promise<void> {

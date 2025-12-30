@@ -17,6 +17,7 @@ import {
   generarCodigoEstudiante,
   extraerNumeroSecuencial,
 } from '@/infrastructure/shared/helpers/codigo-estudiante.helper';
+import { sanitizePersonaData } from '@/infrastructure/shared/helpers/persona-sanitizer.helper';
 
 @Injectable()
 export class AuthRepositoryAdapter implements IAuthRepository {
@@ -169,15 +170,17 @@ export class AuthRepositoryAdapter implements IAuthRepository {
     personaData: Partial<Persona>,
     usuarioData: { username: string; passwordHash: string },
     rolCodigo: string,
+    habilitado: boolean = false,
   ): Promise<Usuario> {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
     try {
-      // 1. Crear persona
+      // 1. Crear persona (sanitizar datos personales)
+      const sanitizedPersonaData = sanitizePersonaData(personaData);
       const persona = this.personaRepository.create({
-        ...personaData,
+        ...sanitizedPersonaData,
         activo: true,
       });
       const savedPersona = await queryRunner.manager.save(persona);
@@ -197,7 +200,7 @@ export class AuthRepositoryAdapter implements IAuthRepository {
         persona: savedPersona,
         rolPrincipal: rol,
         activo: true,
-        habilitado: false, // Por defecto inhabilitado hasta aprobación
+        habilitado: habilitado, // Usar el valor proporcionado o false por defecto
       });
       const savedUsuario = await queryRunner.manager.save(usuario);
 
@@ -235,7 +238,9 @@ export class AuthRepositoryAdapter implements IAuthRepository {
   }
 
   async updatePersona(id: number, data: Partial<Persona>): Promise<Persona> {
-    await this.personaRepository.update(id, data);
+    // Sanitizar datos personales antes de actualizar
+    const sanitizedData = sanitizePersonaData(data);
+    await this.personaRepository.update(id, sanitizedData);
     return await this.personaRepository.findOneOrFail({ where: { id } });
   }
 
