@@ -9,6 +9,7 @@ import { AuditoriaCertificadoRetroactivo } from '@/entities/auditoria/auditoria-
 import { CreateCertificadoUseCase } from '@/application/certificados/use-cases/create-certificado.use-case';
 import { FindAllCertificadosUseCase } from '@/application/certificados/use-cases/find-all-certificados.use-case';
 import { FindOneCertificadoUseCase } from '@/application/certificados/use-cases/find-one-certificado.use-case';
+import { FindByEstudianteCertificadosUseCase } from '@/application/certificados/use-cases/find-by-estudiante-certificados.use-case';
 import { VerifyCertificadoUseCase } from '@/application/certificados/use-cases/verify-certificado.use-case';
 import { UpdateCertificadoRetroactivoUseCase } from '@/application/certificados/use-cases/update-certificado-retroactivo.use-case';
 import { RegenerateCertificatesUseCase } from '@/application/certificados/use-cases/regenerate-certificates.use-case';
@@ -25,6 +26,7 @@ import { QrGeneratorService } from '../shared/services/qr-generator.service';
     CreateCertificadoUseCase,
     FindAllCertificadosUseCase,
     FindOneCertificadoUseCase,
+    FindByEstudianteCertificadosUseCase,
     VerifyCertificadoUseCase,
     UpdateCertificadoRetroactivoUseCase,
     RegenerateCertificatesUseCase,
@@ -46,6 +48,7 @@ import { QrGeneratorService } from '../shared/services/qr-generator.service';
     CreateCertificadoUseCase,
     FindAllCertificadosUseCase,
     FindOneCertificadoUseCase,
+    FindByEstudianteCertificadosUseCase,
     VerifyCertificadoUseCase,
     PdfGeneratorService,
     QrGeneratorService,

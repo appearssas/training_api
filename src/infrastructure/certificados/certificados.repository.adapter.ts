@@ -285,6 +285,51 @@ export class CertificadosRepositoryAdapter implements ICertificadosRepository {
     }
   }
 
+  async findByEstudiante(estudianteId: number, pagination?: PaginationDto): Promise<any> {
+    try {
+      const { page = 1, limit = 10, search, sortField, sortOrder } = pagination || {};
+      const skip = (page - 1) * limit;
+
+      const queryBuilder = this.certificadoRepository
+        .createQueryBuilder('certificado')
+        .leftJoinAndSelect('certificado.inscripcion', 'inscripcion')
+        .leftJoinAndSelect('inscripcion.estudiante', 'estudiante')
+        .leftJoinAndSelect('inscripcion.capacitacion', 'capacitacion')
+        .where('inscripcion.estudiante_id = :estudianteId', { estudianteId })
+        .andWhere('certificado.activo = :activo', { activo: true });
+
+      // Búsqueda por texto
+      if (search) {
+        queryBuilder.andWhere(
+          '(certificado.numeroCertificado LIKE :search OR capacitacion.titulo LIKE :search)',
+          { search: `%${search}%` },
+        );
+      }
+
+      // Ordenamiento
+      if (sortField) {
+        queryBuilder.orderBy(`certificado.${sortField}`, sortOrder || 'ASC');
+      } else {
+        queryBuilder.orderBy('certificado.fechaEmision', 'DESC');
+      }
+
+      queryBuilder.skip(skip).take(limit);
+
+      const [data, total] = await queryBuilder.getManyAndCount();
+
+      return {
+        data,
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      };
+    } catch (error) {
+      console.error(error);
+      throw new InternalServerErrorException('Error al obtener los certificados del estudiante');
+    }
+  }
+
   async findByHashVerificacion(hash: string): Promise<Certificado | null> {
     try {
       // IMPORTANTE: Usar QueryBuilder para evitar problemas de caché de TypeORM
