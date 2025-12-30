@@ -72,7 +72,10 @@ export class CertificadosController {
 
   @Post('regenerate-all')
   @Roles('ADMIN')
-  @ApiOperation({ summary: 'Regenerar certificados para todas las evaluaciones aprobadas faltantes' })
+  @ApiOperation({
+    summary:
+      'Regenerar certificados para todas las evaluaciones aprobadas faltantes',
+  })
   async regenerateAll() {
     return this.regenerateCertificatesUseCase.execute();
   }
@@ -81,7 +84,8 @@ export class CertificadosController {
   @Roles('ADMIN')
   @ApiOperation({
     summary: 'Crear un nuevo certificado',
-    description: 'RF-22: Generación automática de certificado PDF con QR. Solo ADMIN puede crear certificados.',
+    description:
+      'RF-22: Generación automática de certificado PDF con QR. Solo ADMIN puede crear certificados.',
   })
   @ApiBody({ type: CreateCertificadoDto })
   @ApiResponse({ status: 201, description: 'Certificado creado exitosamente' })
@@ -95,7 +99,8 @@ export class CertificadosController {
   @Roles('ADMIN', 'ALUMNO', 'CLIENTE', 'INSTRUCTOR', 'OPERADOR')
   @ApiOperation({
     summary: 'Obtener lista de certificados con paginación',
-    description: 'Todos los roles autenticados pueden ver la lista de certificados.',
+    description:
+      'Todos los roles autenticados pueden ver la lista de certificados.',
   })
   @ApiBody({ type: PaginationDto })
   @ApiResponse({ status: 200, description: 'Lista de certificados' })
@@ -138,12 +143,18 @@ export class CertificadosController {
     @Param('estudianteId', ParseIntPipe) estudianteId: number,
     @Body() pagination?: PaginationDto,
   ) {
-    return this.findByEstudianteCertificadosUseCase.execute(estudianteId, pagination);
+    return this.findByEstudianteCertificadosUseCase.execute(
+      estudianteId,
+      pagination,
+    );
   }
 
   @Get(':id')
   @Roles('ADMIN', 'ALUMNO', 'CLIENTE', 'INSTRUCTOR', 'OPERADOR')
-  @ApiOperation({ summary: 'Obtener un certificado por ID. Todos los roles autenticados pueden ver certificados.' })
+  @ApiOperation({
+    summary:
+      'Obtener un certificado por ID. Todos los roles autenticados pueden ver certificados.',
+  })
   @ApiParam({
     name: 'id',
     type: 'number',
@@ -159,7 +170,8 @@ export class CertificadosController {
   @Roles('ADMIN', 'ALUMNO', 'CLIENTE', 'INSTRUCTOR', 'OPERADOR')
   @ApiOperation({
     summary: 'Visualizar certificado en formato PDF',
-    description: 'RF-24: Visualización de certificado PDF en navegador. Todos los roles autenticados pueden visualizar certificados.',
+    description:
+      'RF-24: Visualización de certificado PDF en navegador. Todos los roles autenticados pueden visualizar certificados.',
   })
   @ApiParam({
     name: 'id',
@@ -174,10 +186,7 @@ export class CertificadosController {
     },
   })
   @ApiResponse({ status: 404, description: 'Certificado no encontrado' })
-  async viewPDF(
-    @Param('id', ParseIntPipe) id: number,
-    @Res() res: Response,
-  ) {
+  async viewPDF(@Param('id', ParseIntPipe) id: number, @Res() res: Response) {
     return this.regenerateAndServePdf(id, res, 'inline');
   }
 
@@ -185,7 +194,8 @@ export class CertificadosController {
   @Roles('ADMIN', 'ALUMNO', 'CLIENTE', 'INSTRUCTOR', 'OPERADOR')
   @ApiOperation({
     summary: 'Descargar certificado en formato PDF',
-    description: 'RF-24: Descarga de certificado PDF. Todos los roles autenticados pueden descargar certificados.',
+    description:
+      'RF-24: Descarga de certificado PDF. Todos los roles autenticados pueden descargar certificados.',
   })
   @ApiParam({
     name: 'id',
@@ -210,43 +220,32 @@ export class CertificadosController {
   /**
    * Helper que intenta servir el PDF y si no existe, lo regenera.
    */
-  private async regenerateAndServePdf(id: number, res: Response, disposition: 'inline' | 'attachment') {
+  private async regenerateAndServePdf(
+    id: number,
+    res: Response,
+    disposition: 'inline' | 'attachment',
+  ) {
     const certificado = await this.findOneCertificadoUseCase.execute(id);
-    
-<<<<<<< HEAD
-    // Determinar la ruta del archivo
-    const storagePath = this.configService.get<string>('PDF_STORAGE_PATH') || './storage/certificates';
-    let filePath: string;
-    let fileName: string;
 
-    if (certificado.urlCertificado) {
-        // Si urlCertificado es una URL completa (http://...) o ruta relativa, extraemos el nombre del archivo
-        // Usamos split proactivamente para manejar tanto / como \
-        const basename = certificado.urlCertificado.split(/[/\\]/).pop();
-        fileName = basename || `certificado-${id}.pdf`;
-        
-        // RE-CONSTRUIR la ruta local completa. NO usar urlCertificado directamente.
-        filePath = path.join(storagePath, fileName);
-    } else {
-        // Fallback al nombre default
-        fileName = `certificado-${id}.pdf`;
-        filePath = path.join(storagePath, fileName);
-    }
-=======
     // Nombre base para el archivo
     const fileName = `certificado-${id}-${Date.now()}.pdf`;
->>>>>>> 16ac3fc5cb286d0eecd4480c7dc6076857cef4ce
 
     // Función auxiliar para enviar la respuesta
     const sendFile = async (buffer: Buffer) => {
       res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', `${disposition}; filename="${fileName}"`);
+      res.setHeader(
+        'Content-Disposition',
+        `${disposition}; filename="${fileName}"`,
+      );
       res.send(buffer);
     };
 
     // Si hay URL de certificado y es de S3/CloudFront, intentar redirigir
-    if (certificado.urlCertificado && 
-        (certificado.urlCertificado.startsWith('http://') || certificado.urlCertificado.startsWith('https://'))) {
+    if (
+      certificado.urlCertificado &&
+      (certificado.urlCertificado.startsWith('http://') ||
+        certificado.urlCertificado.startsWith('https://'))
+    ) {
       // Si es URL externa (S3/CloudFront), redirigir directamente
       return res.redirect(certificado.urlCertificado);
     }
@@ -254,18 +253,21 @@ export class CertificadosController {
     // Si es almacenamiento local o no hay URL, intentar leer del disco
     try {
       const filePath = this.storageService.getFilePath(
-        certificado.urlCertificado || `/storage/certificates/${fileName}`
+        certificado.urlCertificado || `/storage/certificates/${fileName}`,
       );
       const fileBuffer = await fs.readFile(filePath);
       return sendFile(fileBuffer);
     } catch (error: any) {
       // Si el error es que no existe el archivo, lo regeneramos
       if (error.code === 'ENOENT') {
-        console.log(`⚠️ PDF para certificado ${id} no encontrado. Regenerando...`);
+        console.log(
+          `⚠️ PDF para certificado ${id} no encontrado. Regenerando...`,
+        );
         try {
           // Generar el PDF usando el servicio
-          const pdfBuffer = await this.pdfGeneratorService.generateCertificate(certificado);
-          
+          const pdfBuffer =
+            await this.pdfGeneratorService.generateCertificate(certificado);
+
           // Guardar usando StorageService (maneja S3 o local automáticamente)
           const url = await this.storageService.saveBuffer(
             pdfBuffer,
@@ -277,7 +279,9 @@ export class CertificadosController {
           // Si la URL es relativa, construir URL completa
           let finalUrl = url;
           if (url.startsWith('/storage/')) {
-            const baseUrl = this.configService.get<string>('APP_URL') || 'http://localhost:3000';
+            const baseUrl =
+              this.configService.get<string>('APP_URL') ||
+              'http://localhost:3000';
             finalUrl = `${baseUrl}${url}`;
           }
 
@@ -286,14 +290,24 @@ export class CertificadosController {
 
           return sendFile(pdfBuffer);
         } catch (genError) {
-          console.error(`❌ Error fatal regenerando PDF para certificado ${id}:`, genError);
-          return res.status(500).json({ message: 'Error interno regenerando el certificado PDF.' });
+          console.error(
+            `❌ Error fatal regenerando PDF para certificado ${id}:`,
+            genError,
+          );
+          return res
+            .status(500)
+            .json({ message: 'Error interno regenerando el certificado PDF.' });
         }
       }
-      
+
       // Otro tipo de error de lectura
-      console.error(`❌ Error leyendo archivo PDF para certificado ${id}:`, error);
-      return res.status(404).json({ message: 'Error al acceder al archivo del certificado.' });
+      console.error(
+        `❌ Error leyendo archivo PDF para certificado ${id}:`,
+        error,
+      );
+      return res
+        .status(404)
+        .json({ message: 'Error al acceder al archivo del certificado.' });
     }
   }
 
@@ -301,7 +315,8 @@ export class CertificadosController {
   @Roles('ADMIN')
   @ApiOperation({
     summary: 'Actualizar certificado con fecha retroactiva',
-    description: 'RF-25 a RF-31: Solo administrador puede emitir certificado retroactivo',
+    description:
+      'RF-25 a RF-31: Solo administrador puede emitir certificado retroactivo',
   })
   @ApiParam({
     name: 'id',
@@ -320,22 +335,33 @@ export class CertificadosController {
     @Body() updateDto: UpdateCertificadoDto,
     @GetUser() user: any,
   ) {
-    return this.updateCertificadoRetroactivoUseCase.execute(id, updateDto, user.id);
+    return this.updateCertificadoRetroactivoUseCase.execute(
+      id,
+      updateDto,
+      user.id,
+    );
   }
 
   @Delete(':id')
   @Roles('ADMIN')
-  @ApiOperation({ summary: 'Eliminar un certificado. Solo ADMIN puede eliminar certificados.' })
+  @ApiOperation({
+    summary: 'Eliminar un certificado. Solo ADMIN puede eliminar certificados.',
+  })
   @ApiParam({
     name: 'id',
     type: 'number',
     description: 'ID del certificado',
   })
-  @ApiResponse({ status: 200, description: 'Certificado eliminado exitosamente' })
+  @ApiResponse({
+    status: 200,
+    description: 'Certificado eliminado exitosamente',
+  })
   @ApiResponse({ status: 404, description: 'Certificado no encontrado' })
   remove(@Param('id', ParseIntPipe) id: number) {
     // TODO: Implementar caso de uso de eliminación si es necesario
-    return { message: 'Eliminación de certificados no permitida por políticas de auditoría' };
+    return {
+      message:
+        'Eliminación de certificados no permitida por políticas de auditoría',
+    };
   }
 }
-
