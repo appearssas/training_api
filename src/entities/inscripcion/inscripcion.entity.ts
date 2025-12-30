@@ -67,10 +67,10 @@ export class Inscripcion {
     nullable: true,
     name: 'calificacion_final',
   })
-  calificacionFinal: number;
+  calificacionFinal: number | null;
 
   @Column({ type: 'tinyint', nullable: true })
-  aprobado: boolean;
+  aprobado: boolean | null;
 
   @OneToMany(() => ProgresoLeccion, (progreso) => progreso.inscripcion)
   progresoLecciones: ProgresoLeccion[];

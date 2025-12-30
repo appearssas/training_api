@@ -1,4 +1,4 @@
-import { Injectable, Inject, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Injectable, Inject, BadRequestException, NotFoundException, InternalServerErrorException } from '@nestjs/common';
 import { ICertificadosRepository } from '@/domain/certificados/ports/certificados.repository.port';
 import { CreateCertificadoDto } from '@/application/certificados/dto/create-certificado.dto';
 import { Certificado } from '@/entities/certificados/certificado.entity';
@@ -34,7 +34,12 @@ export class CreateCertificadoUseCase {
     // Validar que la inscripción existe y está aprobada
     const inscripcion = await this.inscripcionRepository.findOne({
       where: { id: createCertificadoDto.inscripcionId },
-      relations: ['estudiante', 'capacitacion', 'capacitacion.instructor'],
+      relations: [
+        'estudiante',
+        'capacitacion',
+        'capacitacion.instructor',
+        'capacitacion.tipoCapacitacion',
+      ],
     });
 
     if (!inscripcion) {
@@ -46,6 +51,16 @@ export class CreateCertificadoUseCase {
     if (!inscripcion.aprobado) {
       throw new BadRequestException(
         'La inscripción debe estar aprobada para generar un certificado (RF-20)',
+      );
+    }
+
+    // TAREA 1.3: Validar que solo CERTIFIED puede generar certificados (FAL-005)
+    const tipoCapacitacionCodigo = inscripcion.capacitacion?.tipoCapacitacion?.codigo?.toUpperCase();
+    
+    if (!tipoCapacitacionCodigo || tipoCapacitacionCodigo !== 'CERTIFIED') {
+      throw new BadRequestException(
+        `Solo las capacitaciones de tipo CERTIFIED pueden generar certificados. ` +
+        `Tipo actual: ${tipoCapacitacionCodigo || 'desconocido'}`,
       );
     }
 
@@ -80,9 +95,10 @@ export class CreateCertificadoUseCase {
     const token = this.qrGenerator.generateVerificationToken();
     const hashVerificacion = this.qrGenerator.generateVerificationHash(token);
     const urlVerificacion = this.qrGenerator.generateVerificationUrl(token);
+    const urlVerificacionCompleta = this.qrGenerator.generateVerificationUrlForQR(token);
 
-    // Generar código QR (RF-24)
-    const qrCodeBase64 = await this.qrGenerator.generateQRCode(urlVerificacion);
+    // Generar código QR (RF-24) - usar URL completa para que funcione cuando se escanea
+    const qrCodeBase64 = await this.qrGenerator.generateQRCode(urlVerificacionCompleta);
 
     // Preparar datos del certificado
     const certificadoData: any = {
@@ -103,7 +119,29 @@ export class CreateCertificadoUseCase {
     }
 
     // Crear el certificado en la base de datos
+    // El repositorio ya carga las relaciones necesarias
     const certificado = await this.certificadosRepository.create(certificadoData);
+
+    // Validar que el certificado tiene la capacitación cargada correctamente
+    if (!certificado.inscripcion?.capacitacion) {
+      throw new InternalServerErrorException(
+        'Error: El certificado no tiene la capacitación cargada correctamente',
+      );
+    }
+
+    // CRÍTICO: Asegurar que se use la inscripción cargada previamente con la capacitación correcta
+    // Esto evita problemas de caché de TypeORM donde se podría usar una capacitación incorrecta
+    certificado.inscripcion = inscripcion;
+
+    // Log para debugging: verificar que se está usando la capacitación correcta
+    console.log('📋 Generando certificado con capacitación:', {
+      certificadoId: certificado.id,
+      inscripcionId: certificado.inscripcion.id,
+      capacitacionId: certificado.inscripcion.capacitacion.id,
+      capacitacionTitulo: certificado.inscripcion.capacitacion.titulo,
+      // Verificar que el título no esté vacío
+      capacitacionTituloValido: certificado.inscripcion.capacitacion.titulo?.trim() || 'VACÍO',
+    });
 
     // Generar PDF del certificado (RF-22, RF-23)
     const pdfBuffer = await this.pdfGenerator.generateCertificate(certificado);
