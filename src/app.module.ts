@@ -21,6 +21,7 @@ import { IntentosModule } from './infrastructure/intentos/intentos.module';
 import { TermsModule } from './infrastructure/terms/terms.module';
 import { DashboardModule } from './infrastructure/dashboard/dashboard.module';
 import { ReportsModule } from './infrastructure/reports/reports.module';
+import { RolesModule } from './infrastructure/roles/roles.module';
 
 @Module({
   imports: [
@@ -34,8 +35,6 @@ import { ReportsModule } from './infrastructure/reports/reports.module';
     CapacitacionesModule,
     MaterialesModule,
     InscripcionesModule,
-    // IntentosModule debe ir ANTES de EvaluacionesModule para evitar conflictos de rutas
-    // porque IntentosController tiene rutas más específicas: evaluaciones/:evaluacionId/intentos/*
     IntentosModule,
     EvaluacionesModule,
     CertificadosModule,
@@ -47,6 +46,7 @@ import { ReportsModule } from './infrastructure/reports/reports.module';
     TermsModule,
     DashboardModule,
     ReportsModule,
+    RolesModule,
   ],
   controllers: [AppController],
   providers: [
