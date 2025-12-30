@@ -12,6 +12,7 @@ import {
 } from '@/infrastructure/shared/helpers/codigo-estudiante.helper';
 import { hashPassword } from '@/infrastructure/shared/helpers/bcrypt.helper';
 import { generarPasswordTemporal } from '@/infrastructure/shared/helpers/password-generator.helper';
+import { sanitizePersonaData } from '@/infrastructure/shared/helpers/persona-sanitizer.helper';
 
 @Injectable()
 export class PersonasRepositoryAdapter implements IPersonasRepository {
@@ -67,9 +68,10 @@ export class PersonasRepositoryAdapter implements IPersonasRepository {
         );
       }
 
-      // 2. Crear Persona
+      // 2. Crear Persona (sanitizar datos personales)
+      const sanitizedPersonaData = sanitizePersonaData(personaData);
       const persona = manager.create(Persona, {
-        ...personaData,
+        ...sanitizedPersonaData,
         activo: true,
       });
       const savedPersona = await manager.save(Persona, persona);

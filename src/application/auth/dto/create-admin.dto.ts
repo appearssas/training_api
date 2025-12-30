@@ -5,6 +5,7 @@ import {
   MinLength,
   IsOptional,
   IsDateString,
+  IsBoolean,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Genero, TipoDocumento } from '@/entities/persona/types';
@@ -109,5 +110,14 @@ export class CreateAdminDto {
   @IsNotEmpty({ message: 'La contraseña es obligatoria' })
   @MinLength(6, { message: 'La contraseña debe tener al menos 6 caracteres' })
   password: string;
+
+  @ApiPropertyOptional({
+    description: 'Indica si el usuario debe ser habilitado inmediatamente. Por defecto es true para administradores.',
+    example: true,
+    default: true,
+  })
+  @IsBoolean()
+  @IsOptional()
+  habilitado?: boolean;
 }
 

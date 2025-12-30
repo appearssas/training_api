@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import QRCode from 'qrcode';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const QRCode = require('qrcode');
 import { ConfigService } from '@nestjs/config';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -22,12 +23,24 @@ export class QrGeneratorService {
   /**
    * Genera la URL pública de verificación
    * @param token Token de verificación
-   * @returns URL pública completa
+   * @returns URL pública relativa (el frontend construye la URL completa)
    */
   generateVerificationUrl(token: string): string {
-    const baseUrl = this.configService.get<string>('PUBLIC_VERIFICATION_URL') || 
+    // Retornar URL relativa - el frontend construirá la URL completa
+    return `/verify/${token}`;
+  }
+
+  /**
+   * Genera la URL pública de verificación completa (para QR)
+   * @param token Token de verificación
+   * @returns URL pública completa para usar en QR
+   */
+  generateVerificationUrlForQR(token: string): string {
+    // Para el QR, necesitamos la URL completa para que funcione cuando se escanea
+    const baseUrl = this.configService.get<string>('FRONTEND_URL') || 
+                    this.configService.get<string>('PUBLIC_VERIFICATION_URL') || 
                     this.configService.get<string>('APP_URL') || 
-                    'https://plataforma.com';
+                    'http://localhost:9000';
     return `${baseUrl}/verify/${token}`;
   }
 

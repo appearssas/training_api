@@ -47,16 +47,34 @@ export class AceptacionesRepositoryAdapter
 
     // Obtener todas las aceptaciones del usuario
     const aceptaciones = await this.findAceptacionesByUsuario(usuarioId);
-    const documentosAceptadosIds = aceptaciones.map(
-      (aceptacion) => aceptacion.documentoLegal.id,
-    );
+    
+    // Validar cada documento activo
+    for (const documento of documentosActivos) {
+      // Buscar la aceptación correspondiente a este documento
+      const aceptacion = aceptaciones.find(
+        (a) => a.documentoLegal.id === documento.id,
+      );
 
-    // Verificar que el usuario haya aceptado todos los documentos activos
-    const todosAceptados = documentosActivos.every((documento) =>
-      documentosAceptadosIds.includes(documento.id),
-    );
+      // 1. Si no existe aceptación -> Falso
+      if (!aceptacion) {
+        return false;
+      }
 
-    return todosAceptados;
+      // 2. Si existe, validar antigüedad (6 meses)
+      const fechaAceptacion = new Date(aceptacion.fechaAceptacion);
+      const fechaActual = new Date();
+      const seisMesesEnMilisegundos = 6 * 30 * 24 * 60 * 60 * 1000; // Aprox 6 meses
+
+      const diferencia = fechaActual.getTime() - fechaAceptacion.getTime();
+
+      // Si ha pasado más de 6 meses -> Falso (debe aceptar de nuevo)
+      if (diferencia > seisMesesEnMilisegundos) {
+        return false;
+      }
+    }
+
+    // Si pasó todas las validaciones
+    return true;
   }
 
   async findAceptacionesByUsuario(

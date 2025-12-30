@@ -17,6 +17,11 @@ import { CertificatesModule } from './infrastructure/certificates/certificates.m
 import { PagosModule } from './infrastructure/pagos/pagos.module';
 import { AceptacionesModule } from './infrastructure/aceptaciones/aceptaciones.module';
 import { UsuariosModule } from './infrastructure/usuarios/usuarios.module';
+import { IntentosModule } from './infrastructure/intentos/intentos.module';
+import { TermsModule } from './infrastructure/terms/terms.module';
+import { DashboardModule } from './infrastructure/dashboard/dashboard.module';
+import { ReportsModule } from './infrastructure/reports/reports.module';
+import { RolesModule } from './infrastructure/roles/roles.module';
 
 @Module({
   imports: [
@@ -29,14 +34,19 @@ import { UsuariosModule } from './infrastructure/usuarios/usuarios.module';
     AuthModule,
     CapacitacionesModule,
     MaterialesModule,
-    EvaluacionesModule,
     InscripcionesModule,
+    IntentosModule,
+    EvaluacionesModule,
     CertificadosModule,
     PersonasModule,
     CertificatesModule,
     PagosModule,
     AceptacionesModule,
     UsuariosModule,
+    TermsModule,
+    DashboardModule,
+    ReportsModule,
+    RolesModule,
   ],
   controllers: [AppController],
   providers: [
