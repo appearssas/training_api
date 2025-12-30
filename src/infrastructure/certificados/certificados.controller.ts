@@ -33,9 +33,9 @@ import { UpdateCertificadoRetroactivoUseCase } from '@/application/certificados/
 import { RegenerateCertificatesUseCase } from '@/application/certificados/use-cases/regenerate-certificates.use-case';
 import { PaginationDto } from '@/application/shared/dto/pagination.dto';
 import * as fs from 'fs/promises';
+import { createReadStream } from 'fs';
 import * as path from 'path';
 import { ConfigService } from '@nestjs/config';
-import { createReadStream } from 'fs';
 
 import { PdfGeneratorService } from '@/infrastructure/shared/services/pdf-generator.service';
 
@@ -171,10 +171,24 @@ export class CertificadosController {
   private async regenerateAndServePdf(id: number, res: Response, disposition: 'inline' | 'attachment') {
     const certificado = await this.findOneCertificadoUseCase.execute(id);
     
-    // Nombre base para el archivo
-    const fileName = `certificado-${id}.pdf`;
+    // Determinar la ruta del archivo
     const storagePath = this.configService.get<string>('PDF_STORAGE_PATH') || './storage/certificates';
-    const filePath = path.join(storagePath, fileName);
+    let filePath: string;
+    let fileName: string;
+
+    if (certificado.urlCertificado) {
+        // Si urlCertificado es una URL completa (http://...) o ruta relativa, extraemos el nombre del archivo
+        // Usamos split proactivamente para manejar tanto / como \
+        const basename = certificado.urlCertificado.split(/[/\\]/).pop();
+        fileName = basename || `certificado-${id}.pdf`;
+        
+        // RE-CONSTRUIR la ruta local completa. NO usar urlCertificado directamente.
+        filePath = path.join(storagePath, fileName);
+    } else {
+        // Fallback al nombre default
+        fileName = `certificado-${id}.pdf`;
+        filePath = path.join(storagePath, fileName);
+    }
 
     // Función auxiliar para enviar la respuesta
     const sendFile = async (buffer: Buffer) => {
