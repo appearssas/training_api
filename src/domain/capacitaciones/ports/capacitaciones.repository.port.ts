@@ -15,4 +15,5 @@ export interface ICapacitacionesRepository {
     updateCapacitacionDto: UpdateCapacitacionDto,
   ): Promise<Capacitacion>;
   remove(id: number): Promise<void>;
+  existsByTitulo(titulo: string): Promise<boolean>;
 }

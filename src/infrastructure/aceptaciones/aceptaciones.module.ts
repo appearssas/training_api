@@ -7,9 +7,10 @@ import { VerificarAceptacionUseCase } from '@/application/aceptaciones/use-cases
 import { ObtenerDocumentosActivosUseCase } from '@/application/aceptaciones/use-cases/obtener-documentos-activos.use-case';
 import { AceptacionPolitica } from '@/entities/aceptaciones/aceptacion-politica.entity';
 import { DocumentoLegal } from '@/entities/documentos/documento-legal.entity';
+import { Usuario } from '@/entities/usuarios/usuario.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([AceptacionPolitica, DocumentoLegal])],
+  imports: [TypeOrmModule.forFeature([AceptacionPolitica, DocumentoLegal, Usuario])],
   controllers: [AceptacionesController],
   providers: [
     {
@@ -20,7 +21,12 @@ import { DocumentoLegal } from '@/entities/documentos/documento-legal.entity';
     VerificarAceptacionUseCase,
     ObtenerDocumentosActivosUseCase,
   ],
-  exports: ['IAceptacionesRepository', VerificarAceptacionUseCase],
+  exports: [
+    'IAceptacionesRepository',
+    VerificarAceptacionUseCase,
+    AceptarTerminosUseCase,
+    ObtenerDocumentosActivosUseCase,
+  ],
 })
 export class AceptacionesModule {}
 

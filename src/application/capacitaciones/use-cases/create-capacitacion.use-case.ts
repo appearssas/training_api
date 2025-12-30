@@ -1,4 +1,4 @@
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable, Inject, ConflictException } from '@nestjs/common';
 import { ICapacitacionesRepository } from '@/domain/capacitaciones/ports/capacitaciones.repository.port';
 import { CreateCapacitacionDto } from '@/application/capacitaciones/dto/create-capacitacion.dto';
 import { Capacitacion } from '@/entities/capacitacion/capacitacion.entity';
@@ -16,6 +16,17 @@ export class CreateCapacitacionUseCase {
   async execute(
     createCapacitacionDto: CreateCapacitacionDto,
   ): Promise<Capacitacion> {
+    // Validar que no exista una capacitación con el mismo título
+    const existeDuplicado = await this.capacitacionesRepository.existsByTitulo(
+      createCapacitacionDto.titulo,
+    );
+
+    if (existeDuplicado) {
+      throw new ConflictException(
+        `Ya existe una capacitación con el título "${createCapacitacionDto.titulo}". Por favor, use un título diferente.`,
+      );
+    }
+
     const capacitacion = await this.capacitacionesRepository.create(
       createCapacitacionDto,
     );

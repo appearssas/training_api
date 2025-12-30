@@ -7,7 +7,6 @@ import { Persona } from '@/entities/persona/persona.entity';
  * Campos que se sanitizan:
  * - nombres: Convertido a mayúsculas
  * - apellidos: Convertido a mayúsculas
- * - razonSocial: Convertido a mayúsculas (si existe)
  * - direccion: Convertido a mayúsculas (si existe)
  * 
  * Campos que NO se sanitizan:
@@ -31,11 +30,6 @@ export function sanitizePersonaData(
   // Sanitizar apellidos
   if (sanitized.apellidos && typeof sanitized.apellidos === 'string') {
     sanitized.apellidos = sanitized.apellidos.trim().toUpperCase();
-  }
-
-  // Sanitizar razón social
-  if (sanitized.razonSocial && typeof sanitized.razonSocial === 'string') {
-    sanitized.razonSocial = sanitized.razonSocial.trim().toUpperCase();
   }
 
   // Sanitizar dirección
