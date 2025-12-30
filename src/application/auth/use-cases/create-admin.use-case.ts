@@ -75,6 +75,7 @@ export class CreateAdminUseCase {
         passwordHash,
       },
       'ADMIN', // Rol de administrador
+      createAdminDto.habilitado ?? true, // Por defecto true para administradores
     );
 
     return {

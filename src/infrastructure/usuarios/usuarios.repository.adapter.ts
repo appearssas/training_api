@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Like, ILike } from 'typeorm';
 import { IUsuariosRepository } from '@/domain/usuarios/ports/usuarios.repository.port';
 import { Usuario } from '@/entities/usuarios/usuario.entity';
+import { Rol } from '@/entities/roles/rol.entity';
 import { UpdateUserDto } from '@/application/usuarios/dto/update-user.dto';
 import { UserSortField, SortOrder } from '@/application/usuarios/dto/list-users.dto';
 
@@ -96,7 +97,6 @@ export class UsuariosRepositoryAdapter implements IUsuariosRepository {
 
     if (updateData.rolPrincipalId !== undefined) {
       // Necesitamos cargar el rol primero
-      const { Rol } = await import('@/entities/roles/rol.entity');
       const rol = await this.usuarioRepository.manager.findOne(Rol, {
         where: { id: updateData.rolPrincipalId },
       });
