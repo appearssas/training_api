@@ -33,7 +33,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         id,
         activo: true, // Solo usuarios activos
       },
-      relations: ['rolPrincipal', 'persona'],
+      relations: ['rolPrincipal', 'persona', 'persona.empresa'],
     });
 
     if (!user) {

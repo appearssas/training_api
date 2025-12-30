@@ -39,6 +39,7 @@ import { ConfigService } from '@nestjs/config';
 import { createReadStream } from 'fs';
 
 import { PdfGeneratorService } from '@/infrastructure/shared/services/pdf-generator.service';
+import { StorageService } from '@/infrastructure/shared/services/storage.service';
 
 /**
  * Controlador de Certificados
@@ -59,6 +60,7 @@ export class CertificadosController {
     private readonly configService: ConfigService,
     private readonly pdfGeneratorService: PdfGeneratorService,
     private readonly regenerateCertificatesUseCase: RegenerateCertificatesUseCase,
+    private readonly storageService: StorageService,
   ) {}
 
   @Post('generate')
@@ -212,9 +214,7 @@ export class CertificadosController {
     const certificado = await this.findOneCertificadoUseCase.execute(id);
     
     // Nombre base para el archivo
-    const fileName = `certificado-${id}.pdf`;
-    const storagePath = this.configService.get<string>('PDF_STORAGE_PATH') || './storage/certificates';
-    const filePath = path.join(storagePath, fileName);
+    const fileName = `certificado-${id}-${Date.now()}.pdf`;
 
     // Función auxiliar para enviar la respuesta
     const sendFile = async (buffer: Buffer) => {
@@ -223,31 +223,45 @@ export class CertificadosController {
       res.send(buffer);
     };
 
+    // Si hay URL de certificado y es de S3/CloudFront, intentar redirigir
+    if (certificado.urlCertificado && 
+        (certificado.urlCertificado.startsWith('http://') || certificado.urlCertificado.startsWith('https://'))) {
+      // Si es URL externa (S3/CloudFront), redirigir directamente
+      return res.redirect(certificado.urlCertificado);
+    }
+
+    // Si es almacenamiento local o no hay URL, intentar leer del disco
     try {
-      // Intentar leer del disco primero
+      const filePath = this.storageService.getFilePath(
+        certificado.urlCertificado || `/storage/certificates/${fileName}`
+      );
       const fileBuffer = await fs.readFile(filePath);
       return sendFile(fileBuffer);
     } catch (error: any) {
       // Si el error es que no existe el archivo, lo regeneramos
       if (error.code === 'ENOENT') {
-        console.log(`⚠️ PDF para certificado ${id} no encontrado en disco. Regenerando...`);
+        console.log(`⚠️ PDF para certificado ${id} no encontrado. Regenerando...`);
         try {
           // Generar el PDF usando el servicio
           const pdfBuffer = await this.pdfGeneratorService.generateCertificate(certificado);
           
-          // Asegurarse de que el directorio exista y guardar el archivo para la próxima
-          await fs.mkdir(storagePath, { recursive: true });
-          await fs.writeFile(filePath, pdfBuffer);
-          console.log(`✅ PDF regenerado y guardado en: ${filePath}`);
+          // Guardar usando StorageService (maneja S3 o local automáticamente)
+          const url = await this.storageService.saveBuffer(
+            pdfBuffer,
+            fileName,
+            'certificates',
+            'application/pdf',
+          );
 
-          // Si el certificado no tenía URL o era incorrecta, actualizarla
-          const baseUrl = this.configService.get<string>('APP_URL') || 'http://localhost:3000';
-          const newUrl = `${baseUrl}/certificates/${fileName}`;
-          
-          // No necesitamos esperar a que se guarde en BD para responder al usuario
-          // Usamos un update directo para no interferir con la respuesta
-          // (Opcional, dependiendo de si queremos actualizar la URL en la BD)
-          // await this.updateUrl(id, newUrl); 
+          // Si la URL es relativa, construir URL completa
+          let finalUrl = url;
+          if (url.startsWith('/storage/')) {
+            const baseUrl = this.configService.get<string>('APP_URL') || 'http://localhost:3000';
+            finalUrl = `${baseUrl}${url}`;
+          }
+
+          // Actualizar URL en la base de datos (opcional, no bloquea la respuesta)
+          // await this.updateUrl(id, finalUrl);
 
           return sendFile(pdfBuffer);
         } catch (genError) {

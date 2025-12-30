@@ -22,6 +22,7 @@ import { TermsModule } from './infrastructure/terms/terms.module';
 import { DashboardModule } from './infrastructure/dashboard/dashboard.module';
 import { ReportsModule } from './infrastructure/reports/reports.module';
 import { RolesModule } from './infrastructure/roles/roles.module';
+import { EmpresasModule } from './infrastructure/empresas/empresas.module';
 
 @Module({
   imports: [
@@ -47,6 +48,7 @@ import { RolesModule } from './infrastructure/roles/roles.module';
     DashboardModule,
     ReportsModule,
     RolesModule,
+    EmpresasModule,
   ],
   controllers: [AppController],
   providers: [

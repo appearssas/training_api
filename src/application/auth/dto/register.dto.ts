@@ -205,4 +205,12 @@ export class RegisterDto {
   @IsBoolean()
   @IsOptional()
   aceptaPoliticaDatos?: boolean;
+
+  @ApiPropertyOptional({
+    description: 'ID de la empresa a la que pertenece el usuario. Si no se proporciona y el usuario que crea es CLIENTE, se usará automáticamente su empresa.',
+    example: 1,
+    type: Number,
+  })
+  @IsOptional()
+  empresaId?: number;
 }

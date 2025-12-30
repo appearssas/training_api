@@ -11,7 +11,9 @@ async function bootstrap() {
   // Servir archivos estáticos
   app.useStaticAssets(join(process.cwd(), 'public'));
   // Servir archivos de materiales desde storage
-  app.useStaticAssets(join(process.cwd(), 'storage'), {
+  // En Render, el disco se monta en /app/data, configurar STORAGE_PATH=/app/data
+  const storagePath = process.env.STORAGE_PATH || join(process.cwd(), 'storage');
+  app.useStaticAssets(storagePath, {
     prefix: '/storage',
   });
 

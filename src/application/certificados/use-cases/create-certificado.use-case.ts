@@ -8,6 +8,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Inscripcion } from '@/entities/inscripcion/inscripcion.entity';
 import { ConfigService } from '@nestjs/config';
+import { StorageService } from '@/infrastructure/shared/services/storage.service';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 
@@ -28,6 +29,7 @@ export class CreateCertificadoUseCase {
     @InjectRepository(Inscripcion)
     private readonly inscripcionRepository: Repository<Inscripcion>,
     private readonly configService: ConfigService,
+    private readonly storageService: StorageService,
   ) {}
 
   async execute(createCertificadoDto: CreateCertificadoDto): Promise<Certificado> {
@@ -163,19 +165,24 @@ export class CreateCertificadoUseCase {
    * @returns URL del PDF guardado
    */
   private async savePdf(certificadoId: number, pdfBuffer: Buffer): Promise<string> {
-    const storagePath = this.configService.get<string>('PDF_STORAGE_PATH') || './storage/certificates';
-    
-    // Asegurar que el directorio existe
-    await fs.mkdir(storagePath, { recursive: true });
-
     const fileName = `certificado-${certificadoId}-${Date.now()}.pdf`;
-    const filePath = path.join(storagePath, fileName);
+    
+    // Usar StorageService que maneja automáticamente S3 o almacenamiento local
+    const url = await this.storageService.saveBuffer(
+      pdfBuffer,
+      fileName,
+      'certificates',
+      'application/pdf',
+    );
 
-    await fs.writeFile(filePath, pdfBuffer);
+    // Si la URL es relativa (almacenamiento local), construir URL completa
+    if (url.startsWith('/storage/')) {
+      const baseUrl = this.configService.get<string>('APP_URL') || 'http://localhost:3000';
+      return `${baseUrl}${url}`;
+    }
 
-    // Retornar URL relativa o absoluta según configuración
-    const baseUrl = this.configService.get<string>('APP_URL') || 'http://localhost:3000';
-    return `${baseUrl}/certificates/${fileName}`;
+    // Si es URL completa (S3/CloudFront), retornarla directamente
+    return url;
   }
 }
 
