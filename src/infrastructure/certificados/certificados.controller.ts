@@ -35,6 +35,8 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import { ConfigService } from '@nestjs/config';
 
+import { PdfGeneratorService } from '@/infrastructure/shared/services/pdf-generator.service';
+
 /**
  * Controlador de Certificados
  * RF-22 a RF-24: Generación y gestión de certificados
@@ -51,6 +53,7 @@ export class CertificadosController {
     private readonly findOneCertificadoUseCase: FindOneCertificadoUseCase,
     private readonly updateCertificadoRetroactivoUseCase: UpdateCertificadoRetroactivoUseCase,
     private readonly configService: ConfigService,
+    private readonly pdfGeneratorService: PdfGeneratorService,
   ) {}
 
   @Post()
@@ -116,26 +119,7 @@ export class CertificadosController {
     @Param('id', ParseIntPipe) id: number,
     @Res() res: Response,
   ) {
-    const certificado = await this.findOneCertificadoUseCase.execute(id);
-
-    if (!certificado.urlCertificado) {
-      return res.status(404).json({ message: 'PDF no disponible para este certificado' });
-    }
-
-    // Extraer nombre del archivo de la URL
-    const fileName = certificado.urlCertificado.split('/').pop();
-    const storagePath = this.configService.get<string>('PDF_STORAGE_PATH') || './storage/certificates';
-    const filePath = path.join(storagePath, fileName || `certificado-${id}.pdf`);
-
-    try {
-      const fileBuffer = await fs.readFile(filePath);
-      res.setHeader('Content-Type', 'application/pdf');
-      // Usar 'inline' para visualización en navegador/iframe
-      res.setHeader('Content-Disposition', `inline; filename="certificado-${id}.pdf"`);
-      res.send(fileBuffer);
-    } catch (error) {
-      res.status(404).json({ message: 'Archivo PDF no encontrado' });
-    }
+    return this.regenerateAndServePdf(id, res, 'inline');
   }
 
   @Get(':id/download')
@@ -161,24 +145,63 @@ export class CertificadosController {
     @Param('id', ParseIntPipe) id: number,
     @Res() res: Response,
   ) {
+    return this.regenerateAndServePdf(id, res, 'attachment');
+  }
+
+  /**
+   * Helper que intenta servir el PDF y si no existe, lo regenera.
+   */
+  private async regenerateAndServePdf(id: number, res: Response, disposition: 'inline' | 'attachment') {
     const certificado = await this.findOneCertificadoUseCase.execute(id);
-
-    if (!certificado.urlCertificado) {
-      return res.status(404).json({ message: 'PDF no disponible para este certificado' });
-    }
-
-    // Extraer nombre del archivo de la URL
-    const fileName = certificado.urlCertificado.split('/').pop();
+    
+    // Nombre base para el archivo
+    const fileName = `certificado-${id}.pdf`;
     const storagePath = this.configService.get<string>('PDF_STORAGE_PATH') || './storage/certificates';
-    const filePath = path.join(storagePath, fileName || `certificado-${id}.pdf`);
+    const filePath = path.join(storagePath, fileName);
+
+    // Función auxiliar para enviar la respuesta
+    const sendFile = async (buffer: Buffer) => {
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `${disposition}; filename="${fileName}"`);
+      res.send(buffer);
+    };
 
     try {
+      // Intentar leer del disco primero
       const fileBuffer = await fs.readFile(filePath);
-      res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', `attachment; filename="certificado-${id}.pdf"`);
-      res.send(fileBuffer);
-    } catch (error) {
-      res.status(404).json({ message: 'Archivo PDF no encontrado' });
+      return sendFile(fileBuffer);
+    } catch (error: any) {
+      // Si el error es que no existe el archivo, lo regeneramos
+      if (error.code === 'ENOENT') {
+        console.log(`⚠️ PDF para certificado ${id} no encontrado en disco. Regenerando...`);
+        try {
+          // Generar el PDF usando el servicio
+          const pdfBuffer = await this.pdfGeneratorService.generateCertificate(certificado);
+          
+          // Asegurarse de que el directorio exista y guardar el archivo para la próxima
+          await fs.mkdir(storagePath, { recursive: true });
+          await fs.writeFile(filePath, pdfBuffer);
+          console.log(`✅ PDF regenerado y guardado en: ${filePath}`);
+
+          // Si el certificado no tenía URL o era incorrecta, actualizarla
+          const baseUrl = this.configService.get<string>('APP_URL') || 'http://localhost:3000';
+          const newUrl = `${baseUrl}/certificates/${fileName}`;
+          
+          // No necesitamos esperar a que se guarde en BD para responder al usuario
+          // Usamos un update directo para no interferir con la respuesta
+          // (Opcional, dependiendo de si queremos actualizar la URL en la BD)
+          // await this.updateUrl(id, newUrl); 
+
+          return sendFile(pdfBuffer);
+        } catch (genError) {
+          console.error(`❌ Error fatal regenerando PDF para certificado ${id}:`, genError);
+          return res.status(500).json({ message: 'Error interno regenerando el certificado PDF.' });
+        }
+      }
+      
+      // Otro tipo de error de lectura
+      console.error(`❌ Error leyendo archivo PDF para certificado ${id}:`, error);
+      return res.status(404).json({ message: 'Error al acceder al archivo del certificado.' });
     }
   }
 
