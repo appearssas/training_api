@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import QRCode from 'qrcode';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const QRCode = require('qrcode');
 import { ConfigService } from '@nestjs/config';
 import { v4 as uuidv4 } from 'uuid';
 
