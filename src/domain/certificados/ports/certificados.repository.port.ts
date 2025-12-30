@@ -12,6 +12,7 @@ export interface ICertificadosRepository {
   findAll(pagination: PaginationDto): Promise<any>;
   findOne(id: number): Promise<Certificado | null>;
   findByInscripcion(inscripcionId: number): Promise<Certificado[]>;
+  findByEstudiante(estudianteId: number, pagination?: PaginationDto): Promise<any>;
   findByHashVerificacion(hash: string): Promise<Certificado | null>;
   update(id: number, updateCertificadoDto: UpdateCertificadoDto): Promise<Certificado>;
   remove(id: number): Promise<void>;
