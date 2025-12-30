@@ -41,6 +41,20 @@ export class GlobalExceptionFilter implements ExceptionFilter {
           path: request.url,
         });
       }
+
+      // Si el mensaje es un string, devolverlo directamente
+      const message = typeof errorResponse.message === 'string' 
+        ? errorResponse.message 
+        : 'Bad Request';
+      
+      this.logger.error('BadRequestException:', message);
+      return response.status(HttpStatus.BAD_REQUEST).json({
+        statusCode: HttpStatus.BAD_REQUEST,
+        message,
+        error: 'Bad Request',
+        timestamp: new Date().toISOString(),
+        path: request.url,
+      });
     }
 
     const exceptionWithMessage = exception as ExceptionWithMessage;

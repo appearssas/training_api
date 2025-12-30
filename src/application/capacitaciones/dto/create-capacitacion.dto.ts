@@ -3,18 +3,24 @@ import {
   IsOptional,
   IsNumber,
   IsDateString,
-  IsEnum,
   IsInt,
   Min,
   Max,
   Length,
   ValidateNested,
+  IsIn,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { EstadoCapacitacion } from '@/entities/capacitacion/types';
 import { CreateEvaluacionInlineDto } from './create-evaluacion-inline.dto';
 import { IsStrictEnum } from '@/infrastructure/shared/decorators/strict-enum.decorator';
+
+/**
+ * IDs válidos de tipos de capacitación
+ * STANDARD = 1, CERTIFIED = 2, SURVEY = 3
+ */
+const VALID_TRAINING_TYPE_IDS = [1, 2, 3] as const;
 
 export class CreateCapacitacionDto {
   @ApiProperty({
@@ -36,10 +42,14 @@ export class CreateCapacitacionDto {
   descripcion?: string;
 
   @ApiProperty({
-    description: 'ID del tipo de capacitación',
+    description: 'ID del tipo de capacitación (1=STANDARD, 2=CERTIFIED, 3=SURVEY)',
     example: 1,
+    enum: [1, 2, 3],
   })
   @IsInt()
+  @IsIn(VALID_TRAINING_TYPE_IDS, {
+    message: 'tipoCapacitacionId debe ser uno de los valores válidos: 1 (STANDARD), 2 (CERTIFIED), 3 (SURVEY)',
+  })
   tipoCapacitacionId: number;
 
   @ApiProperty({
