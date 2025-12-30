@@ -194,12 +194,23 @@ export class IntentosRepositoryAdapter implements IIntentosRepository {
           'evaluacion.preguntas.tipoPregunta',
           'inscripcion',
           'inscripcion.estudiante',
+          'inscripcion.capacitacion',
+          'inscripcion.capacitacion.tipoCapacitacion',
         ],
       });
 
       if (!intento) {
         throw new NotFoundException(`Intento con ID ${intentoId} no encontrado`);
       }
+
+      // TAREA 1.2: Validar tipo de capacitación antes de calificar (FAL-003)
+      // Obtener tipo de capacitación desde la inscripción
+      const tipoCapacitacionCodigo = intento.inscripcion?.capacitacion?.tipoCapacitacion?.codigo?.toUpperCase();
+      const esEncuesta = tipoCapacitacionCodigo === 'SURVEY';
+
+      console.log('=== VALIDACIÓN DE TIPO DE CAPACITACIÓN ===');
+      console.log('Tipo de capacitación:', tipoCapacitacionCodigo);
+      console.log('Es encuesta (SURVEY):', esEncuesta);
 
       // Obtener todas las respuestas del intento
       const respuestas = await queryRunner.manager.find(RespuestaEstudiante, {
@@ -214,57 +225,75 @@ export class IntentosRepositoryAdapter implements IIntentosRepository {
         ],
       });
 
-      // Calcular puntaje total
-      const puntajeObtenido = this.scoringService.calculateTotalScore(
-        respuestas,
-        intento.evaluacion.preguntas,
-      );
+      // TAREA 1.1: Si es encuesta (SURVEY), NO calcular puntajes (FAL-001)
+      let puntajeObtenido = 0;
+      let porcentaje: number | null = null;
+      let aprobado: boolean | null = null;
 
-      // Calcular el puntaje total real sumando los puntajes de todas las preguntas
-      // Esto asegura consistencia incluso si el puntajeTotal de la evaluación no está actualizado
-      const puntajeTotalReal = intento.evaluacion.preguntas.reduce(
-        (sum, pregunta) => {
-          const puntaje = Number(pregunta.puntaje);
-          return sum + (isNaN(puntaje) || puntaje <= 0 ? 0 : puntaje);
-        },
-        0
-      );
+      if (esEncuesta) {
+        console.log('⚠ Encuesta detectada: NO se calcularán puntajes ni se determinará aprobación');
+        // Para encuestas, no calcular puntajes
+        // Los valores se mantendrán como null
+      } else {
+        // Calcular puntaje total solo si NO es encuesta
+        puntajeObtenido = this.scoringService.calculateTotalScore(
+          respuestas,
+          intento.evaluacion.preguntas,
+        );
+      }
 
-      // SIEMPRE usar el puntaje total real calculado de las preguntas
-      // Si es 0 o menor, significa que las preguntas no tienen puntaje configurado, usar el de la evaluación como fallback
-      const puntajeTotalParaCalcular = puntajeTotalReal > 0 
-        ? puntajeTotalReal 
-        : Number(intento.evaluacion.puntajeTotal || 100);
+      // Solo calcular puntajes y porcentajes si NO es encuesta
+      if (!esEncuesta) {
+        // Calcular el puntaje total real sumando los puntajes de todas las preguntas
+        // Esto asegura consistencia incluso si el puntajeTotal de la evaluación no está actualizado
+        const puntajeTotalReal = intento.evaluacion.preguntas.reduce(
+          (sum, pregunta) => {
+            const puntaje = Number(pregunta.puntaje);
+            return sum + (isNaN(puntaje) || puntaje <= 0 ? 0 : puntaje);
+          },
+          0
+        );
 
-      // Logs para debugging
-      console.log('=== DEBUG FINISH ATTEMPT ===');
-      console.log('Preguntas totales:', intento.evaluacion.preguntas.length);
-      console.log('Respuestas recibidas:', respuestas.length);
-      console.log('Puntaje obtenido:', puntajeObtenido);
-      console.log('Puntaje total real (suma de preguntas):', puntajeTotalReal);
-      console.log('Puntaje total de evaluación:', intento.evaluacion.puntajeTotal);
-      console.log('Puntaje total para calcular:', puntajeTotalParaCalcular);
-      console.log('Minimo aprobacion:', intento.evaluacion.minimoAprobacion);
+        // SIEMPRE usar el puntaje total real calculado de las preguntas
+        // Si es 0 o menor, significa que las preguntas no tienen puntaje configurado, usar el de la evaluación como fallback
+        const puntajeTotalParaCalcular = puntajeTotalReal > 0 
+          ? puntajeTotalReal 
+          : Number(intento.evaluacion.puntajeTotal || 100);
 
-      // Calcular porcentaje usando el puntaje total real calculado
-      // Asegurar que no haya división por cero
-      const porcentaje = puntajeTotalParaCalcular > 0
-        ? this.scoringService.calculatePercentage(
-            puntajeObtenido,
-            puntajeTotalParaCalcular,
-          )
-        : 0;
+        // Logs para debugging
+        console.log('=== DEBUG FINISH ATTEMPT ===');
+        console.log('Preguntas totales:', intento.evaluacion.preguntas.length);
+        console.log('Respuestas recibidas:', respuestas.length);
+        console.log('Puntaje obtenido:', puntajeObtenido);
+        console.log('Puntaje total real (suma de preguntas):', puntajeTotalReal);
+        console.log('Puntaje total de evaluación:', intento.evaluacion.puntajeTotal);
+        console.log('Puntaje total para calcular:', puntajeTotalParaCalcular);
+        console.log('Minimo aprobacion:', intento.evaluacion.minimoAprobacion);
 
-      console.log('Porcentaje calculado:', porcentaje);
+        // Calcular porcentaje usando el puntaje total real calculado
+        // Asegurar que no haya división por cero
+        porcentaje = puntajeTotalParaCalcular > 0
+          ? this.scoringService.calculatePercentage(
+              puntajeObtenido,
+              puntajeTotalParaCalcular,
+            )
+          : 0;
 
-      // Determinar si aprobó
-      const aprobado = this.scoringService.isPassed(
-        porcentaje,
-        Number(intento.evaluacion.minimoAprobacion),
-      );
+        console.log('Porcentaje calculado:', porcentaje);
 
-      console.log('Aprobado:', aprobado);
-      console.log('=== FIN DEBUG ===');
+        // Determinar si aprobó
+        aprobado = this.scoringService.isPassed(
+          porcentaje,
+          Number(intento.evaluacion.minimoAprobacion),
+        );
+
+        console.log('Aprobado:', aprobado);
+        console.log('=== FIN DEBUG ===');
+      } else {
+        console.log('=== ENCUESTA: NO SE CALCULAN PUNTAJES ===');
+        console.log('Las respuestas se guardarán sin calificación');
+        console.log('aprobado = null, puntajeObtenido = null, porcentaje = null');
+      }
 
       // Calcular tiempo utilizado
       const fechaInicio = intento.fechaInicio;
@@ -272,21 +301,27 @@ export class IntentosRepositoryAdapter implements IIntentosRepository {
       const tiempoUtilizadoMs = fechaFinalizacion.getTime() - fechaInicio.getTime();
       const tiempoUtilizadoMinutos = Math.round(tiempoUtilizadoMs / (1000 * 60));
 
-      // Actualizar puntajes en respuestas individuales
-      for (const respuesta of respuestas) {
-        const pregunta = intento.evaluacion.preguntas.find((p) => p.id === respuesta.pregunta.id);
-        if (pregunta) {
-          const puntajePregunta = this.scoringService.calculateQuestionScore(pregunta, respuesta);
-          respuesta.puntajeObtenido = puntajePregunta;
-          await queryRunner.manager.save(respuesta);
+      // Actualizar puntajes en respuestas individuales (solo si NO es encuesta)
+      if (!esEncuesta) {
+        for (const respuesta of respuestas) {
+          const pregunta = intento.evaluacion.preguntas.find((p) => p.id === respuesta.pregunta.id);
+          if (pregunta) {
+            const puntajePregunta = this.scoringService.calculateQuestionScore(pregunta, respuesta);
+            respuesta.puntajeObtenido = puntajePregunta;
+            await queryRunner.manager.save(respuesta);
+          }
         }
+      } else {
+        // Para encuestas, no actualizar puntajes en respuestas individuales
+        console.log('Encuesta: No se actualizan puntajes en respuestas individuales');
       }
 
       // Actualizar intento
       intento.fechaFinalizacion = fechaFinalizacion;
-      intento.puntajeObtenido = puntajeObtenido;
-      intento.porcentaje = porcentaje;
-      intento.aprobado = aprobado;
+      // TAREA 1.1: Para encuestas, guardar null en puntajes y aprobación (FAL-001)
+      intento.puntajeObtenido = esEncuesta ? null : puntajeObtenido;
+      intento.porcentaje = porcentaje; // Ya es null si es encuesta
+      intento.aprobado = aprobado; // Ya es null si es encuesta
       intento.tiempoUtilizadoMinutos = tiempoUtilizadoMinutos;
       intento.estado = EstadoIntento.COMPLETADO;
 
@@ -297,7 +332,8 @@ export class IntentosRepositoryAdapter implements IIntentosRepository {
       let debeGenerarCertificado = false;
 
       // Si el estudiante aprobó, actualizar la inscripción y preparar generación de certificado
-      if (aprobado && intento.inscripcion) {
+      // Solo si NO es encuesta (las encuestas no tienen aprobación)
+      if (!esEncuesta && aprobado && intento.inscripcion) {
         console.log('=== INICIO VERIFICACIÓN PARA CERTIFICADO ===');
         console.log('Intento aprobado:', aprobado);
         console.log('ID Inscripción:', intento.inscripcion.id);
@@ -319,7 +355,8 @@ export class IntentosRepositoryAdapter implements IIntentosRepository {
           console.log('Inscripción encontrada:', inscripcion.id);
           console.log('ID Estudiante (desde inscripción):', inscripcion.estudiante?.id);
           inscripcion.aprobado = true;
-          inscripcion.calificacionFinal = porcentaje;
+          // porcentaje no puede ser null aquí porque no es encuesta (validado en el if)
+          inscripcion.calificacionFinal = porcentaje !== null ? porcentaje : null;
           inscripcion.fechaFinalizacion = fechaFinalizacion;
           await queryRunner.manager.save(inscripcion);
           console.log('Inscripción actualizada con aprobado=true');

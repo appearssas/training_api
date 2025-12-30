@@ -45,7 +45,7 @@ export class UsuariosController {
   ) {}
 
   @Get()
-  @Roles('ADMIN')
+  @Roles('ADMIN', 'CLIENTE')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Listar usuarios',
@@ -65,7 +65,7 @@ export class UsuariosController {
 - \`sortBy\`: Campo por el cual ordenar (id, username, fechaCreacion, ultimoAcceso)
 - \`sortOrder\`: Orden (ASC, DESC)
 
-**Nota:** Solo usuarios con rol ADMIN pueden acceder a este endpoint.`,
+**Nota:** Usuarios con rol ADMIN o CLIENTE pueden acceder a este endpoint.`,
   })
   @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
   @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
@@ -130,7 +130,7 @@ export class UsuariosController {
   })
   @ApiResponse({
     status: 403,
-    description: 'Acceso denegado - Se requiere rol de administrador (ADMIN)',
+    description: 'Acceso denegado - Se requiere rol de administrador (ADMIN) o cliente (CLIENTE)',
   })
   async findAll(
     @Query() listUsersDto: ListUsersDto,
@@ -139,11 +139,11 @@ export class UsuariosController {
   }
 
   @Get(':id')
-  @Roles('ADMIN')
+  @Roles('ADMIN', 'CLIENTE')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Obtener usuario por ID',
-    description: 'Obtiene los detalles de un usuario específico por su ID.',
+    description: 'Obtiene los detalles de un usuario específico por su ID. Disponible para ADMIN y CLIENTE.',
   })
   @ApiParam({ name: 'id', type: Number, example: 1 })
   @ApiResponse({
@@ -197,7 +197,7 @@ export class UsuariosController {
   })
   @ApiResponse({
     status: 403,
-    description: 'Acceso denegado - Se requiere rol de administrador (ADMIN)',
+    description: 'Acceso denegado - Se requiere rol de administrador (ADMIN) o cliente (CLIENTE)',
   })
   async findOne(
     @Param('id', ParseIntPipe) id: number,
@@ -206,7 +206,7 @@ export class UsuariosController {
   }
 
   @Put(':id')
-  @Roles('ADMIN')
+  @Roles('ADMIN', 'CLIENTE')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Actualizar usuario',
@@ -219,7 +219,7 @@ export class UsuariosController {
 - \`activo\`: Estado activo
 - \`debeCambiarPassword\`: Indica si el usuario debe cambiar su contraseña
 
-**Nota:** Solo usuarios con rol ADMIN pueden actualizar usuarios.`,
+**Nota:** Usuarios con rol ADMIN o CLIENTE pueden actualizar usuarios.`,
   })
   @ApiParam({ name: 'id', type: Number, example: 1 })
   @ApiResponse({
@@ -281,7 +281,7 @@ export class UsuariosController {
   })
   @ApiResponse({
     status: 403,
-    description: 'Acceso denegado - Se requiere rol de administrador (ADMIN)',
+    description: 'Acceso denegado - Se requiere rol de administrador (ADMIN) o cliente (CLIENTE)',
   })
   async update(
     @Param('id', ParseIntPipe) id: number,
@@ -291,7 +291,7 @@ export class UsuariosController {
   }
 
   @Delete(':id')
-  @Roles('ADMIN')
+  @Roles('ADMIN', 'CLIENTE')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Eliminar usuario (soft-delete)',
@@ -301,7 +301,7 @@ export class UsuariosController {
 - Esta operación no elimina físicamente el usuario de la base de datos
 - Solo marca el campo \`activo\` como \`false\`
 - El usuario ya no aparecerá en las listas por defecto (a menos que se filtre por \`activo=false\`)
-- Solo usuarios con rol ADMIN pueden eliminar usuarios.`,
+- Usuarios con rol ADMIN o CLIENTE pueden eliminar usuarios.`,
   })
   @ApiParam({ name: 'id', type: Number, example: 1 })
   @ApiResponse({
@@ -331,7 +331,7 @@ export class UsuariosController {
   })
   @ApiResponse({
     status: 403,
-    description: 'Acceso denegado - Se requiere rol de administrador (ADMIN)',
+    description: 'Acceso denegado - Se requiere rol de administrador (ADMIN) o cliente (CLIENTE)',
   })
   async remove(
     @Param('id', ParseIntPipe) id: number,
