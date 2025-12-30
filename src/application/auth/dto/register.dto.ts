@@ -6,6 +6,7 @@ import {
   IsOptional,
   IsEnum,
   IsDateString,
+  IsBoolean,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Genero, TipoDocumento } from '@/entities/persona/types';
@@ -15,6 +16,7 @@ export enum TipoRegistro {
   ALUMNO = 'ALUMNO',
   INSTRUCTOR = 'INSTRUCTOR',
   OPERADOR = 'OPERADOR',
+  CLIENTE = 'CLIENTE',
 }
 
 export class RegisterDto {
@@ -152,7 +154,7 @@ export class RegisterDto {
     example: TipoRegistro.OPERADOR,
   })
   @IsStrictEnum(TipoRegistro, {
-    message: 'tipoRegistro debe ser ALUMNO o INSTRUCTOR',
+    message: 'tipoRegistro debe ser ALUMNO, INSTRUCTOR, OPERADOR o CLIENTE',
   })
   @IsNotEmpty()
   tipoRegistro: TipoRegistro;
@@ -185,4 +187,22 @@ export class RegisterDto {
   })
   @IsOptional()
   habilitado?: boolean;
+
+  @ApiPropertyOptional({
+    description: 'Indica si el usuario acepta los términos y condiciones. Si es true, se aceptarán automáticamente todos los documentos legales activos después del registro.',
+    example: true,
+    default: false,
+  })
+  @IsBoolean()
+  @IsOptional()
+  aceptaTerminos?: boolean;
+
+  @ApiPropertyOptional({
+    description: 'Indica si el usuario acepta la política de tratamiento de datos personales. Si es true junto con aceptaTerminos, se aceptarán automáticamente todos los documentos legales activos después del registro.',
+    example: true,
+    default: false,
+  })
+  @IsBoolean()
+  @IsOptional()
+  aceptaPoliticaDatos?: boolean;
 }
