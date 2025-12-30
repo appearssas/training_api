@@ -18,6 +18,9 @@ import { PagosModule } from './infrastructure/pagos/pagos.module';
 import { AceptacionesModule } from './infrastructure/aceptaciones/aceptaciones.module';
 import { UsuariosModule } from './infrastructure/usuarios/usuarios.module';
 import { IntentosModule } from './infrastructure/intentos/intentos.module';
+import { TermsModule } from './infrastructure/terms/terms.module';
+import { DashboardModule } from './infrastructure/dashboard/dashboard.module';
+import { ReportsModule } from './infrastructure/reports/reports.module';
 
 @Module({
   imports: [
@@ -41,6 +44,9 @@ import { IntentosModule } from './infrastructure/intentos/intentos.module';
     PagosModule,
     AceptacionesModule,
     UsuariosModule,
+    TermsModule,
+    DashboardModule,
+    ReportsModule,
   ],
   controllers: [AppController],
   providers: [
