@@ -177,4 +177,12 @@ export class RegisterDto {
   @IsString()
   @IsOptional()
   biografia?: string;
+
+  @ApiPropertyOptional({
+    description: 'Indica si el usuario debe ser habilitado inmediatamente. Por defecto es false.',
+    example: false,
+    default: false,
+  })
+  @IsOptional()
+  habilitado?: boolean;
 }

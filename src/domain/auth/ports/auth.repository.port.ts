@@ -22,6 +22,7 @@ export interface IAuthRepository {
     personaData: Partial<Persona>,
     usuarioData: { username: string; passwordHash: string },
     rolCodigo: string,
+    habilitado?: boolean,
   ): Promise<Usuario>;
   updatePassword(usuarioId: number, nuevaPassword: string): Promise<void>;
 
