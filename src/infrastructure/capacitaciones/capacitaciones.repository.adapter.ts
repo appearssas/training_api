@@ -513,4 +513,18 @@ export class CapacitacionesRepositoryAdapter implements ICapacitacionesRepositor
       throw new InternalServerErrorException('Error deleting capacitacion');
     }
   }
+
+  async existsByTitulo(titulo: string): Promise<boolean> {
+    try {
+      const count = await this.capacitacionRepository.count({
+        where: { titulo },
+      });
+      return count > 0;
+    } catch (error) {
+      console.error('Error checking duplicate titulo:', error);
+      throw new InternalServerErrorException(
+        'Error al verificar duplicados de capacitación',
+      );
+    }
+  }
 }
