@@ -1,9 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import PDFDocument from 'pdfkit';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const PDFDocument = require('pdfkit');
 import { ConfigService } from '@nestjs/config';
 import { Certificado } from '@/entities/certificados/certificado.entity';
 import { Inscripcion } from '@/entities/inscripcion/inscripcion.entity';
-import sharp from 'sharp';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const sharp = require('sharp');
 import { join } from 'path';
 import { readFileSync, existsSync } from 'fs';
 
@@ -21,7 +23,7 @@ export class PdfGeneratorService {
    * @param certificado Entidad del certificado con todas las relaciones
    * @returns Buffer del PDF generado
    */
-  async generateCertificate(certificado: Certificado): Promise<Buffer> {
+  async generateCertificate(certificado: Certificado): Promise<any> {
     const doc = new PDFDocument({
       size: 'LETTER',
       margins: { top: 0, bottom: 0, left: 0, right: 0 },
