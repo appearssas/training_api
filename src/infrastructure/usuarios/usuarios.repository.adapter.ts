@@ -1,11 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Like, ILike } from 'typeorm';
+import { Repository } from 'typeorm';
 import { IUsuariosRepository } from '@/domain/usuarios/ports/usuarios.repository.port';
 import { Usuario } from '@/entities/usuarios/usuario.entity';
 import { Rol } from '@/entities/roles/rol.entity';
 import { UpdateUserDto } from '@/application/usuarios/dto/update-user.dto';
-import { UserSortField, SortOrder } from '@/application/usuarios/dto/list-users.dto';
+import {
+  UserSortField,
+  SortOrder,
+} from '@/application/usuarios/dto/list-users.dto';
 
 @Injectable()
 export class UsuariosRepositoryAdapter implements IUsuariosRepository {
@@ -40,7 +43,9 @@ export class UsuariosRepositoryAdapter implements IUsuariosRepository {
 
     // Filtro por rol
     if (filters.role) {
-      queryBuilder.andWhere('rolPrincipal.codigo = :role', { role: filters.role });
+      queryBuilder.andWhere('rolPrincipal.codigo = :role', {
+        role: filters.role,
+      });
     }
 
     // Filtro por habilitado
@@ -101,7 +106,9 @@ export class UsuariosRepositoryAdapter implements IUsuariosRepository {
         where: { id: updateData.rolPrincipalId },
       });
       if (!rol) {
-        throw new Error(`Rol con ID ${updateData.rolPrincipalId} no encontrado`);
+        throw new Error(
+          `Rol con ID ${updateData.rolPrincipalId} no encontrado`,
+        );
       }
       updatePayload.rolPrincipal = rol;
     }
@@ -120,10 +127,53 @@ export class UsuariosRepositoryAdapter implements IUsuariosRepository {
 
     await this.usuarioRepository.update(id, updatePayload);
 
+    // Actualizar datos de persona si se proporcionan
+    const personaUpdateData: any = {};
+    if (updateData.nombres !== undefined) {
+      personaUpdateData.nombres = updateData.nombres;
+    }
+    if (updateData.apellidos !== undefined) {
+      personaUpdateData.apellidos = updateData.apellidos;
+    }
+    if (updateData.email !== undefined) {
+      personaUpdateData.email = updateData.email;
+    }
+    if (updateData.telefono !== undefined) {
+      personaUpdateData.telefono = updateData.telefono;
+    }
+    if (updateData.fechaNacimiento !== undefined) {
+      personaUpdateData.fechaNacimiento = updateData.fechaNacimiento;
+    }
+    if (updateData.genero !== undefined) {
+      personaUpdateData.genero = updateData.genero;
+    }
+    if (updateData.direccion !== undefined) {
+      personaUpdateData.direccion = updateData.direccion;
+    }
+
+    // Si hay datos de persona para actualizar, obtener el usuario primero para acceder a la persona
+    if (Object.keys(personaUpdateData).length > 0) {
+      const usuario = await this.findById(id);
+      if (!usuario) {
+        throw new Error(`Usuario con ID ${id} no encontrado`);
+      }
+      if (usuario.persona) {
+        const { Persona } =
+          await import('../../entities/persona/persona.entity');
+        await this.usuarioRepository.manager.update(
+          Persona,
+          usuario.persona.id,
+          personaUpdateData,
+        );
+      }
+    }
+
     // Retornar el usuario actualizado con relaciones
     const updatedUser = await this.findById(id);
     if (!updatedUser) {
-      throw new Error(`Usuario con ID ${id} no encontrado después de la actualización`);
+      throw new Error(
+        `Usuario con ID ${id} no encontrado después de la actualización`,
+      );
     }
 
     return updatedUser;
@@ -133,7 +183,10 @@ export class UsuariosRepositoryAdapter implements IUsuariosRepository {
     await this.usuarioRepository.update(id, { activo: false });
   }
 
-  async isUsernameTaken(username: string, excludeUserId?: number): Promise<boolean> {
+  async isUsernameTaken(
+    username: string,
+    excludeUserId?: number,
+  ): Promise<boolean> {
     const queryBuilder = this.usuarioRepository
       .createQueryBuilder('usuario')
       .where('usuario.username = :username', { username });
@@ -160,4 +213,3 @@ export class UsuariosRepositoryAdapter implements IUsuariosRepository {
     return sortMap[sortBy] || 'usuario.fechaCreacion';
   }
 }
-
