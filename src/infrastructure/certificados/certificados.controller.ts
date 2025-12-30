@@ -30,10 +30,12 @@ import { CreateCertificadoUseCase } from '@/application/certificados/use-cases/c
 import { FindAllCertificadosUseCase } from '@/application/certificados/use-cases/find-all-certificados.use-case';
 import { FindOneCertificadoUseCase } from '@/application/certificados/use-cases/find-one-certificado.use-case';
 import { UpdateCertificadoRetroactivoUseCase } from '@/application/certificados/use-cases/update-certificado-retroactivo.use-case';
+import { RegenerateCertificatesUseCase } from '@/application/certificados/use-cases/regenerate-certificates.use-case';
 import { PaginationDto } from '@/application/shared/dto/pagination.dto';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { ConfigService } from '@nestjs/config';
+import { createReadStream } from 'fs';
 
 import { PdfGeneratorService } from '@/infrastructure/shared/services/pdf-generator.service';
 
@@ -54,7 +56,22 @@ export class CertificadosController {
     private readonly updateCertificadoRetroactivoUseCase: UpdateCertificadoRetroactivoUseCase,
     private readonly configService: ConfigService,
     private readonly pdfGeneratorService: PdfGeneratorService,
+    private readonly regenerateCertificatesUseCase: RegenerateCertificatesUseCase,
   ) {}
+
+  @Post('generate')
+  @Roles('ADMIN', 'INSTRUCTOR')
+  @ApiOperation({ summary: 'Generar certificado manualmente' })
+  async generate(@Body() createCertificadoDto: CreateCertificadoDto) {
+    return this.createCertificadoUseCase.execute(createCertificadoDto);
+  }
+
+  @Post('regenerate-all')
+  @Roles('ADMIN')
+  @ApiOperation({ summary: 'Regenerar certificados para todas las evaluaciones aprobadas faltantes' })
+  async regenerateAll() {
+    return this.regenerateCertificatesUseCase.execute();
+  }
 
   @Post()
   @Roles('ADMIN')
