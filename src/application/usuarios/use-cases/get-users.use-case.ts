@@ -5,6 +5,7 @@ import {
   UserResponseDto,
   ListUsersResponseDto,
 } from '../dto/user-response.dto';
+import { Usuario } from '@/entities/usuarios/usuario.entity';
 
 @Injectable()
 export class GetUsersUseCase {
@@ -13,9 +14,21 @@ export class GetUsersUseCase {
     private readonly usuariosRepository: IUsuariosRepository,
   ) {}
 
-  async execute(listUsersDto: ListUsersDto): Promise<ListUsersResponseDto> {
+  async execute(
+    listUsersDto: ListUsersDto,
+    currentUser?: Usuario,
+  ): Promise<ListUsersResponseDto> {
     const page = listUsersDto.page || 1;
     const limit = listUsersDto.limit || 10;
+
+    // Si el usuario actual es CLIENTE, solo mostrar usuarios de su empresa
+    let empresaId: number | undefined;
+    if (
+      currentUser?.rolPrincipal?.codigo === 'CLIENTE' &&
+      currentUser?.persona?.empresaId
+    ) {
+      empresaId = currentUser.persona.empresaId;
+    }
 
     const { usuarios, total } = await this.usuariosRepository.findAll({
       page,
@@ -26,6 +39,7 @@ export class GetUsersUseCase {
       activo: listUsersDto.activo,
       sortBy: listUsersDto.sortBy || UserSortField.FECHA_CREACION,
       sortOrder: listUsersDto.sortOrder || SortOrder.DESC,
+      empresaId, // Filtrar por empresa si el usuario es CLIENTE
     });
 
     const totalPages = Math.ceil(total / limit);

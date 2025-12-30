@@ -69,6 +69,12 @@ interface UserProfileResponse {
   fotoUrl?: string;
   numeroDocumento?: string;
   personaId?: number; // ID de la persona asociada al usuario
+  empresaId?: number; // ID de la empresa asociada al usuario
+  empresa?: {
+    id: number;
+    razonSocial: string;
+    numeroDocumento: string;
+  };
 }
 
 @ApiTags('auth')
@@ -86,27 +92,35 @@ export class AuthController {
     private readonly emailService: EmailService,
   ) {}
 
-
   @Post('register')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('ADMIN', 'CLIENTE')
+  @ApiBearerAuth('JWT-auth')
   @ApiOperation({
     summary: 'Registrar un nuevo usuario',
     description: `Registra un nuevo usuario en el sistema como persona natural o jurídica.
-    
+
 **Tipos de registro disponibles:**
 - **ALUMNO**: Estudiante que puede inscribirse y tomar capacitaciones
 - **INSTRUCTOR**: Instructor que puede crear y gestionar capacitaciones
 - **OPERADOR**: Operador del sistema con permisos básicos
+- **CLIENTE**: Cliente institucional
 
 **Tipos de persona:**
 - **NATURAL**: Persona física (por defecto)
 - **JURIDICA**: Persona jurídica (requiere razón social)
+
+**Asociación a empresa:**
+- Si el usuario que crea es **CLIENTE**, el nuevo usuario se asociará automáticamente a su empresa
+- Si el usuario que crea es **ADMIN**, puede especificar la empresa mediante \`empresaId\` o dejar que se asocie automáticamente si el tipo de documento es NIT
 
 **Nota:** El usuario queda en estado "No habilitado" hasta que un administrador lo apruebe.`,
   })
   @ApiBody({ type: RegisterDto })
   @ApiResponse({
     status: 201,
-    description: 'Usuario registrado exitosamente. El usuario queda pendiente de aprobación por el administrador.',
+    description:
+      'Usuario registrado exitosamente. El usuario queda pendiente de aprobación por el administrador.',
     schema: {
       type: 'object',
       properties: {
@@ -118,9 +132,20 @@ export class AuthController {
     },
   })
   @ApiResponse({ status: 400, description: 'Datos de registro inválidos' })
-  @ApiResponse({ status: 409, description: 'El usuario, email o documento ya existe' })
-  async register(@Body() registerDto: RegisterDto): Promise<{ message: string }> {
-    const result = await this.registerUseCase.execute(registerDto);
+  @ApiResponse({ status: 401, description: 'No autorizado' })
+  @ApiResponse({
+    status: 403,
+    description: 'Acceso denegado - Se requiere rol ADMIN o CLIENTE',
+  })
+  @ApiResponse({
+    status: 409,
+    description: 'El usuario, email o documento ya existe',
+  })
+  async register(
+    @Body() registerDto: RegisterDto,
+    @GetUser() currentUser: Usuario,
+  ): Promise<{ message: string }> {
+    const result = await this.registerUseCase.execute(registerDto, currentUser);
     return result;
   }
 
@@ -164,7 +189,8 @@ export class AuthController {
   })
   @ApiResponse({
     status: 401,
-    description: 'Credenciales inválidas, usuario inactivo, no habilitado o términos no aceptados',
+    description:
+      'Credenciales inválidas, usuario inactivo, no habilitado o términos no aceptados',
     schema: {
       type: 'object',
       properties: {
@@ -178,7 +204,8 @@ export class AuthController {
         requiereAceptacionTerminos: {
           type: 'boolean',
           example: true,
-          description: 'Indica que el usuario debe aceptar los términos antes de acceder',
+          description:
+            'Indica que el usuario debe aceptar los términos antes de acceder',
         },
       },
     },
@@ -189,7 +216,10 @@ export class AuthController {
     schema: {
       type: 'object',
       properties: {
-        message: { type: 'string', example: 'Debe cambiar su contraseña antes de continuar' },
+        message: {
+          type: 'string',
+          example: 'Debe cambiar su contraseña antes de continuar',
+        },
         error: { type: 'string', example: 'PASSWORD_CHANGE_REQUIRED' },
         statusCode: { type: 'number', example: 400 },
         debeCambiarPassword: { type: 'boolean', example: true },
@@ -205,25 +235,132 @@ export class AuthController {
   @Get('profile')
   @UseGuards(AuthGuard('jwt'))
   @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Obtener perfil del usuario autenticado' })
+  @ApiOperation({
+    summary: 'Obtener perfil del usuario autenticado',
+    description:
+      'Obtiene el perfil completo del usuario autenticado, incluyendo datos personales e información de la empresa asociada (si aplica).',
+  })
   @ApiResponse({
     status: 200,
     description: 'Perfil del usuario',
     schema: {
       type: 'object',
       properties: {
-        id: { type: 'number', example: 1 },
-        username: { type: 'string', example: 'juan.perez' },
-        email: { type: 'string', example: 'juan.perez@example.com' },
-        nombres: { type: 'string', example: 'Juan' },
-        apellidos: { type: 'string', example: 'Pérez' },
-        rol: { type: 'string', example: 'ALUMNO' },
+        id: { type: 'number', example: 1, description: 'ID del usuario' },
+        username: {
+          type: 'string',
+          example: 'juan.perez',
+          description: 'Nombre de usuario',
+        },
+        rol: {
+          type: 'string',
+          example: 'ALUMNO',
+          description: 'Rol del usuario (ADMIN, ALUMNO, INSTRUCTOR, CLIENTE)',
+        },
+        nombres: {
+          type: 'string',
+          example: 'Juan',
+          description: 'Nombres de la persona',
+        },
+        apellidos: {
+          type: 'string',
+          example: 'Pérez',
+          description: 'Apellidos de la persona',
+        },
+        email: {
+          type: 'string',
+          example: 'juan.perez@example.com',
+          description: 'Correo electrónico',
+        },
+        telefono: {
+          type: 'string',
+          example: '+573001234567',
+          description: 'Número de teléfono',
+        },
+        direccion: {
+          type: 'string',
+          example: 'Calle 123 #45-67',
+          description: 'Dirección de residencia',
+        },
+        fechaNacimiento: {
+          type: 'string',
+          example: '1990-01-15',
+          description: 'Fecha de nacimiento (formato ISO)',
+        },
+        genero: {
+          type: 'string',
+          example: 'M',
+          enum: ['M', 'F', 'O'],
+          description: 'Género (M: Masculino, F: Femenino, O: Otro)',
+        },
+        biografia: {
+          type: 'string',
+          example: 'Biografía del usuario',
+          description: 'Biografía o descripción personal',
+        },
+        fotoUrl: {
+          type: 'string',
+          example: '/uploads/avatars/abc123.jpg',
+          description: 'URL de la foto de perfil',
+        },
+        numeroDocumento: {
+          type: 'string',
+          example: '1234567890',
+          description: 'Número de documento de identidad',
+        },
+        personaId: {
+          type: 'number',
+          example: 1,
+          description: 'ID de la persona asociada al usuario',
+        },
+        empresaId: {
+          type: 'number',
+          example: 1,
+          description: 'ID de la empresa asociada al usuario (si aplica)',
+        },
+        empresa: {
+          type: 'object',
+          description: 'Información de la empresa asociada (si aplica)',
+          properties: {
+            id: {
+              type: 'number',
+              example: 1,
+              description: 'ID de la empresa',
+            },
+            razonSocial: {
+              type: 'string',
+              example: 'Empresa SAS',
+              description: 'Razón social de la empresa',
+            },
+            numeroDocumento: {
+              type: 'string',
+              example: '900123456-1',
+              description: 'Número de documento de la empresa (NIT)',
+            },
+          },
+        },
       },
     },
   })
   @ApiResponse({ status: 401, description: 'No autorizado' })
   getProfile(@GetUser() user: Usuario): UserProfileResponse {
-    return {
+    // Logs de depuración
+    console.log('🔍 [getProfile] Usuario recibido:', {
+      id: user.id,
+      username: user.username,
+      personaId: user.persona?.id,
+      empresaId: user.persona?.empresaId,
+      tieneEmpresa: !!user.persona?.empresa,
+      empresa: user.persona?.empresa
+        ? {
+            id: user.persona.empresa.id,
+            razonSocial: user.persona.empresa.razonSocial,
+            numeroDocumento: user.persona.empresa.numeroDocumento,
+          }
+        : null,
+    });
+
+    const response: UserProfileResponse = {
       id: user.id,
       username: user.username,
       rol: user.rolPrincipal?.codigo,
@@ -241,7 +378,22 @@ export class AuthController {
       fotoUrl: user.persona?.fotoUrl,
       numeroDocumento: user.persona?.numeroDocumento,
       personaId: user.persona?.id, // Incluir el ID de la persona
+      empresaId: user.persona?.empresaId, // Incluir el ID de la empresa
+      empresa: user.persona?.empresa
+        ? {
+            id: user.persona.empresa.id,
+            razonSocial: user.persona.empresa.razonSocial,
+            numeroDocumento: user.persona.empresa.numeroDocumento,
+          }
+        : undefined, // Incluir información de la empresa si existe
     };
+
+    console.log(
+      '📤 [getProfile] Respuesta enviada:',
+      JSON.stringify(response, null, 2),
+    );
+
+    return response;
   }
 
   @Get('refresh')
@@ -317,7 +469,8 @@ export class AuthController {
   @ApiParam({
     name: 'username',
     type: String,
-    description: 'Nombre de usuario del usuario que desea cambiar la contraseña',
+    description:
+      'Nombre de usuario del usuario que desea cambiar la contraseña',
     example: 'juan.perez',
   })
   @ApiBody({ type: ChangePasswordDto })
@@ -441,7 +594,10 @@ export class AuthController {
       },
     },
   })
-  @ApiResponse({ status: 400, description: 'No se subió ningún archivo o formato inválido' })
+  @ApiResponse({
+    status: 400,
+    description: 'No se subió ningún archivo o formato inválido',
+  })
   @ApiResponse({ status: 401, description: 'No autorizado' })
   uploadProfilePhoto(@UploadedFile() file?: Express.Multer.File) {
     if (!file) {
