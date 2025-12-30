@@ -41,7 +41,8 @@ export class CapacitacionesRepositoryAdapter implements ICapacitacionesRepositor
       await queryRunner.startTransaction();
 
       // Extraer datos de evaluación si vienen en el DTO
-      const { evaluacion: evaluacionData, ...capacitacionData } = createCapacitacionDto;
+      const { evaluacion: evaluacionData, ...capacitacionData } =
+        createCapacitacionDto;
 
       // Crear la capacitación
       const newCapacitacion = this.capacitacionRepository.create({
@@ -59,7 +60,10 @@ export class CapacitacionesRepositoryAdapter implements ICapacitacionesRepositor
       // Si viene evaluación en el DTO, crearla en la misma transacción
       if (evaluacionData) {
         // Validar que tenga al menos una pregunta (RF-08)
-        if (!evaluacionData.preguntas || evaluacionData.preguntas.length === 0) {
+        if (
+          !evaluacionData.preguntas ||
+          evaluacionData.preguntas.length === 0
+        ) {
           throw new BadRequestException(
             'La evaluación debe tener al menos una pregunta (RF-08)',
           );
@@ -73,7 +77,8 @@ export class CapacitacionesRepositoryAdapter implements ICapacitacionesRepositor
           tiempoLimiteMinutos: evaluacionData.tiempoLimiteMinutos || undefined,
           intentosPermitidos: evaluacionData.intentosPermitidos || 1,
           mostrarResultados: evaluacionData.mostrarResultados ?? true,
-          mostrarRespuestasCorrectas: evaluacionData.mostrarRespuestasCorrectas ?? false,
+          mostrarRespuestasCorrectas:
+            evaluacionData.mostrarRespuestasCorrectas ?? false,
           puntajeTotal: evaluacionData.puntajeTotal || 100.0,
           minimoAprobacion: evaluacionData.minimoAprobacion || 70.0,
           orden: evaluacionData.orden || 0,
@@ -234,11 +239,43 @@ export class CapacitacionesRepositoryAdapter implements ICapacitacionesRepositor
 
   async findOne(id: number): Promise<Capacitacion | null> {
     // #region agent log
-    try{appendFileSync(join(process.cwd(),'.cursor','debug.log'),JSON.stringify({location:'capacitaciones.repository.adapter.ts:199',message:'findOne entry',data:{id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})+'\n');}catch(e){}
+    try {
+      appendFileSync(
+        join(process.cwd(), '.cursor', 'debug.log'),
+        JSON.stringify({
+          location: 'capacitaciones.repository.adapter.ts:199',
+          message: 'findOne entry',
+          data: { id },
+          timestamp: Date.now(),
+          sessionId: 'debug-session',
+          runId: 'run1',
+          hypothesisId: 'B',
+        }) + '\n',
+      );
+    } catch (e) {
+      // Ignorar errores de logging
+      void e;
+    }
     // #endregion
     try {
       // #region agent log
-      try{appendFileSync(join(process.cwd(),'.cursor','debug.log'),JSON.stringify({location:'capacitaciones.repository.adapter.ts:201',message:'before repository.findOne',data:{id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})+'\n');}catch(e){}
+      try {
+        appendFileSync(
+          join(process.cwd(), '.cursor', 'debug.log'),
+          JSON.stringify({
+            location: 'capacitaciones.repository.adapter.ts:201',
+            message: 'before repository.findOne',
+            data: { id },
+            timestamp: Date.now(),
+            sessionId: 'debug-session',
+            runId: 'run1',
+            hypothesisId: 'B',
+          }) + '\n',
+        );
+      } catch (e) {
+        // Ignorar errores de logging
+        void e;
+      }
       // #endregion
       const result = await this.capacitacionRepository.findOne({
         where: { id },
@@ -255,12 +292,42 @@ export class CapacitacionesRepositoryAdapter implements ICapacitacionesRepositor
         ],
       });
       // #region agent log
-      try{appendFileSync(join(process.cwd(),'.cursor','debug.log'),JSON.stringify({location:'capacitaciones.repository.adapter.ts:214',message:'repository.findOne success',data:{id,found:!!result,hasId:result?.id!==undefined,hasRelations:result?{tipoCapacitacion:!!result.tipoCapacitacion,modalidad:!!result.modalidad,instructor:!!result.instructor,materiales:result.materiales?.length||0,secciones:result.secciones?.length||0,evaluaciones:result.evaluaciones?.length||0}:null},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})+'\n');}catch(e){}
+      try {
+        appendFileSync(
+          join(process.cwd(), '.cursor', 'debug.log'),
+          JSON.stringify({
+            location: 'capacitaciones.repository.adapter.ts:214',
+            message: 'repository.findOne success',
+            data: {
+              id,
+              found: !!result,
+              hasId: result?.id !== undefined,
+              hasRelations: result
+                ? {
+                    tipoCapacitacion: !!result.tipoCapacitacion,
+                    modalidad: !!result.modalidad,
+                    instructor: !!result.instructor,
+                    materiales: result.materiales?.length || 0,
+                    secciones: result.secciones?.length || 0,
+                    evaluaciones: result.evaluaciones?.length || 0,
+                  }
+                : null,
+            },
+            timestamp: Date.now(),
+            sessionId: 'debug-session',
+            runId: 'run1',
+            hypothesisId: 'B',
+          }) + '\n',
+        );
+      } catch (e) {
+        // Ignorar errores de logging
+        void e;
+      }
       // #endregion
       return result;
     } catch (error) {
       // #region agent log
-      try{
+      try {
         const errorData: any = {
           id,
           errorName: error?.constructor?.name,
@@ -270,7 +337,8 @@ export class CapacitacionesRepositoryAdapter implements ICapacitacionesRepositor
         if (error instanceof QueryFailedError) {
           errorData.query = error.query;
           errorData.parameters = error.parameters;
-          errorData.driverError = error.driverError?.message || error.driverError;
+          errorData.driverError =
+            error.driverError?.message || error.driverError;
           errorData.code = error.driverError?.code;
           errorData.sqlState = error.driverError?.sqlState;
           errorData.sqlMessage = error.driverError?.sqlMessage;
@@ -278,8 +346,22 @@ export class CapacitacionesRepositoryAdapter implements ICapacitacionesRepositor
         if (error?.stack) {
           errorData.stack = error.stack.split('\n').slice(0, 5).join('\n');
         }
-        appendFileSync(join(process.cwd(),'.cursor','debug.log'),JSON.stringify({location:'capacitaciones.repository.adapter.ts:227',message:'repository.findOne error',data:errorData,timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})+'\n');
-      }catch(e){}
+        appendFileSync(
+          join(process.cwd(), '.cursor', 'debug.log'),
+          JSON.stringify({
+            location: 'capacitaciones.repository.adapter.ts:227',
+            message: 'repository.findOne error',
+            data: errorData,
+            timestamp: Date.now(),
+            sessionId: 'debug-session',
+            runId: 'run1',
+            hypothesisId: 'B',
+          }) + '\n',
+        );
+      } catch (e) {
+        // Ignorar errores de logging
+        void e;
+      }
       // #endregion
       console.error('Error fetching capacitacion:', error);
       throw new InternalServerErrorException('Error fetching capacitacion');
@@ -330,7 +412,8 @@ export class CapacitacionesRepositoryAdapter implements ICapacitacionesRepositor
         capacitacion.imagenPortadaUrl = updateCapacitacionDto.imagenPortadaUrl;
       }
       if (updateCapacitacionDto.videoPromocionalUrl !== undefined) {
-        capacitacion.videoPromocionalUrl = updateCapacitacionDto.videoPromocionalUrl;
+        capacitacion.videoPromocionalUrl =
+          updateCapacitacionDto.videoPromocionalUrl;
       }
       if (updateCapacitacionDto.minimoAprobacion !== undefined) {
         capacitacion.minimoAprobacion = updateCapacitacionDto.minimoAprobacion;
@@ -374,7 +457,8 @@ export class CapacitacionesRepositoryAdapter implements ICapacitacionesRepositor
         capacitacion.areaId = updateCapacitacionDto.areaId;
       }
 
-      const savedCapacitacion = await this.capacitacionRepository.save(capacitacion);
+      const savedCapacitacion =
+        await this.capacitacionRepository.save(capacitacion);
 
       // Retornar la capacitación completa con relaciones
       const capacitacionCompleta = await this.findOne(savedCapacitacion.id);
@@ -427,6 +511,20 @@ export class CapacitacionesRepositoryAdapter implements ICapacitacionesRepositor
       }
       console.error(error);
       throw new InternalServerErrorException('Error deleting capacitacion');
+    }
+  }
+
+  async existsByTitulo(titulo: string): Promise<boolean> {
+    try {
+      const count = await this.capacitacionRepository.count({
+        where: { titulo },
+      });
+      return count > 0;
+    } catch (error) {
+      console.error('Error checking duplicate titulo:', error);
+      throw new InternalServerErrorException(
+        'Error al verificar duplicados de capacitación',
+      );
     }
   }
 }

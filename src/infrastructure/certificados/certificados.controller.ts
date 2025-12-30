@@ -29,6 +29,7 @@ import {
 import { CreateCertificadoUseCase } from '@/application/certificados/use-cases/create-certificado.use-case';
 import { FindAllCertificadosUseCase } from '@/application/certificados/use-cases/find-all-certificados.use-case';
 import { FindOneCertificadoUseCase } from '@/application/certificados/use-cases/find-one-certificado.use-case';
+import { FindByEstudianteCertificadosUseCase } from '@/application/certificados/use-cases/find-by-estudiante-certificados.use-case';
 import { UpdateCertificadoRetroactivoUseCase } from '@/application/certificados/use-cases/update-certificado-retroactivo.use-case';
 import { RegenerateCertificatesUseCase } from '@/application/certificados/use-cases/regenerate-certificates.use-case';
 import { PaginationDto } from '@/application/shared/dto/pagination.dto';
@@ -38,6 +39,7 @@ import * as path from 'path';
 import { ConfigService } from '@nestjs/config';
 
 import { PdfGeneratorService } from '@/infrastructure/shared/services/pdf-generator.service';
+import { StorageService } from '@/infrastructure/shared/services/storage.service';
 
 /**
  * Controlador de Certificados
@@ -53,10 +55,12 @@ export class CertificadosController {
     private readonly createCertificadoUseCase: CreateCertificadoUseCase,
     private readonly findAllCertificadosUseCase: FindAllCertificadosUseCase,
     private readonly findOneCertificadoUseCase: FindOneCertificadoUseCase,
+    private readonly findByEstudianteCertificadosUseCase: FindByEstudianteCertificadosUseCase,
     private readonly updateCertificadoRetroactivoUseCase: UpdateCertificadoRetroactivoUseCase,
     private readonly configService: ConfigService,
     private readonly pdfGeneratorService: PdfGeneratorService,
     private readonly regenerateCertificatesUseCase: RegenerateCertificatesUseCase,
+    private readonly storageService: StorageService,
   ) {}
 
   @Post('generate')
@@ -97,6 +101,44 @@ export class CertificadosController {
   @ApiResponse({ status: 200, description: 'Lista de certificados' })
   findAll(@Body() pagination: PaginationDto) {
     return this.findAllCertificadosUseCase.execute(pagination);
+  }
+
+  @Post('estudiante/:estudianteId')
+  @Roles('ADMIN', 'ALUMNO', 'CLIENTE', 'INSTRUCTOR', 'OPERADOR')
+  @ApiOperation({
+    summary: 'Obtener certificados de un estudiante',
+    description:
+      'Obtiene todos los certificados de un estudiante específico con paginación. Útil para ver el historial de certificados de un estudiante. Todos los roles autenticados pueden ver certificados de estudiantes.',
+  })
+  @ApiParam({
+    name: 'estudianteId',
+    type: 'number',
+    description: 'ID del estudiante (Persona)',
+    example: 1,
+  })
+  @ApiBody({ type: PaginationDto, required: false })
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de certificados del estudiante',
+    schema: {
+      type: 'object',
+      properties: {
+        data: {
+          type: 'array',
+          items: { type: 'object' },
+        },
+        total: { type: 'number', example: 5 },
+        page: { type: 'number', example: 1 },
+        limit: { type: 'number', example: 10 },
+        totalPages: { type: 'number', example: 1 },
+      },
+    },
+  })
+  findByEstudiante(
+    @Param('estudianteId', ParseIntPipe) estudianteId: number,
+    @Body() pagination?: PaginationDto,
+  ) {
+    return this.findByEstudianteCertificadosUseCase.execute(estudianteId, pagination);
   }
 
   @Get(':id')
@@ -171,6 +213,7 @@ export class CertificadosController {
   private async regenerateAndServePdf(id: number, res: Response, disposition: 'inline' | 'attachment') {
     const certificado = await this.findOneCertificadoUseCase.execute(id);
     
+<<<<<<< HEAD
     // Determinar la ruta del archivo
     const storagePath = this.configService.get<string>('PDF_STORAGE_PATH') || './storage/certificates';
     let filePath: string;
@@ -189,6 +232,10 @@ export class CertificadosController {
         fileName = `certificado-${id}.pdf`;
         filePath = path.join(storagePath, fileName);
     }
+=======
+    // Nombre base para el archivo
+    const fileName = `certificado-${id}-${Date.now()}.pdf`;
+>>>>>>> 16ac3fc5cb286d0eecd4480c7dc6076857cef4ce
 
     // Función auxiliar para enviar la respuesta
     const sendFile = async (buffer: Buffer) => {
@@ -197,31 +244,45 @@ export class CertificadosController {
       res.send(buffer);
     };
 
+    // Si hay URL de certificado y es de S3/CloudFront, intentar redirigir
+    if (certificado.urlCertificado && 
+        (certificado.urlCertificado.startsWith('http://') || certificado.urlCertificado.startsWith('https://'))) {
+      // Si es URL externa (S3/CloudFront), redirigir directamente
+      return res.redirect(certificado.urlCertificado);
+    }
+
+    // Si es almacenamiento local o no hay URL, intentar leer del disco
     try {
-      // Intentar leer del disco primero
+      const filePath = this.storageService.getFilePath(
+        certificado.urlCertificado || `/storage/certificates/${fileName}`
+      );
       const fileBuffer = await fs.readFile(filePath);
       return sendFile(fileBuffer);
     } catch (error: any) {
       // Si el error es que no existe el archivo, lo regeneramos
       if (error.code === 'ENOENT') {
-        console.log(`⚠️ PDF para certificado ${id} no encontrado en disco. Regenerando...`);
+        console.log(`⚠️ PDF para certificado ${id} no encontrado. Regenerando...`);
         try {
           // Generar el PDF usando el servicio
           const pdfBuffer = await this.pdfGeneratorService.generateCertificate(certificado);
           
-          // Asegurarse de que el directorio exista y guardar el archivo para la próxima
-          await fs.mkdir(storagePath, { recursive: true });
-          await fs.writeFile(filePath, pdfBuffer);
-          console.log(`✅ PDF regenerado y guardado en: ${filePath}`);
+          // Guardar usando StorageService (maneja S3 o local automáticamente)
+          const url = await this.storageService.saveBuffer(
+            pdfBuffer,
+            fileName,
+            'certificates',
+            'application/pdf',
+          );
 
-          // Si el certificado no tenía URL o era incorrecta, actualizarla
-          const baseUrl = this.configService.get<string>('APP_URL') || 'http://localhost:3000';
-          const newUrl = `${baseUrl}/certificates/${fileName}`;
-          
-          // No necesitamos esperar a que se guarde en BD para responder al usuario
-          // Usamos un update directo para no interferir con la respuesta
-          // (Opcional, dependiendo de si queremos actualizar la URL en la BD)
-          // await this.updateUrl(id, newUrl); 
+          // Si la URL es relativa, construir URL completa
+          let finalUrl = url;
+          if (url.startsWith('/storage/')) {
+            const baseUrl = this.configService.get<string>('APP_URL') || 'http://localhost:3000';
+            finalUrl = `${baseUrl}${url}`;
+          }
+
+          // Actualizar URL en la base de datos (opcional, no bloquea la respuesta)
+          // await this.updateUrl(id, finalUrl);
 
           return sendFile(pdfBuffer);
         } catch (genError) {

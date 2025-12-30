@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Usuario } from '@/entities/usuarios/usuario.entity';
 import { Rol } from '@/entities/roles/rol.entity';
+import { Empresa } from '@/entities/empresas/empresa.entity';
 import { UsuariosController } from './usuarios.controller';
 import { UsuariosRepositoryAdapter } from './usuarios.repository.adapter';
 import { GetUsersUseCase } from '@/application/usuarios/use-cases/get-users.use-case';
@@ -10,7 +11,7 @@ import { UpdateUserUseCase } from '@/application/usuarios/use-cases/update-user.
 import { DeleteUserUseCase } from '@/application/usuarios/use-cases/delete-user.use-case';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Usuario, Rol])],
+  imports: [TypeOrmModule.forFeature([Usuario, Rol, Empresa])],
   controllers: [UsuariosController],
   providers: [
     // Repository Adapter
