@@ -3,10 +3,13 @@ import {
   Post,
   Get,
   Body,
+  Param,
+  ParseIntPipe,
   UseGuards,
   HttpCode,
   HttpStatus,
   Request,
+  NotFoundException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -14,8 +17,11 @@ import {
   ApiResponse,
   ApiBody,
   ApiBearerAuth,
+  ApiParam,
 } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { AceptarTerminosUseCase } from '@/application/aceptaciones/use-cases/aceptar-terminos.use-case';
 import { VerificarAceptacionUseCase } from '@/application/aceptaciones/use-cases/verificar-aceptacion.use-case';
 import { ObtenerDocumentosActivosUseCase } from '@/application/aceptaciones/use-cases/obtener-documentos-activos.use-case';
@@ -24,6 +30,7 @@ import { AceptacionResponseDto } from '@/application/aceptaciones/dto/aceptacion
 import { DocumentoLegalResponseDto } from '@/application/aceptaciones/dto/documento-legal-response.dto';
 import { GetUser } from '@/infrastructure/shared/auth/decorators/get-user.decorator';
 import { Usuario } from '@/entities/usuarios/usuario.entity';
+import { RolesGuard, Roles } from '@/infrastructure/shared/guards/roles.guard';
 
 @ApiTags('terms')
 @Controller('terms')
@@ -34,6 +41,8 @@ export class AceptacionesController {
     private readonly aceptarTerminosUseCase: AceptarTerminosUseCase,
     private readonly verificarAceptacionUseCase: VerificarAceptacionUseCase,
     private readonly obtenerDocumentosActivosUseCase: ObtenerDocumentosActivosUseCase,
+    @InjectRepository(Usuario)
+    private readonly usuarioRepository: Repository<Usuario>,
   ) {}
 
   @Get('active-documents')
@@ -192,6 +201,72 @@ export class AceptacionesController {
       aceptado: true,
       message: 'Todos los términos han sido aceptados',
     };
+  }
+
+  @Post('accept-for-user/:userId')
+  @Roles('ADMIN')
+  @UseGuards(RolesGuard)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Aceptar términos y políticas en nombre de otro usuario (Solo ADMIN)',
+    description: `Permite a un administrador aceptar los términos y condiciones en nombre de otro usuario.
+    
+**Requisitos:**
+- El usuario que realiza la acción debe ser ADMIN
+- Debe aceptar TODOS los documentos legales activos
+- La aceptación queda registrada con fecha, IP y user agent para trazabilidad
+
+**Endpoint:** \`POST /terms/accept-for-user/:userId\``,
+  })
+  @ApiParam({ name: 'userId', type: Number, example: 1 })
+  @ApiBody({
+    type: AceptarTerminosDto,
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Términos aceptados exitosamente en nombre del usuario',
+    type: [AceptacionResponseDto],
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Error de validación',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'No autorizado',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Acceso denegado - Se requiere rol de administrador (ADMIN)',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Usuario no encontrado',
+  })
+  async aceptarTerminosParaUsuario(
+    @Param('userId', ParseIntPipe) userId: number,
+    @Body() aceptarTerminosDto: AceptarTerminosDto,
+    @Request() req: any,
+  ): Promise<AceptacionResponseDto[]> {
+    // Obtener el usuario objetivo
+    const usuarioObjetivo = await this.usuarioRepository.findOne({
+      where: { id: userId },
+      relations: ['persona', 'rolPrincipal'],
+    });
+
+    if (!usuarioObjetivo) {
+      throw new NotFoundException(`Usuario con ID ${userId} no encontrado`);
+    }
+
+    const ipAddress = req.ip || req.socket.remoteAddress || undefined;
+    const userAgent = req.get('user-agent') || undefined;
+
+    return await this.aceptarTerminosUseCase.execute(
+      aceptarTerminosDto,
+      usuarioObjetivo,
+      ipAddress,
+      userAgent,
+    );
   }
 }
 

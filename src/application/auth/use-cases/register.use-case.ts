@@ -7,12 +7,16 @@ import {
 import { IAuthRepository } from '@/domain/auth/ports/auth.repository.port';
 import { RegisterDto, TipoRegistro } from '@/application/auth/dto/register.dto';
 import { TipoDocumento } from '@/entities/persona/types';
+import { AceptarTerminosUseCase } from '@/application/aceptaciones/use-cases/aceptar-terminos.use-case';
+import { ObtenerDocumentosActivosUseCase } from '@/application/aceptaciones/use-cases/obtener-documentos-activos.use-case';
 
 @Injectable()
 export class RegisterUseCase {
   constructor(
     @Inject('IAuthRepository')
     private readonly authRepository: IAuthRepository,
+    private readonly aceptarTerminosUseCase: AceptarTerminosUseCase,
+    private readonly obtenerDocumentosActivosUseCase: ObtenerDocumentosActivosUseCase,
   ) {}
 
   async execute(registerDto: RegisterDto): Promise<{
@@ -50,10 +54,11 @@ export class RegisterUseCase {
       if (
         registerDto.tipoRegistro !== TipoRegistro.ALUMNO &&
         registerDto.tipoRegistro !== TipoRegistro.INSTRUCTOR &&
-        registerDto.tipoRegistro !== TipoRegistro.OPERADOR
+        registerDto.tipoRegistro !== TipoRegistro.OPERADOR &&
+        registerDto.tipoRegistro !== TipoRegistro.CLIENTE
       ) {
         throw new BadRequestException(
-          'El tipo de registro debe ser ALUMNO, INSTRUCTOR u OPERADOR',
+          'El tipo de registro debe ser ALUMNO, INSTRUCTOR, OPERADOR o CLIENTE',
         );
       }
 
@@ -99,6 +104,31 @@ export class RegisterUseCase {
         registerDto.tipoRegistro,
         registerDto.habilitado ?? false, // Por defecto false, pero puede venir del frontend
       );
+
+      // Si el usuario aceptó los términos y políticas, aceptarlos automáticamente
+      if (registerDto.aceptaTerminos && registerDto.aceptaPoliticaDatos) {
+        try {
+          // Obtener todos los documentos legales activos
+          const documentosActivos = await this.obtenerDocumentosActivosUseCase.execute();
+          
+          if (documentosActivos.length > 0) {
+            // Obtener los IDs de los documentos activos
+            const documentosIds = documentosActivos.map((doc) => doc.id);
+            
+            // Aceptar todos los documentos activos
+            await this.aceptarTerminosUseCase.execute(
+              { documentosIds },
+              usuario,
+              undefined, // IP address no disponible en el registro
+              undefined, // User agent no disponible en el registro
+            );
+          }
+        } catch (error) {
+          // Si hay un error al aceptar términos, loguearlo pero no fallar el registro
+          console.error('Error al aceptar términos durante el registro:', error);
+          // Continuar con el registro aunque falle la aceptación de términos
+        }
+      }
 
       // NO generar token automáticamente
       // Retornar mensaje de éxito
