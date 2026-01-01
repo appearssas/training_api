@@ -9,6 +9,8 @@ import {
   ParseIntPipe,
   Res,
   UseGuards,
+  BadRequestException,
+  NotFoundException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -149,21 +151,72 @@ export class CertificadosController {
     );
   }
 
-  @Get(':id')
+  @Get(':idOrFilename')
   @Roles('ADMIN', 'ALUMNO', 'CLIENTE', 'INSTRUCTOR', 'OPERADOR')
   @ApiOperation({
-    summary:
-      'Obtener un certificado por ID. Todos los roles autenticados pueden ver certificados.',
+    summary: 'Obtener certificado por ID o servir archivo PDF',
+    description:
+      'Maneja solicitudes tanto para detalles de certificado (ID numérico) como para archivos PDF (.pdf).',
   })
-  @ApiParam({
-    name: 'id',
-    type: 'number',
-    description: 'ID del certificado',
-  })
-  @ApiResponse({ status: 200, description: 'Certificado encontrado' })
-  @ApiResponse({ status: 404, description: 'Certificado no encontrado' })
-  findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.findOneCertificadoUseCase.execute(id);
+  async findOneOrFile(
+    @Param('idOrFilename') idOrFilename: string,
+    @Res() res: Response,
+  ) {
+    // 1. Si es PDF, servir el archivo
+    if (idOrFilename.endsWith('.pdf')) {
+      const filename = idOrFilename;
+      console.log(`📂 [findOneOrFile] Sirviendo archivo: ${filename}`);
+
+      const possiblePaths = [
+        `/certificates/${filename}`,
+        `/storage/certificates/${filename}`,
+        filename,
+      ];
+
+      let filePath = '';
+      let found = false;
+
+      for (const p of possiblePaths) {
+        try {
+          filePath = this.storageService.getFilePath(p);
+          await fs.access(filePath);
+          found = true;
+          break;
+        } catch (e) {
+          continue;
+        }
+      }
+
+      if (!found) {
+        // Intentar regenerar si tiene el formato correcto
+        const match = filename.match(/certificado-(\d+)-/);
+        if (match && match[1]) {
+          const id = parseInt(match[1], 10);
+          return this.regenerateAndServePdf(id, res, 'inline');
+        }
+        throw new NotFoundException('Archivo no encontrado');
+      }
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
+      const fileStream = createReadStream(filePath);
+      fileStream.pipe(res);
+      return;
+    }
+
+    // 2. Si es numérico, devolver detalles (JSON)
+    if (!isNaN(Number(idOrFilename))) {
+      const id = parseInt(idOrFilename, 10);
+      try {
+        const result = await this.findOneCertificadoUseCase.execute(id);
+        return res.json(result);
+      } catch (error) {
+        throw new NotFoundException('Certificado no encontrado');
+      }
+    }
+
+    // 3. Si no es ninguno, error
+    throw new BadRequestException('Identificador inválido');
   }
 
   @Get(':id/view')

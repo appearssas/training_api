@@ -3,6 +3,8 @@ import {
   Get,
   Param,
   NotFoundException,
+  Res,
+  BadRequestException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -10,8 +12,12 @@ import {
   ApiResponse,
   ApiParam,
 } from '@nestjs/swagger';
+import { Response } from 'express';
+import { createReadStream } from 'fs';
+import * as fs from 'fs/promises';
 import { VerifyCertificadoUseCase } from '@/application/certificados/use-cases/verify-certificado.use-case';
 import { RegenerateCertificatesUseCase } from '@/application/certificados/use-cases/regenerate-certificates.use-case';
+import { StorageService } from '../shared/services/storage.service';
 
 /**
  * Controlador público de verificación de certificados
@@ -25,7 +31,50 @@ export class PublicCertificadosController {
   constructor(
     private readonly verifyCertificadoUseCase: VerifyCertificadoUseCase,
     private readonly regenerateCertificatesUseCase: RegenerateCertificatesUseCase,
+    private readonly storageService: StorageService,
   ) {}
+
+  @Get('files/:filename')
+  @ApiOperation({
+    summary: 'Descargar archivo PDF público',
+    description: 'Permite la descarga pública de certificados si se conoce el nombre exacto del archivo.',
+  })
+  async servePdf(@Param('filename') filename: string, @Res() res: Response) {
+    if (!filename.endsWith('.pdf')) {
+      throw new BadRequestException('Formato inválido');
+    }
+
+    // Rutas posibles
+    const possiblePaths = [
+      `/certificates/${filename}`,
+      `/storage/certificates/${filename}`,
+      filename,
+    ];
+
+    let filePath = '';
+    let found = false;
+
+    // Buscar archivo
+    for (const p of possiblePaths) {
+      try {
+        filePath = this.storageService.getFilePath(p);
+        await fs.access(filePath);
+        found = true;
+        break;
+      } catch (e) {
+        continue;
+      }
+    }
+
+    if (!found) {
+      throw new NotFoundException('Archivo no encontrado');
+    }
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
+    const fileStream = createReadStream(filePath);
+    fileStream.pipe(res);
+  }
 
   @Get('regenerate-all-temp')
   async regenerateAllTemp() {
