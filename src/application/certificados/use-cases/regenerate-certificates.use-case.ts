@@ -6,8 +6,7 @@ import { Inscripcion } from '@/entities/inscripcion/inscripcion.entity';
 import { EstadoInscripcion } from '@/entities/inscripcion/types';
 import { PdfGeneratorService } from '@/infrastructure/shared/services/pdf-generator.service';
 import { ConfigService } from '@nestjs/config';
-import * as fs from 'fs/promises';
-import * as path from 'path';
+import { StorageService } from '@/infrastructure/shared/services/storage.service';
 
 interface RegenerationResult {
   totalAprobados: number;
@@ -17,10 +16,6 @@ interface RegenerationResult {
   detallesErrores: string[];
 }
 
-/**
- * Caso de uso para regenerar certificados faltantes
- * Busca inscripciones aprobadas sin certificado y los genera
- */
 @Injectable()
 export class RegenerateCertificatesUseCase {
   private readonly logger = new Logger(RegenerateCertificatesUseCase.name);
@@ -31,23 +26,21 @@ export class RegenerateCertificatesUseCase {
     private readonly inscripcionRepository: Repository<Inscripcion>,
     private readonly pdfGenerator: PdfGeneratorService,
     private readonly configService: ConfigService,
+    private readonly storageService: StorageService,
     @Inject('ICertificadosRepository')
-    private readonly certificadosRepository: any, // Using 'any' or interface if importable, simpler to use any for quick fix or repo type
-
+    private readonly certificadosRepository: any,
   ) {}
 
   async execute(): Promise<RegenerationResult> {
     this.logger.log('Iniciando regeneración masiva de certificados');
     
     // 1. Buscar todas las inscripciones aprobadas
-    // Estado debe ser CERTIFICADO o COMPLETADO, y aprobado = true
     const inscripcionesAprobadas = await this.inscripcionRepository.find({
       where: [
         { estado: EstadoInscripcion.COMPLETADO, aprobado: true },
-        // También incluimos las que están en progreso pero marcadas como aprobadas por seguridad
         { estado: EstadoInscripcion.EN_PROGRESO, aprobado: true }
       ],
-      relations: ['certificados', 'capacitacion', 'capacitacion.tipoCapacitacion'],
+      relations: ['certificados', 'capacitacion', 'capacitacion.tipoCapacitacion', 'estudiante'],
     });
 
     const result: RegenerationResult = {
@@ -59,49 +52,49 @@ export class RegenerateCertificatesUseCase {
     };
 
     for (const inscripcion of inscripcionesAprobadas) {
-      // Filtrar solo las que califiquen para certificado (Tipo CERTIFIED)
       const tipoCapacitacion = inscripcion.capacitacion?.tipoCapacitacion?.codigo?.toUpperCase();
       if (tipoCapacitacion !== 'CERTIFIED') {
         continue;
       }
 
-      // Verificar si ya tiene certificado
-      if (inscripcion.certificados && inscripcion.certificados.length > 0) {
-        // FORCE REGENERATE PDF for existing certificate
+      const cert = inscripcion.certificados && inscripcion.certificados.length > 0
+         ? inscripcion.certificados[0] : null;
+
+      if (cert) {
+        this.logger.log(`Regenerating PDF for Inscripcion ${inscripcion.id}`);
         try {
-            const cert = inscripcion.certificados[0];
-            // Asegurar que la inscripción está asignada para el generador
             cert.inscripcion = inscripcion;
             const pdfBuffer = await this.pdfGenerator.generateCertificate(cert);
             const newPath = await this.savePdf(cert.id, pdfBuffer);
             
-            // UPDATE DB URL
-            cert.urlCertificado = newPath;
-            await this.certificadosRepository.save(cert);
-
+            // Use update instead of save, matching CreateCertificadoUseCase
+            await this.certificadosRepository.update(cert.id, {
+                urlCertificado: newPath
+            });
+            
             this.logger.log(`PDF Regenerado y URL actualizada para certificado ID: ${cert.id}`);
-            result.generados++; // Count as generated/updated
+            result.generados++; 
         } catch (error) {
             this.logger.error(`Error regenerando PDF para inscripción ${inscripcion.id}`, error);
             result.errores++;
+            if (error instanceof Error) result.detallesErrores.push(`Regen Inscripcion ${inscripcion.id}: ${error.message}`);
         }
         result.yaTenianCertificado++;
-        continue;
-      }
-
-      // Generar certificado
-      try {
-        await this.createCertificadoUseCase.execute({
-          inscripcionId: inscripcion.id,
-          emitidoPor: 1, // System admin
-        });
-        result.generados++;
-        this.logger.log(`Certificado generado para inscripción ID: ${inscripcion.id}`);
-      } catch (error) {
-        result.errores++;
-        const errMsg = error instanceof Error ? error.message : 'Error desconocido';
-        result.detallesErrores.push(`Inscripcion ${inscripcion.id}: ${errMsg}`);
-        this.logger.error(`Error generando certificado para inscripción ${inscripcion.id}`, error);
+      } else {
+        // Generar nuevo
+        try {
+            await this.createCertificadoUseCase.execute({
+              inscripcionId: inscripcion.id,
+              emitidoPor: 1,
+            });
+            result.generados++;
+            this.logger.log(`Certificado generado para inscripción ID: ${inscripcion.id}`);
+        } catch (error) {
+            result.errores++;
+            const errMsg = error instanceof Error ? error.message : 'Error desconocido';
+            result.detallesErrores.push(`Inscripcion ${inscripcion.id}: ${errMsg}`);
+            this.logger.error(`Error generando certificado para inscripción ${inscripcion.id}`, error);
+        }
       }
     }
 
@@ -109,26 +102,34 @@ export class RegenerateCertificatesUseCase {
     return result;
   }
 
-  /* Helper para guardar PDF */
+  /* Helper para guardar PDF usando StorageService */
   private async savePdf(certificadoId: number | string, pdfBuffer: Buffer): Promise<string> {
-    const storagePath = this.configService.get<string>('PDF_STORAGE_PATH') || './storage/certificates';
-    await fs.mkdir(storagePath, { recursive: true });
-    
-    // FORCE NEW FILE to avoid cache issues
     const fileName = `certificado-${certificadoId}-${Date.now()}.pdf`;
-    const filePath = path.join(storagePath, fileName);
     
-    // Remove old files for this certificate to keep storage clean? Optional. 
-    // For now, just write new.
-    await fs.writeFile(filePath, pdfBuffer);
+    const url = await this.storageService.saveBuffer(
+      pdfBuffer,
+      fileName,
+      'certificates',
+      'application/pdf',
+    );
+
+    // Si es URL relativa, devolverla tal cual está en la BD o ajustar según necesidad.
+    // CreateCertificadoUseCase prepends baseUrl, pero PublicCertificadosController espera nombre de archivo o path.
+    // Si StorageService retorna `/storage/certificates/file.pdf`.
     
-    // Return relative path or filename as stored in DB.
-    // Usually DB stores 'storage/certificates/file.pdf' or just 'certificates/file.pdf'?
-    // Let's assume it stores relative path from project root? 
-    // CreateCertificadoUseCase uses: `return filePath;` which is likely relative `storage/certificates/...` 
-    // based on default `storagePath`.
-    // Wait, `storagePath` defaults to `./storage/certificates`.
-    // So `filePath` is `storage/certificates/filename.pdf`.
-    return filePath;
+    // PublicCertificadosController busca en `/storage/certificates/filename`.
+    // Si url es completa (http...), no sirve para path local.
+    // Pero asumo local storage.
+    
+    // CreateCertificadoUseCase logic:
+    // if (url.startsWith('/storage/')) return `${baseUrl}${url}`;
+    
+    // I should probably store the relative path for consistency if frontend expects full URL.
+    // BUT, backend serving files needs local path.
+    // The current problem started because urlCertificado was NOT being served.
+    
+    // I will return the URL from storageService.
+    // If it's relative, it works.
+    return url; 
   }
 }
