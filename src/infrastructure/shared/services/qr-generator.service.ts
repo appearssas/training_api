@@ -37,10 +37,20 @@ export class QrGeneratorService {
    */
   generateVerificationUrlForQR(token: string): string {
     // Para el QR, necesitamos la URL completa para que funcione cuando se escanea
+    const isProd = process.env.NODE_ENV === 'production' || !!process.env.RENDER;
+    
+    // Si estamos en producción, el fallback DEBE ser la URL de producción
+    // Si estamos en local, el fallback DEBE ser localhost
+    const prodFallback = 'https://training-dev.onrender.com';
+    const localFallback = 'http://localhost:9000';
+    
+    const defaultUrl = isProd ? prodFallback : localFallback;
+
     const baseUrl = this.configService.get<string>('FRONTEND_URL') || 
                     this.configService.get<string>('PUBLIC_VERIFICATION_URL') || 
                     this.configService.get<string>('APP_URL') || 
-                    'https://training-dev.onrender.com'; // Fallback para producción si falta env var
+                    defaultUrl;
+                    
     return `${baseUrl}/verify/${token}`;
   }
 
