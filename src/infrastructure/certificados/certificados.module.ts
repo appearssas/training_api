@@ -15,9 +15,7 @@ import { UpdateCertificadoRetroactivoUseCase } from '@/application/certificados/
 import { RegenerateCertificatesUseCase } from '@/application/certificados/use-cases/regenerate-certificates.use-case';
 import { PdfGeneratorService } from '../shared/services/pdf-generator.service';
 import { QrGeneratorService } from '../shared/services/qr-generator.service';
-import { StorageService } from '../shared/services/storage.service';
-import { S3Service } from '../shared/services/s3.service';
-import { ConfigService } from '@nestjs/config';
+import { StorageModule } from '../shared/storage/storage.module';
 
 /**
  * Módulo de Certificados
@@ -25,6 +23,14 @@ import { ConfigService } from '@nestjs/config';
  */
 @Module({
   controllers: [CertificadosController, PublicCertificadosController],
+  imports: [
+    StorageModule,
+    TypeOrmModule.forFeature([
+      Certificado,
+      Inscripcion,
+      AuditoriaCertificadoRetroactivo,
+    ]),
+  ],
   providers: [
     CreateCertificadoUseCase,
     FindAllCertificadosUseCase,
@@ -36,37 +42,9 @@ import { ConfigService } from '@nestjs/config';
     PdfGeneratorService,
     QrGeneratorService,
     {
-      provide: S3Service,
-      useFactory: (configService: ConfigService) => {
-        // Solo crear S3Service si las variables de entorno están configuradas
-        const bucketName = configService.get<string>('AWS_S3_BUCKET_NAME');
-        const accessKeyId = configService.get<string>('AWS_ACCESS_KEY_ID');
-        const secretAccessKey = configService.get<string>('AWS_SECRET_ACCESS_KEY');
-        
-        if (bucketName && accessKeyId && secretAccessKey) {
-          try {
-            return new S3Service(configService);
-          } catch (error) {
-            console.warn('⚠️ S3Service no se pudo inicializar, usando almacenamiento local:', error);
-            return null;
-          }
-        }
-        return null;
-      },
-      inject: [ConfigService],
-    },
-    StorageService,
-    {
       provide: 'ICertificadosRepository',
       useClass: CertificadosRepositoryAdapter,
     },
-  ],
-  imports: [
-    TypeOrmModule.forFeature([
-      Certificado,
-      Inscripcion,
-      AuditoriaCertificadoRetroactivo,
-    ]),
   ],
   exports: [
     CreateCertificadoUseCase,
