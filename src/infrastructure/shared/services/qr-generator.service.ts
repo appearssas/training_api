@@ -51,7 +51,7 @@ export class QrGeneratorService {
                     this.configService.get<string>('APP_URL') || 
                     defaultUrl;
                     
-    return `${baseUrl}/verify/${token}`;
+    return `${baseUrl}/#/verify/${token}`;
   }
 
   /**
