@@ -10,7 +10,14 @@ import { join } from 'path';
 
 // Fix: Usar ruta dinámica basada en el directorio de trabajo actual (process.cwd())
 // Esto funciona tanto en Windows (Local) como en Linux (Docker/Render)
-const PUBLIC_ASSETS_PATH = join(process.cwd(), 'public', 'assets');
+let PUBLIC_ASSETS_PATH = join(process.cwd(), 'public', 'assets');
+
+// Fallback robusto para producción en Docker
+if (!existsSync(PUBLIC_ASSETS_PATH)) {
+  console.warn(`[PDF Debug] Ruta dinámica no existe: ${PUBLIC_ASSETS_PATH}. Intentando ruta Docker estándar...`);
+  PUBLIC_ASSETS_PATH = '/app/public/assets';
+}
+
 const SVG_ABSOLUTE_PATH = join(PUBLIC_ASSETS_PATH, 'certificado_svg.svg');
 
 console.log('---------------------------------------------------------');
@@ -19,6 +26,14 @@ console.log('Process CWD:', process.cwd());
 console.log('PUBLIC_ASSETS_PATH:', PUBLIC_ASSETS_PATH);
 console.log('SVG_ABSOLUTE_PATH:', SVG_ABSOLUTE_PATH);
 console.log('SVG Exists?:', existsSync(SVG_ABSOLUTE_PATH));
+
+try {
+  const { readdirSync } = require('fs');
+  const files = readdirSync(PUBLIC_ASSETS_PATH);
+  console.log('Files in ASSETS directory:', files);
+} catch (error) {
+  console.error('Could not list assets directory:', error.message);
+}
 console.log('---------------------------------------------------------');
 
 import { QrGeneratorService } from './qr-generator.service';
