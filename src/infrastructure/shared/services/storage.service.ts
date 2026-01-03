@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, Optional } from '@nestjs/common';
+import { Injectable, BadRequestException, Optional, Inject } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { existsSync, mkdirSync, writeFileSync } from 'fs';
 import { join } from 'path';
@@ -15,13 +15,24 @@ export class StorageService {
 
   constructor(
     private readonly configService: ConfigService,
-    @Optional() private readonly s3Service?: S3Service | null,
+    @Optional() @Inject(S3Service) private readonly s3Service?: S3Service | null,
   ) {
     // Verificar si se debe usar S3
     const bucketName = this.configService.get<string>('AWS_S3_BUCKET_NAME');
     const accessKeyId = this.configService.get<string>('AWS_ACCESS_KEY_ID');
     const secretAccessKey = this.configService.get<string>('AWS_SECRET_ACCESS_KEY');
+    
+    // Log de depuración para verificar la inyección
+    console.log('🔍 StorageService - Verificación de inyección:');
+    console.log(`   S3Service inyectado: ${this.s3Service ? '✅ Sí' : '❌ No (null/undefined)'}`);
+    console.log(`   Tipo de s3Service: ${typeof this.s3Service}`);
+    console.log(`   bucketName: ${bucketName ? '✅ Configurado' : '❌ No configurado'}`);
+    console.log(`   accessKeyId: ${accessKeyId ? '✅ Configurado' : '❌ No configurado'}`);
+    console.log(`   secretAccessKey: ${secretAccessKey ? '✅ Configurado' : '❌ No configurado'}`);
+    
     this.useS3 = !!(bucketName && accessKeyId && secretAccessKey && this.s3Service);
+    
+    console.log(`   useS3 resultante: ${this.useS3 ? '✅ SÍ' : '❌ NO'}`);
 
     if (!this.useS3) {
       // Ruta base de storage - usar variable de entorno o ruta por defecto
@@ -31,6 +42,20 @@ export class StorageService {
       this.materialsPath = join(this.storagePath, 'materials');
       this.certificatesPath = join(this.storagePath, 'certificates');
 
+      // Determinar si está en Render
+      const isRender = !!process.env.RENDER || baseStoragePath.startsWith('/app/');
+      const storageType = isRender ? 'Render (disco persistente)' : 'Local';
+
+      // Log del tipo de almacenamiento
+      console.log('📦 StorageService - Configuración de almacenamiento:');
+      console.log(`   ✅ Tipo: ${storageType}`);
+      console.log(`   📁 Ruta base: ${this.storagePath}`);
+      console.log(`   📁 Materiales: ${this.materialsPath}`);
+      console.log(`   📁 Certificados: ${this.certificatesPath}`);
+      if (isRender) {
+        console.log(`   🌐 Entorno: Render (disco persistente)`);
+      }
+
       // Crear directorios si no existen
       this.ensureDirectoriesExist();
     } else {
@@ -38,6 +63,20 @@ export class StorageService {
       this.storagePath = '';
       this.materialsPath = '';
       this.certificatesPath = '';
+
+      // Log del tipo de almacenamiento S3
+      const cloudFrontUrl = this.configService.get<string>('AWS_CLOUDFRONT_URL');
+      const region = this.configService.get<string>('AWS_REGION') || 'us-east-1';
+      
+      console.log('📦 StorageService - Configuración de almacenamiento:');
+      console.log(`   ✅ Tipo: AWS S3`);
+      console.log(`   🪣 Bucket: ${bucketName}`);
+      console.log(`   🌍 Región: ${region}`);
+      if (cloudFrontUrl) {
+        console.log(`   ☁️  CloudFront: ${cloudFrontUrl}`);
+      } else {
+        console.log(`   ☁️  CloudFront: ❌ No configurado (usando URL directa de S3)`);
+      }
     }
   }
 
@@ -102,15 +141,26 @@ export class StorageService {
     }
 
     // Si está configurado S3, usar S3
+    console.log(`🔍 saveFile - Verificación antes de guardar:`);
+    console.log(`   useS3: ${this.useS3}`);
+    console.log(`   s3Service existe: ${!!this.s3Service}`);
+    console.log(`   folder: ${folder}`);
+    
     if (this.useS3 && this.s3Service) {
+      console.log(`✅ Usando S3 para guardar archivo`);
       try {
-        return await this.s3Service.uploadFile(file, folder);
+        const url = await this.s3Service.uploadFile(file, folder);
+        console.log(`✅ Archivo subido a S3: ${url}`);
+        return url;
       } catch (error) {
+        console.error(`❌ Error al subir a S3:`, error);
         throw new BadRequestException(
           `Error al subir archivo a S3: ${error instanceof Error ? error.message : 'Error desconocido'}`,
         );
       }
     }
+    
+    console.log(`⚠️ Usando almacenamiento local (useS3=${this.useS3}, s3Service=${!!this.s3Service})`);
 
     // Guardar localmente
     const fileName = this.generateFileName(file.originalname);
