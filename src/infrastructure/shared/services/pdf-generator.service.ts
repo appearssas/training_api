@@ -12,6 +12,15 @@ import { join } from 'path';
 // Esto funciona tanto en Windows (Local) como en Linux (Docker/Render)
 const PUBLIC_ASSETS_PATH = join(process.cwd(), 'public', 'assets');
 const SVG_ABSOLUTE_PATH = join(PUBLIC_ASSETS_PATH, 'certificado_svg.svg');
+
+console.log('---------------------------------------------------------');
+console.log('PDF GENERATOR SERVICE - ASSET PATH DEBUG');
+console.log('Process CWD:', process.cwd());
+console.log('PUBLIC_ASSETS_PATH:', PUBLIC_ASSETS_PATH);
+console.log('SVG_ABSOLUTE_PATH:', SVG_ABSOLUTE_PATH);
+console.log('SVG Exists?:', existsSync(SVG_ABSOLUTE_PATH));
+console.log('---------------------------------------------------------');
+
 import { QrGeneratorService } from './qr-generator.service';
 import { readFileSync, existsSync } from 'fs';
 

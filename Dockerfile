@@ -41,6 +41,9 @@ COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/typeorm.config.ts ./typeorm.config.ts
 COPY --from=builder /app/scripts ./scripts
 
+# Fix: Copiar archivos públicos (imágenes, SVGs) necesarios para generar PDF
+COPY --from=builder /app/public ./public
+
 # Cambiar propiedad de archivos al usuario no-root
 RUN chown -R nestjs:nodejs /app
 
