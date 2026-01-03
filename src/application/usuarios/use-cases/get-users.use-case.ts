@@ -60,6 +60,14 @@ export class GetUsersUseCase {
         activo: usuario.persona.activo,
         fechaCreacion: usuario.persona.fechaCreacion,
         fechaActualizacion: usuario.persona.fechaActualizacion,
+        empresa: usuario.persona.empresa
+          ? {
+              id: usuario.persona.empresa.id,
+              numeroDocumento: usuario.persona.empresa.numeroDocumento,
+              razonSocial: usuario.persona.empresa.razonSocial,
+            }
+          : undefined,
+        empresaId: usuario.persona.empresaId || undefined,
       },
       username: usuario.username,
       rolPrincipal: usuario.rolPrincipal
