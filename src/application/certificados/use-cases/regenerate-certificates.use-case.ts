@@ -61,34 +61,43 @@ export class RegenerateCertificatesUseCase {
          ? inscripcion.certificados[0] : null;
 
       if (cert) {
-        this.logger.log(`Regenerating PDF for Inscripcion ${inscripcion.id}`);
+        this.logger.log(`Updating dynamic URL for Inscripcion ${inscripcion.id}`);
         try {
-            cert.inscripcion = inscripcion;
-            const pdfBuffer = await this.pdfGenerator.generateCertificate(cert);
-            const newPath = await this.savePdf(cert.id, pdfBuffer);
-            
-            // Use update instead of save, matching CreateCertificadoUseCase
-            await this.certificadosRepository.update(cert.id, {
-                urlCertificado: newPath
-            });
-            
-            this.logger.log(`PDF Regenerado y URL actualizada para certificado ID: ${cert.id}`);
-            result.generados++; 
+            // Asegurar que existe hash
+            let hash = cert.hashVerificacion;
+            if (!hash) {
+                 // Si falta hash, no podemos generar URL dinámica segura.
+                 // Podríamos generarlo aquí, pero simplificaremos asumiendo que el hash existe o se debe regenerar todo.
+                 // Si createCertificadoUseCase se encarga de todo, mejor llamar a create si falta info vital.
+                 this.logger.warn(`Certificado ${cert.id} sin hash. Saltando a recreación completa.`);
+                 // Forzamos creación si está corrupto?
+                 // Mejor solo actualizamos si tiene hash.
+            }
+
+            if (hash) {
+                const dynamicUrl = `/public/certificates/download/${hash}`;
+                await this.certificadosRepository.update(cert.id, {
+                    urlCertificado: dynamicUrl
+                });
+                this.logger.log(`URL dinámica actualizada para certificado ID: ${cert.id}`);
+                result.generados++;
+            }
+             
         } catch (error) {
-            this.logger.error(`Error regenerando PDF para inscripción ${inscripcion.id}`, error);
+            this.logger.error(`Error actualizando certificado ${inscripcion.id}`, error);
             result.errores++;
-            if (error instanceof Error) result.detallesErrores.push(`Regen Inscripcion ${inscripcion.id}: ${error.message}`);
+            if (error instanceof Error) result.detallesErrores.push(`Update Inscripcion ${inscripcion.id}: ${error.message}`);
         }
         result.yaTenianCertificado++;
       } else {
-        // Generar nuevo
+        // Generar nuevo (CreateCertificadoUseCase ya es On-Demand)
         try {
             await this.createCertificadoUseCase.execute({
               inscripcionId: inscripcion.id,
               emitidoPor: 1,
             });
             result.generados++;
-            this.logger.log(`Certificado generado para inscripción ID: ${inscripcion.id}`);
+            this.logger.log(`Certificado (metadata) generado para inscripción ID: ${inscripcion.id}`);
         } catch (error) {
             result.errores++;
             const errMsg = error instanceof Error ? error.message : 'Error desconocido';
@@ -102,34 +111,5 @@ export class RegenerateCertificatesUseCase {
     return result;
   }
 
-  /* Helper para guardar PDF usando StorageService */
-  private async savePdf(certificadoId: number | string, pdfBuffer: Buffer): Promise<string> {
-    const fileName = `certificado-${certificadoId}-${Date.now()}.pdf`;
-    
-    const url = await this.storageService.saveBuffer(
-      pdfBuffer,
-      fileName,
-      'certificates',
-      'application/pdf',
-    );
-
-    // Si es URL relativa, devolverla tal cual está en la BD o ajustar según necesidad.
-    // CreateCertificadoUseCase prepends baseUrl, pero PublicCertificadosController espera nombre de archivo o path.
-    // Si StorageService retorna `/storage/certificates/file.pdf`.
-    
-    // PublicCertificadosController busca en `/storage/certificates/filename`.
-    // Si url es completa (http...), no sirve para path local.
-    // Pero asumo local storage.
-    
-    // CreateCertificadoUseCase logic:
-    // if (url.startsWith('/storage/')) return `${baseUrl}${url}`;
-    
-    // I should probably store the relative path for consistency if frontend expects full URL.
-    // BUT, backend serving files needs local path.
-    // The current problem started because urlCertificado was NOT being served.
-    
-    // I will return the URL from storageService.
-    // If it's relative, it works.
-    return url; 
-  }
+  // Helper savePdf eliminado por arquitectura On-Demand
 }

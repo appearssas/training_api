@@ -33,7 +33,9 @@
       }
 
       .cls-10 {
-        font-family: Helvetica;
+        font-family: MontserratRoman-Light, Montserrat;
+        font-variation-settings: 'wght' 300;
+        font-weight: 300;
       }
 
       .cls-11 {
@@ -41,7 +43,9 @@
       }
 
       .cls-12, .cls-2, .cls-3 {
-        font-family: Helvetica-Bold;
+        font-family: MontserratRoman-Bold, Montserrat;
+        font-variation-settings: 'wght' 700;
+        font-weight: 700;
       }
 
       .cls-13 {

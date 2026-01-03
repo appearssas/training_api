@@ -18,6 +18,9 @@ import * as fs from 'fs/promises';
 import { VerifyCertificadoUseCase } from '@/application/certificados/use-cases/verify-certificado.use-case';
 import { RegenerateCertificatesUseCase } from '@/application/certificados/use-cases/regenerate-certificates.use-case';
 import { StorageService } from '../shared/services/storage.service';
+import { PdfGeneratorService } from '../shared/services/pdf-generator.service';
+import { ICertificadosRepository } from '@/domain/certificados/ports/certificados.repository.port';
+import { Inject } from '@nestjs/common';
 
 /**
  * Controlador público de verificación de certificados
@@ -32,7 +35,42 @@ export class PublicCertificadosController {
     private readonly verifyCertificadoUseCase: VerifyCertificadoUseCase,
     private readonly regenerateCertificatesUseCase: RegenerateCertificatesUseCase,
     private readonly storageService: StorageService,
+    private readonly pdfGenerator: PdfGeneratorService,
+    @Inject('ICertificadosRepository')
+    private readonly certificadosRepository: ICertificadosRepository,
   ) {}
+
+  @Get('certificates/download/:hash')
+  @ApiOperation({
+    summary: 'Descargar certificado PDF (On-Demand)',
+    description: 'Genera el PDF en tiempo real y lo descarga sin guardar en disco.',
+  })
+  async downloadCertificate(@Param('hash') hash: string, @Res() res: Response) {
+      const certificate = await this.certificadosRepository.findByHashVerificacion(hash);
+
+      if (!certificate) {
+          throw new NotFoundException('Certificado no encontrado');
+      }
+
+      // Validar si la inscripción/capacitacion está cargada
+      // El repositorio ya debería traer todo con findByHashVerificacion (según vi en el adapter)
+      
+      try {
+          // Generar PDF en memoria (Buffer)
+          const buffer = await this.pdfGenerator.generateCertificate(certificate);
+
+          res.set({
+              'Content-Type': 'application/pdf',
+              'Content-Disposition': `inline; filename="certificado-${hash}.pdf"`,
+              'Content-Length': buffer.length,
+          });
+
+          res.end(buffer);
+      } catch (error) {
+          console.error('Error generando PDF on-demand:', error);
+          throw new BadRequestException('Error al generar el documento PDF');
+      }
+  }
 
   @Get('files/:filename')
   @ApiOperation({

@@ -293,53 +293,46 @@ export class CertificadosController {
       res.send(buffer);
     };
 
-    // Si hay URL de certificado y es de S3/CloudFront, intentar redirigir
-    if (
-      certificado.urlCertificado &&
-      (certificado.urlCertificado.startsWith('http://') ||
-        certificado.urlCertificado.startsWith('https://'))
-    ) {
-      // Si es URL externa (S3/CloudFront), redirigir directamente
-      return res.redirect(certificado.urlCertificado);
+    // Si hay URL de certificado y es de S3/CloudFront o ruta dinámica, intentar redirigir
+    if (certificado.urlCertificado) {
+      // Caso 1: URL absoluta (S3, CDN)
+      if (certificado.urlCertificado.startsWith('http://') || certificado.urlCertificado.startsWith('https://')) {
+        return res.redirect(certificado.urlCertificado);
+      }
+      
+      // Caso 2: Ruta dinámica On-Demand (nueva arquitectura)
+      if (certificado.urlCertificado.includes('/public/certificates/download/')) {
+        // Redirigir al controlador público que genera en memoria
+        return res.redirect(certificado.urlCertificado);
+      }
     }
 
-    // Si es almacenamiento local o no hay URL, intentar leer del disco
+    // Si es almacenamiento local, intentar leer del disco
     try {
       const filePath = this.storageService.getFilePath(
         certificado.urlCertificado || `/storage/certificates/${fileName}`,
       );
+      // Validar que intenta leer un archivo real y no una ruta de API malinterpretada
+      if (!filePath.endsWith('.pdf')) {
+         throw { code: 'ENOENT' }; // forzar regeneración/redirección si no parece archivo
+      }
+
       const fileBuffer = await fs.readFile(filePath);
       return sendFile(fileBuffer);
     } catch (error: any) {
-      // Si el error es que no existe el archivo, lo regeneramos
+      // Si el error es que no existe el archivo, lo regeneramos (On-Demand fallback)
       if (error.code === 'ENOENT') {
         console.log(
-          `⚠️ PDF para certificado ${id} no encontrado. Regenerando...`,
+          `⚠️ PDF para certificado ${id} no encontrado en disco. Generando On-Demand...`,
         );
         try {
-          // Generar el PDF usando el servicio
+          // Generar el PDF usando el servicio (en memoria)
           const pdfBuffer =
             await this.pdfGeneratorService.generateCertificate(certificado);
 
-          // Guardar usando StorageService (maneja S3 o local automáticamente)
-          const url = await this.storageService.saveBuffer(
-            pdfBuffer,
-            fileName,
-            'certificates',
-            'application/pdf',
-          );
-
-          // Si la URL es relativa, construir URL completa
-          let finalUrl = url;
-          if (url.startsWith('/storage/')) {
-            const baseUrl =
-              this.configService.get<string>('APP_URL') ||
-              'http://localhost:3000';
-            finalUrl = `${baseUrl}${url}`;
-          }
-
-          // Actualizar URL en la base de datos (opcional, no bloquea la respuesta)
-          // await this.updateUrl(id, finalUrl);
+          // CAMBIO ARQUITECTURA: NO GUARDAR EN DISCO.
+          // Solo servir el buffer generado.
+          // const url = await this.storageService.saveBuffer(...); <-- ELIMINADO
 
           return sendFile(pdfBuffer);
         } catch (genError) {
