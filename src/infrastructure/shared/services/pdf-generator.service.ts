@@ -8,11 +8,15 @@ import { Inscripcion } from '@/entities/inscripcion/inscripcion.entity';
 const sharp = require('sharp');
 // Usar ruta absoluta al SVG para evitar problemas de resolución de path
 const SVG_ABSOLUTE_PATH = '/app/public/assets/certificado_svg.svg';
+import { QrGeneratorService } from './qr-generator.service';
 import { readFileSync, existsSync } from 'fs';
 
 @Injectable()
 export class PdfGeneratorService {
-  constructor(private readonly configService: ConfigService) {}
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly qrGeneratorService: QrGeneratorService
+  ) {}
 
   async generateCertificate(certificado: Certificado): Promise<any> {
     const doc = new PDFDocument({
@@ -244,20 +248,40 @@ export class PdfGeneratorService {
         align: 'center',
       });
 
-    // 11. QR
-    if (certificado.codigoQr) {
+    // 11. QR (GENERADO EN TIEMPO REAL para asegurar URL correcta)
+    // Ignoramos el QR guardado en BD para evitar problemas de dominios (localhost vs prod)
+    if (certificado.hashVerificacion) {
       try {
-        let qrImageData = certificado.codigoQr;
-        if (!qrImageData.startsWith('data:image')) {
-          qrImageData = `data:image/png;base64,${qrImageData}`;
-        }
-        const base64Data = qrImageData.split(',')[1];
+        // 1. Generar URL completa basada en la configuración ACTUAL del servidor
+        const urlVerificacion = this.qrGeneratorService.generateVerificationUrlForQR(certificado.hashVerificacion);
+        
+        // 2. Generar imagen QR en tiempo real
+        const qrBase64 = await this.qrGeneratorService.generateQRCode(urlVerificacion);
+        
+        // 3. Procesar imagen
+        const base64Data = qrBase64.split(',')[1];
         const qrBuffer = Buffer.from(base64Data, 'base64');
         const qrSize = 70;
         const qrX = 690;
         const qrY = 445;
         doc.image(qrBuffer, qrX, qrY, { width: qrSize, height: qrSize });
-      } catch (e) {}
+        
+        console.log(`[PDF] QR regenerado dinámicamente: ${urlVerificacion}`);
+      } catch (e) {
+        console.error('Error generando QR dinámico:', e);
+         // Fallback: intentar usar el guardado si falla el dinámico
+         if (certificado.codigoQr) {
+            try {
+                let qrImageData = certificado.codigoQr;
+                 if (!qrImageData.startsWith('data:image')) {
+                   qrImageData = `data:image/png;base64,${qrImageData}`;
+                 }
+                const base64Data = qrImageData.split(',')[1];
+                const qrBuffer = Buffer.from(base64Data, 'base64');
+                doc.image(qrBuffer, 690, 445, { width: 70, height: 70 });
+            } catch(ex) {}
+         }
+      }
     }
 
     doc.end();
