@@ -57,6 +57,11 @@ async function bootstrap() {
     prefix: '/storage',
   });
 
+  // Fix: Servir certificados directamente desde /certificates para compatibilidad con URLs antiguas o generadas incorrectamente
+  app.useStaticAssets(join(storagePath, 'certificates'), {
+    prefix: '/certificates',
+  });
+
   // Habilitar CORS para permitir peticiones desde el frontend
   app.enableCors({
     origin: true, // Permite cualquier origen en desarrollo
