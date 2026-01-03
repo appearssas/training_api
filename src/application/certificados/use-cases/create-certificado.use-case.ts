@@ -132,57 +132,29 @@ export class CreateCertificadoUseCase {
     }
 
     // CRÍTICO: Asegurar que se use la inscripción cargada previamente con la capacitación correcta
-    // Esto evita problemas de caché de TypeORM donde se podría usar una capacitación incorrecta
     certificado.inscripcion = inscripcion;
 
-    // Log para debugging: verificar que se está usando la capacitación correcta
-    console.log('📋 Generando certificado con capacitación:', {
+    // Log para debugging
+    console.log('📋 Generando certificado (RECORD) con capacitación:', {
       certificadoId: certificado.id,
-      inscripcionId: certificado.inscripcion.id,
-      capacitacionId: certificado.inscripcion.capacitacion.id,
       capacitacionTitulo: certificado.inscripcion.capacitacion.titulo,
-      // Verificar que el título no esté vacío
-      capacitacionTituloValido: certificado.inscripcion.capacitacion.titulo?.trim() || 'VACÍO',
     });
 
-    // Generar PDF del certificado (RF-22, RF-23)
-    const pdfBuffer = await this.pdfGenerator.generateCertificate(certificado);
-
-    // Guardar PDF en almacenamiento
-    const pdfUrl = await this.savePdf(certificado.id, pdfBuffer);
-    certificado.urlCertificado = pdfUrl;
-
-    // Actualizar certificado con URL del PDF
-    return await this.certificadosRepository.update(certificado.id, {
-      urlCertificado: pdfUrl,
-    });
-  }
-
-  /**
-   * Guarda el PDF en almacenamiento local o S3
-   * @param certificadoId ID del certificado
-   * @param pdfBuffer Buffer del PDF
-   * @returns URL del PDF guardado
-   */
-  private async savePdf(certificadoId: number, pdfBuffer: Buffer): Promise<string> {
-    const fileName = `certificado-${certificadoId}-${Date.now()}.pdf`;
+    // CAMBIO ARQUITECTURA: NO GENERAR EL PDF AHORA (On-Demand)
+    // En lugar de crear el archivo y guardarlo, guardamos la URL dinámica de descarga
+    const baseUrl = this.configService.get<string>('APP_URL') || 'http://localhost:3000';
+    // Ajustar la URL para que apunte al endpoint de descarga dinámica
+    // Ejemplo: /api/public/certificates/download/HASH
+    const dynamicUrl = `/public/certificates/download/${hashVerificacion}`;
     
-    // Usar StorageService que maneja automáticamente S3 o almacenamiento local
-    const url = await this.storageService.saveBuffer(
-      pdfBuffer,
-      fileName,
-      'certificates',
-      'application/pdf',
-    );
+    certificado.urlCertificado = dynamicUrl;
 
-    // Si la URL es relativa (almacenamiento local), construir URL completa
-    if (url.startsWith('/storage/')) {
-      const baseUrl = this.configService.get<string>('APP_URL') || 'http://localhost:3000';
-      return `${baseUrl}${url}`;
-    }
-
-    // Si es URL completa (S3/CloudFront), retornarla directamente
-    return url;
+    // Actualizar certificado con URL dinámica
+    return await this.certificadosRepository.update(certificado.id, {
+      urlCertificado: dynamicUrl,
+    });
   }
+
+  // Método savePdf eliminado ya que no se usa en arquitectura On-Demand
 }
 
