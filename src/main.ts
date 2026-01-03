@@ -6,6 +6,10 @@ import { AppModule } from './app.module';
 import { join } from 'path';
 
 async function bootstrap() {
+  console.log('--------------------------------------------------');
+  console.log('🚀 BACKEND DEPLOYMENT: 2026-01-03 17:25 (Image/QR Fixes Proven)');
+  console.log('--------------------------------------------------');
+
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
   // Servir archivos estáticos
