@@ -31,17 +31,47 @@ export class PdfGeneratorService {
 
     const estudiante = inscripcion.estudiante as any;
     const capacitacion = inscripcion.capacitacion as any;
-    
+
     // -- CONFIGURACIÓN --
-    const docWidth = doc.page.width; 
+    const docWidth = doc.page.width;
     const centerX = docWidth / 2;
 
     // 1. FONDO
     await this.addCertificateBackground(doc);
 
+    // 0. LOGO SUPERIOR CENTRADO (CONDICIONAL) - Moved after background
+    const titulo = (capacitacion?.titulo || '').toLowerCase().trim();
+    // FIX: Usar minusculas porque 'titulo' ya fue convertido a .toLowerCase()
+    const contieneSustancias = titulo.includes('sustancias');
+    const contienePeligrosas = titulo.includes('peligrosas');
+
+   
+    const logoPath =
+      contieneSustancias && contienePeligrosas
+        ? '/app/public/assets/saroto.jpeg'
+        : '/app/public/assets/andar.png';
+
+    console.log(`[PDF Debug] Logo Path seleccionado: ${logoPath}`);
+
+    const logoWidth = 120; // ajusta según necesites
+    const logoHeight = 60; // ajusta según necesites
+    const logoX = centerX - logoWidth / 2;
+    const logoY = 50; 
+
+    // Verificar existencia antes de intentar pintar (opcional pero recomendado)
+    if (existsSync(logoPath)) {
+        console.log(`[PDF Debug] El archivo de logo EXISTE. Intentando pintar en (${logoX}, ${logoY}).`);
+        doc.image(logoPath, logoX, logoY, {
+          width: logoWidth,
+          height: logoHeight,
+        });
+    } else {
+        console.warn(`[PDF Debug] ALERTA: Logo not found at: ${logoPath}`);
+    }
+
     // 2. TÍTULO PRINCIPAL (Y=140)
     doc.x = 0;
-    doc.y = 140; 
+    doc.y = 140;
 
     doc
       .fontSize(22)
@@ -57,11 +87,6 @@ export class PdfGeneratorService {
     doc.moveDown(0.2);
     doc.fontSize(12).font('Helvetica-Bold').text('FORMAR360', { align: 'center' });
     doc.moveDown(0.2);
-    doc.fontSize(10).font('Helvetica').text('con el respaldo de', { align: 'center' });
-    doc.moveDown(0.2);
-    doc.fontSize(12).font('Helvetica-Bold').text('ANDAR DEL LLANO', { align: 'center' });
-    doc.moveDown(0.2);
-    doc.fontSize(10).font('Helvetica').text('Centro de Enseñanza Automovilística', { align: 'center' });
 
     doc.moveDown(1.2);
 
@@ -71,21 +96,26 @@ export class PdfGeneratorService {
     doc.moveTo(centerX - 120, lineaY).lineTo(centerX - 70, lineaY).stroke();
     doc.moveTo(centerX + 70, lineaY).lineTo(centerX + 120, lineaY).stroke();
 
-    doc.fontSize(9).fillColor('#666666').font('Helvetica').text('CERTIFICA QUE:', { align: 'center' });
+    doc
+      .fontSize(9)
+      .fillColor('#666666')
+      .font('Helvetica')
+      .text('CERTIFICA QUE:', { align: 'center' });
 
     doc.moveDown(1.0);
 
     // 5. NOMBRE ESTUDIANTE
-    const nombreCompleto = estudiante?.nombres && estudiante?.apellidos
-      ? `${estudiante.nombres} ${estudiante.apellidos}`.toUpperCase()
-      : 'ESTUDIANTE';
-    
+    const nombreCompleto =
+      estudiante?.nombres && estudiante?.apellidos
+        ? `${estudiante.nombres} ${estudiante.apellidos}`.toUpperCase()
+        : 'ESTUDIANTE';
+
     doc
-      .fontSize(22) 
+      .fontSize(22)
       .fillColor('#0D47A1')
       .font('Helvetica-Bold')
       .text(nombreCompleto, { align: 'center' });
-    
+
     doc.moveDown(0.3);
 
     // 6. CÉDULA
@@ -109,79 +139,132 @@ export class PdfGeneratorService {
 
     // 8. CURSO (BOTÓN AZUL)
     const cursoNombre = (capacitacion?.titulo || 'CURSO SIN NOMBRE').toUpperCase();
-    
+
     doc.fontSize(14).font('Helvetica-Bold');
     const textWidth = doc.widthOfString(cursoNombre);
     const boxPadding = 20;
-    const boxWidth = textWidth + (boxPadding * 2);
+    const boxWidth = textWidth + boxPadding * 2;
     const boxHeight = 30;
-    const boxX = centerX - (boxWidth / 2);
+    const boxX = centerX - boxWidth / 2;
     const boxY = doc.y;
 
-    doc.roundedRect(boxX, boxY, boxWidth, boxHeight, 8).fillColor('#0D47A1').fill();
-    doc.fillColor('white').text(cursoNombre, boxX, boxY + 8, { width: boxWidth, align: 'center' });
+    doc
+      .roundedRect(boxX, boxY, boxWidth, boxHeight, 8)
+      .fillColor('#0D47A1')
+      .fill();
+    doc
+      .fillColor('white')
+      .text(cursoNombre, boxX, boxY + 8, { width: boxWidth, align: 'center' });
 
     doc.y = boxY + boxHeight + 15;
 
-    // 9. DETALLES (FORZANDO CENTRADO ABSOLUTO)
-    // Reiniciamos X a 0 y usamos width del documento completo para garantizar centrado
+    // 9. DETALLES (CENTRADO)
     doc.x = 0;
     doc.fillColor('black');
     doc.fontSize(10).font('Helvetica');
-    
-    // Usamos text con width explicito igual al de la página
-    doc.text('Con una intensidad de 20 horas', 0, doc.y, { width: docWidth, align: 'center' });
-    doc.text('Modalidad: Virtual', 0, doc.y, { width: docWidth, align: 'center' });
+
+    doc.text('Con una intensidad de 20 horas', 0, doc.y, {
+      width: docWidth,
+      align: 'center',
+    });
+    doc.text('Resolucion: 0000000000', 0, doc.y, {
+      width: docWidth,
+      align: 'center',
+    });
 
     // 10. FIRMAS + GARABATOS FALSOS
-    const footerY = 500; 
+    const footerY = 500;
     const col1X = centerX - 180;
     const col2X = centerX + 80;
 
     doc.lineWidth(1).strokeColor('black');
 
-    // -- Firma Izquierda --
-    // Garabato Falso (Simulación de firma)
+    // Firma izquierda (garabato)
     doc.save();
     doc.strokeColor('#000066').lineWidth(2);
-    doc.moveTo(col1X - 30, footerY - 20)
-       .bezierCurveTo(col1X - 20, footerY - 40, col1X + 20, footerY - 10, col1X + 40, footerY - 30)
-       .stroke();
+    doc
+      .moveTo(col1X - 30, footerY - 20)
+      .bezierCurveTo(
+        col1X - 20,
+        footerY - 40,
+        col1X + 20,
+        footerY - 10,
+        col1X + 40,
+        footerY - 30,
+      )
+      .stroke();
     doc.restore();
 
-    // Línea y Texto
     doc.moveTo(col1X - 80, footerY).lineTo(col1X + 80, footerY).stroke();
-    doc.text('Anderson Herrera Díaz', col1X - 80, footerY + 5, { width: 160, align: 'center' });
-    doc.fontSize(8).font('Helvetica').text('Instructor / Entrenador\nTSA REG 37544429\nLicencia SST', { width: 160, align: 'center' });
+    doc.text('Anderson Herrera Díaz', col1X - 80, footerY + 5, {
+      width: 160,
+      align: 'center',
+    });
+    doc
+      .fontSize(8)
+      .font('Helvetica')
+      .text(
+        'Instructor / Entrenador\nTSA REG 37544429\nLicencia SST',
+        col1X - 80,
+        footerY + 20,
+        { width: 160, align: 'center' },
+      );
 
-    // -- Firma Derecha --
-    // Garabato Falso diferente
+    // Firma derecha (garabato)
     doc.save();
     doc.strokeColor('#000066').lineWidth(2);
-    doc.moveTo(col2X - 40, footerY - 25)
-       .bezierCurveTo(col2X - 10, footerY - 10, col2X + 10, footerY - 45, col2X + 50, footerY - 20)
-       .stroke();
+    doc
+      .moveTo(col2X - 40, footerY - 25)
+      .bezierCurveTo(
+        col2X - 10,
+        footerY - 10,
+        col2X + 10,
+        footerY - 45,
+        col2X + 50,
+        footerY - 20,
+      )
+      .stroke();
     doc.restore();
 
-    // Línea y Texto
     doc.moveTo(col2X - 80, footerY).lineTo(col2X + 80, footerY).stroke();
-    doc.fontSize(10).font('Helvetica-Bold').text('Edwin Julian Parra Morales', col2X - 80, footerY + 5, { width: 160, align: 'center' });
-    doc.fontSize(8).font('Helvetica').text('Representante Legal\nANDAR DEL LLANO', { width: 160, align: 'center' });
+    doc.fontSize(10).font('Helvetica-Bold').text(
+      'Edwin Julian Parra Morales',
+      col2X - 80,
+      footerY + 5,
+      {
+        width: 160,
+        align: 'center',
+      },
+    );
+    doc
+      .fontSize(8)
+      .font('Helvetica')
+      .text('Representante Legal\nANDAR DEL LLANO', col2X - 80, footerY + 20, {
+        width: 160,
+        align: 'center',
+      });
 
     // 11. QR
     if (certificado.codigoQr) {
       try {
         let qrImageData = certificado.codigoQr;
-        if (!qrImageData.startsWith('data:image')) qrImageData = `data:image/png;base64,${qrImageData}`;
+        if (!qrImageData.startsWith('data:image')) {
+          qrImageData = `data:image/png;base64,${qrImageData}`;
+        }
         const base64Data = qrImageData.split(',')[1];
         const qrBuffer = Buffer.from(base64Data, 'base64');
-        const qrSize = 70; const qrX = 690; const qrY = 445; 
+        const qrSize = 70;
+        const qrX = 690;
+        const qrY = 445;
         doc.image(qrBuffer, qrX, qrY, { width: qrSize, height: qrSize });
       } catch (e) {}
     }
 
     doc.end();
-    return new Promise((r, j) => { doc.on('end', () => r(Buffer.concat(buffers))); doc.on('error', j); });
+    return new Promise((resolve, reject) => {
+      doc.on('end', () => resolve(Buffer.concat(buffers)));
+      doc.on('error', reject);
+    });
   }
 
   private async addCertificateBackground(doc: any): Promise<void> {
@@ -191,6 +274,8 @@ export class PdfGeneratorService {
         const pngBuffer = await sharp(svgBuffer).png().toBuffer();
         doc.image(pngBuffer, 0, 0, { width: 792, height: 612 });
       }
-    } catch (e) { console.error(e); }
+    } catch (e) {
+      console.error(e);
+    }
   }
 }
