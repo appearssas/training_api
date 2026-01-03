@@ -17,12 +17,12 @@ import { S3Service } from '../services/s3.service';
         const bucketName = configService.get<string>('AWS_S3_BUCKET_NAME');
         const accessKeyId = configService.get<string>('AWS_ACCESS_KEY_ID');
         const secretAccessKey = configService.get<string>('AWS_SECRET_ACCESS_KEY');
-        
+
         console.log('\n🔍 StorageModule - Verificando configuración S3:');
         console.log(`   bucketName: ${bucketName ? `✅ Configurado (${bucketName})` : '❌ No configurado'}`);
         console.log(`   accessKeyId: ${accessKeyId ? `✅ Configurado (${accessKeyId.substring(0, 4)}...)` : '❌ No configurado'}`);
         console.log(`   secretAccessKey: ${secretAccessKey ? `✅ Configurado (${secretAccessKey.substring(0, 4)}...)` : '❌ No configurado'}`);
-        
+
         if (bucketName && accessKeyId && secretAccessKey) {
           try {
             console.log('✅ Creando instancia de S3Service...');
