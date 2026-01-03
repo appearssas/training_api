@@ -1,5 +1,16 @@
 import { ApiProperty } from '@nestjs/swagger';
 
+export class EmpresaResponseDto {
+  @ApiProperty({ example: 1 })
+  id: number;
+
+  @ApiProperty({ example: '900123456-1' })
+  numeroDocumento: string;
+
+  @ApiProperty({ example: 'Empresa SAS' })
+  razonSocial: string;
+}
+
 export class PersonaResponseDto {
   @ApiProperty({ example: 1 })
   id: number;
@@ -39,6 +50,12 @@ export class PersonaResponseDto {
 
   @ApiProperty({ example: '2025-01-15T10:30:00.000Z' })
   fechaActualizacion: Date;
+
+  @ApiProperty({ type: EmpresaResponseDto, required: false })
+  empresa?: EmpresaResponseDto;
+
+  @ApiProperty({ example: 1, required: false })
+  empresaId?: number;
 }
 
 export class RolResponseDto {
