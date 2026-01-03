@@ -11,6 +11,8 @@ import { MaterialCapacitacion } from '@/entities/materiales/material-capacitacio
 import { TipoMaterial } from '@/entities/catalogos/tipo-material.entity';
 import { VideoUrlValidatorService } from '../shared/services/video-url-validator.service';
 import { StorageModule } from '../shared/storage/storage.module';
+import { ImageCompressionService } from '../shared/services/image-compression.service';
+import { FileCompressionInterceptor } from '../shared/interceptors/file-compression.interceptor';
 
 @Module({
   controllers: [MaterialesController],
@@ -25,6 +27,8 @@ import { StorageModule } from '../shared/storage/storage.module';
     FindMaterialsByCapacitacionUseCase,
     FindOneMaterialUseCase,
     VideoUrlValidatorService,
+    ImageCompressionService,
+    FileCompressionInterceptor,
     {
       provide: 'IMaterialesRepository',
       useClass: MaterialesRepositoryAdapter,

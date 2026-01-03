@@ -10,6 +10,7 @@ export class StorageService {
   private readonly storagePath: string;
   private readonly materialsPath: string;
   private readonly certificatesPath: string;
+  private readonly avatarsPath: string;
   private readonly maxFileSize: number = 10 * 1024 * 1024; // 10MB
   private readonly useS3: boolean;
 
@@ -41,6 +42,7 @@ export class StorageService {
       this.storagePath = baseStoragePath;
       this.materialsPath = join(this.storagePath, 'materials');
       this.certificatesPath = join(this.storagePath, 'certificates');
+      this.avatarsPath = join(this.storagePath, 'avatars');
 
       // Determinar si está en Render
       const isRender = !!process.env.RENDER || baseStoragePath.startsWith('/app/');
@@ -52,6 +54,7 @@ export class StorageService {
       console.log(`   📁 Ruta base: ${this.storagePath}`);
       console.log(`   📁 Materiales: ${this.materialsPath}`);
       console.log(`   📁 Certificados: ${this.certificatesPath}`);
+      console.log(`   📁 Avatares: ${this.avatarsPath}`);
       if (isRender) {
         console.log(`   🌐 Entorno: Render (disco persistente)`);
       }
@@ -63,6 +66,7 @@ export class StorageService {
       this.storagePath = '';
       this.materialsPath = '';
       this.certificatesPath = '';
+      this.avatarsPath = '';
 
       // Log del tipo de almacenamiento S3
       const cloudFrontUrl = this.configService.get<string>('AWS_CLOUDFRONT_URL');
@@ -92,6 +96,9 @@ export class StorageService {
     }
     if (!existsSync(this.certificatesPath)) {
       mkdirSync(this.certificatesPath, { recursive: true });
+    }
+    if (!existsSync(this.avatarsPath)) {
+      mkdirSync(this.avatarsPath, { recursive: true });
     }
   }
 
@@ -124,7 +131,7 @@ export class StorageService {
   async saveFile(
     file: Express.Multer.File,
     allowedTypes: string[],
-    folder: 'materials' | 'certificates' = 'materials',
+    folder: 'materials' | 'certificates' | 'avatars' = 'materials',
   ): Promise<string> {
     // Validar tamaño
     if (file.size > this.maxFileSize) {
@@ -164,9 +171,10 @@ export class StorageService {
 
     // Guardar localmente
     const fileName = this.generateFileName(file.originalname);
-    const filePath = folder === 'materials' 
-      ? join(this.materialsPath, fileName)
-      : join(this.certificatesPath, fileName);
+    const filePath = 
+      folder === 'materials' ? join(this.materialsPath, fileName) :
+      folder === 'certificates' ? join(this.certificatesPath, fileName) :
+      join(this.avatarsPath, fileName);
 
     try {
       // Guardar archivo
@@ -184,7 +192,7 @@ export class StorageService {
   /**
    * Guarda una imagen (PDF o imagen)
    */
-  async saveImageOrPdf(file: Express.Multer.File, folder: 'materials' | 'certificates' = 'materials'): Promise<string> {
+  async saveImageOrPdf(file: Express.Multer.File, folder: 'materials' | 'certificates' | 'avatars' = 'materials'): Promise<string> {
     const allowedTypes = [
       'image/jpeg',
       'image/png',
@@ -196,12 +204,12 @@ export class StorageService {
   }
 
   /**
-   * Guarda un buffer (útil para certificados PDF generados)
+   * Guarda un buffer (útil para certificados PDF generados o imágenes)
    */
   async saveBuffer(
     buffer: Buffer,
     fileName: string,
-    folder: 'materials' | 'certificates' = 'certificates',
+    folder: 'materials' | 'certificates' | 'avatars' = 'certificates',
     contentType: string = 'application/pdf',
   ): Promise<string> {
     // Si está configurado S3, usar S3
@@ -216,9 +224,10 @@ export class StorageService {
     }
 
     // Guardar localmente
-    const filePath = folder === 'materials'
-      ? join(this.materialsPath, fileName)
-      : join(this.certificatesPath, fileName);
+    const filePath = 
+      folder === 'materials' ? join(this.materialsPath, fileName) :
+      folder === 'certificates' ? join(this.certificatesPath, fileName) :
+      join(this.avatarsPath, fileName);
 
     try {
       writeFileSync(filePath, buffer);

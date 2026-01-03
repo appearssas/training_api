@@ -31,7 +31,9 @@ import { UpdateInscripcionUseCase } from '@/application/inscripciones/use-cases/
 import { RemoveInscripcionUseCase } from '@/application/inscripciones/use-cases/remove-inscripcion.use-case';
 import { FindByEstudianteUseCase } from '@/application/inscripciones/use-cases/find-by-estudiante.use-case';
 import { FindByCapacitacionUseCase } from '@/application/inscripciones/use-cases/find-by-capacitacion.use-case';
+import { BulkAssignCoursesUseCase } from '@/application/inscripciones/use-cases/bulk-assign-courses.use-case';
 import { PaginationDto } from '@/application/shared/dto/pagination.dto';
+import { BulkAssignCoursesDto } from '@/application/inscripciones/dto/bulk-assign-courses.dto';
 
 /**
  * Controlador de Inscripciones
@@ -50,6 +52,7 @@ export class InscripcionesController {
     private readonly removeInscripcionUseCase: RemoveInscripcionUseCase,
     private readonly findByEstudianteUseCase: FindByEstudianteUseCase,
     private readonly findByCapacitacionUseCase: FindByCapacitacionUseCase,
+    private readonly bulkAssignCoursesUseCase: BulkAssignCoursesUseCase,
   ) {}
 
   @Post()
@@ -285,5 +288,74 @@ export class InscripcionesController {
     @Body() pagination?: PaginationDto,
   ) {
     return this.findByCapacitacionUseCase.execute(capacitacionId, pagination);
+  }
+
+  @Post('bulk-assign')
+  @Roles('ADMIN', 'CLIENTE')
+  @ApiOperation({
+    summary: 'Asignar múltiples cursos a múltiples usuarios',
+    description:
+      'Asigna múltiples cursos (capacitaciones) a múltiples usuarios (estudiantes) en una sola operación. ' +
+      'Valida cada combinación usuario-curso antes de crear la inscripción. ' +
+      'Omite duplicados y registra errores para cada fallo. ' +
+      'Solo ADMIN y CLIENTE pueden realizar asignaciones masivas.',
+  })
+  @ApiBody({ type: BulkAssignCoursesDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Asignación masiva completada',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'number', example: 10, description: 'Número de inscripciones creadas exitosamente' },
+        failed: { type: 'number', example: 2, description: 'Número de inscripciones que fallaron' },
+        total: { type: 'number', example: 12, description: 'Total de combinaciones procesadas' },
+        details: {
+          type: 'object',
+          properties: {
+            created: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  userId: { type: 'number' },
+                  courseId: { type: 'number' },
+                  inscripcionId: { type: 'number' },
+                },
+              },
+            },
+            skipped: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  userId: { type: 'number' },
+                  courseId: { type: 'number' },
+                  reason: { type: 'string' },
+                },
+              },
+            },
+            errors: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  userId: { type: 'number' },
+                  courseId: { type: 'number' },
+                  error: { type: 'string' },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Datos inválidos (array vacío, IDs inválidos, etc.)',
+  })
+  bulkAssignCourses(@Body() bulkAssignDto: BulkAssignCoursesDto) {
+    return this.bulkAssignCoursesUseCase.execute(bulkAssignDto);
   }
 }

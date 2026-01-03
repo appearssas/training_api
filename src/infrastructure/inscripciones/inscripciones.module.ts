@@ -8,6 +8,7 @@ import { UpdateInscripcionUseCase } from '@/application/inscripciones/use-cases/
 import { RemoveInscripcionUseCase } from '@/application/inscripciones/use-cases/remove-inscripcion.use-case';
 import { FindByEstudianteUseCase } from '@/application/inscripciones/use-cases/find-by-estudiante.use-case';
 import { FindByCapacitacionUseCase } from '@/application/inscripciones/use-cases/find-by-capacitacion.use-case';
+import { BulkAssignCoursesUseCase } from '@/application/inscripciones/use-cases/bulk-assign-courses.use-case';
 import { InscripcionesRepositoryAdapter } from './inscripciones.repository.adapter';
 import { Inscripcion } from '@/entities/inscripcion/inscripcion.entity';
 import { Capacitacion } from '@/entities/capacitacion/capacitacion.entity';
@@ -25,6 +26,7 @@ import { InscripcionValidatorService } from '../shared/services/inscripcion-vali
     RemoveInscripcionUseCase,
     FindByEstudianteUseCase,
     FindByCapacitacionUseCase,
+    BulkAssignCoursesUseCase,
     InscripcionValidatorService,
     {
       provide: 'IInscripcionesRepository',
@@ -42,6 +44,7 @@ import { InscripcionValidatorService } from '../shared/services/inscripcion-vali
     RemoveInscripcionUseCase,
     FindByEstudianteUseCase,
     FindByCapacitacionUseCase,
+    BulkAssignCoursesUseCase,
     InscripcionValidatorService,
     {
       provide: 'IInscripcionesRepository',

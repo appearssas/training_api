@@ -8,9 +8,11 @@ import {
   UseInterceptors,
   UploadedFile,
   Param,
+  BadRequestException,
+  NotFoundException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
+import { diskStorage, memoryStorage } from 'multer';
 import { extname } from 'path';
 import {
   ApiTags,
@@ -22,6 +24,8 @@ import {
   ApiParam,
 } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
+import { Inject } from '@nestjs/common';
+import { IAuthRepository } from '@/domain/auth/ports/auth.repository.port';
 import { LoginUseCase } from '@/application/auth/use-cases/login.use-case';
 import { RefreshTokenUseCase } from '@/application/auth/use-cases/refresh-token.use-case';
 import { RegisterUseCase } from '@/application/auth/use-cases/register.use-case';
@@ -47,6 +51,8 @@ import { GetUser } from '@/infrastructure/shared/auth/decorators/get-user.decora
 import { Usuario } from '@/entities/usuarios/usuario.entity';
 import { RolesGuard, Roles } from '@/infrastructure/shared/guards/roles.guard';
 import { EmailService } from '@/infrastructure/email/email.service';
+import { StorageService } from '@/infrastructure/shared/services/storage.service';
+import { ImageCompressionService } from '@/infrastructure/shared/services/image-compression.service';
 
 interface TokenResponse {
   access_token: string;
@@ -90,15 +96,62 @@ export class AuthController {
     private readonly requestPasswordResetUseCase: RequestPasswordResetUseCase,
     private readonly resetPasswordUseCase: ResetPasswordUseCase,
     private readonly emailService: EmailService,
+    private readonly storageService: StorageService,
+    private readonly imageCompressionService: ImageCompressionService,
+    @Inject('IAuthRepository')
+    private readonly authRepository: IAuthRepository,
   ) {}
+
+  @Post('public/register')
+  @ApiOperation({
+    summary: 'Registro público de usuario',
+    description: `Endpoint público para que nuevos usuarios se registren en el sistema.
+
+**Tipos de registro disponibles:**
+- **ALUMNO**: Estudiante que puede inscribirse y tomar capacitaciones (asignado automáticamente para personas naturales)
+- **CLIENTE**: Cliente institucional (asignado automáticamente para personas jurídicas con NIT)
+
+**Tipos de persona:**
+- **NATURAL**: Persona física (por defecto)
+- **JURIDICA**: Persona jurídica (requiere razón social y tipo de documento NIT)
+
+**Nota:** 
+- El usuario queda en estado "No habilitado" hasta que un administrador lo apruebe.
+- Los términos y condiciones se aceptan automáticamente si se envían en el payload.`,
+  })
+  @ApiBody({ type: RegisterDto })
+  @ApiResponse({
+    status: 201,
+    description:
+      'Usuario registrado exitosamente. El usuario queda pendiente de aprobación por el administrador.',
+    schema: {
+      type: 'object',
+      properties: {
+        message: {
+          type: 'string',
+          example: 'Registro exitoso. Espere aprobación del administrador.',
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 400, description: 'Datos de registro inválidos' })
+  @ApiResponse({
+    status: 409,
+    description: 'El usuario, email o documento ya existe',
+  })
+  async publicRegister(@Body() registerDto: RegisterDto): Promise<{ message: string }> {
+    // Para registro público, no hay usuario actual, así que pasamos undefined
+    const result = await this.registerUseCase.execute(registerDto, undefined);
+    return result;
+  }
 
   @Post('register')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles('ADMIN', 'CLIENTE')
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({
-    summary: 'Registrar un nuevo usuario',
-    description: `Registra un nuevo usuario en el sistema como persona natural o jurídica.
+    summary: 'Registrar un nuevo usuario (requiere autenticación)',
+    description: `Registra un nuevo usuario en el sistema como persona natural o jurídica. Requiere autenticación con rol ADMIN o CLIENTE.
 
 **Tipos de registro disponibles:**
 - **ALUMNO**: Estudiante que puede inscribirse y tomar capacitaciones
@@ -534,13 +587,11 @@ export class AuthController {
     return await this.updateProfileUseCase.execute(user, updateDto);
   }
 
-  @Post('profile/photo')
-  @UseGuards(AuthGuard('jwt'))
-  @ApiBearerAuth('JWT-auth')
+  @Post('register/photo')
   @ApiOperation({
-    summary: 'Subir o actualizar foto de perfil',
+    summary: 'Subir foto de perfil durante el registro (público)',
     description:
-      'Sube o actualiza la foto de perfil del usuario autenticado. Acepta archivos de imagen (jpg, jpeg, png, gif). El archivo se guarda en /public/uploads/avatars/',
+      'Sube una foto de perfil durante el proceso de registro público. La imagen se comprime automáticamente a máximo 500KB sin perder calidad significativa. Retorna la URL de la foto para incluirla en el registro.',
   })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
@@ -551,7 +602,7 @@ export class AuthController {
         file: {
           type: 'string',
           format: 'binary',
-          description: 'Archivo de imagen (jpg, jpeg, png, gif)',
+          description: 'Archivo de imagen (jpg, jpeg, png, gif, webp)',
         },
       },
       required: ['file'],
@@ -559,21 +610,15 @@ export class AuthController {
   })
   @UseInterceptors(
     FileInterceptor('file', {
-      storage: diskStorage({
-        destination: './public/uploads/avatars',
-        filename: (req, file, cb) => {
-          const randomName = Array(32)
-            .fill(null)
-            .map(() => Math.round(Math.random() * 16).toString(16))
-            .join('');
-          cb(null, `${randomName}${extname(file.originalname)}`);
-        },
-      }),
+      storage: memoryStorage(), // Usar memoryStorage para tener el buffer disponible para comprimir
       fileFilter: (req, file, cb) => {
-        if (!file.originalname.match(/\.(jpg|jpeg|png|gif)$/)) {
+        if (!file.originalname.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
           return cb(new Error('Solo se permiten archivos de imagen!'), false);
         }
         cb(null, true);
+      },
+      limits: {
+        fileSize: 10 * 1024 * 1024, // 10MB máximo antes de comprimir
       },
     }),
   )
@@ -587,9 +632,139 @@ export class AuthController {
           type: 'string',
           example: 'Foto de perfil subida exitosamente',
         },
-        filePath: {
+        fotoUrl: {
           type: 'string',
-          example: '/uploads/avatars/abc123def456.jpg',
+          example: '/storage/avatars/abc123def456.jpg',
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'No se subió ningún archivo o formato inválido',
+  })
+  async uploadRegisterPhoto(@UploadedFile() file?: Express.Multer.File) {
+    if (!file) {
+      throw new BadRequestException('No se subió ningún archivo');
+    }
+
+    // Comprimir la imagen a máximo 500KB
+    const compressed = await this.imageCompressionService.compressMulterFile(
+      file,
+      500,
+    );
+
+    // Guardar usando StorageService (maneja S3 o local automáticamente)
+    const fotoUrl = await this.storageService.saveBuffer(
+      compressed.buffer,
+      compressed.filename,
+      'avatars',
+      compressed.mimetype,
+    );
+
+    return {
+      message: 'Foto de perfil subida exitosamente',
+      fotoUrl,
+    };
+  }
+
+  @Post('profile/validate-password')
+  @UseGuards(AuthGuard('jwt'))
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({
+    summary: 'Validar contraseña actual',
+    description:
+      'Valida si la contraseña proporcionada coincide con la contraseña actual del usuario autenticado. Útil para habilitar campos de cambio de contraseña.',
+  })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        password: {
+          type: 'string',
+          description: 'Contraseña a validar',
+        },
+      },
+      required: ['password'],
+    },
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Contraseña válida',
+    schema: {
+      type: 'object',
+      properties: {
+        valid: {
+          type: 'boolean',
+          example: true,
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 401, description: 'Contraseña inválida o no autorizado' })
+  async validatePassword(
+    @GetUser() user: Usuario,
+    @Body() body: { password: string },
+  ): Promise<{ valid: boolean }> {
+    const fullUser = await this.authRepository.findByUsername(user.username);
+    if (!fullUser) {
+      throw new NotFoundException('Usuario no encontrado');
+    }
+
+    const isValid = this.authRepository.comparePassword(body.password, fullUser.passwordHash);
+    return { valid: isValid };
+  }
+
+  @Post('profile/photo')
+  @UseGuards(AuthGuard('jwt'))
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({
+    summary: 'Subir o actualizar foto de perfil',
+    description:
+      'Sube o actualiza la foto de perfil del usuario autenticado. Acepta archivos de imagen (jpg, jpeg, png, gif, webp). La imagen se comprime automáticamente a máximo 500KB sin perder calidad significativa.',
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    description: 'Archivo de imagen para el perfil',
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+          description: 'Archivo de imagen (jpg, jpeg, png, gif, webp)',
+        },
+      },
+      required: ['file'],
+    },
+  })
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: memoryStorage(), // Usar memoryStorage para tener el buffer disponible para comprimir
+      fileFilter: (req, file, cb) => {
+        if (!file.originalname.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
+          return cb(new Error('Solo se permiten archivos de imagen!'), false);
+        }
+        cb(null, true);
+      },
+      limits: {
+        fileSize: 10 * 1024 * 1024, // 10MB máximo antes de comprimir
+      },
+    }),
+  )
+  @ApiResponse({
+    status: 200,
+    description: 'Foto de perfil subida exitosamente',
+    schema: {
+      type: 'object',
+      properties: {
+        message: {
+          type: 'string',
+          example: 'Foto de perfil subida exitosamente',
+        },
+        fotoUrl: {
+          type: 'string',
+          example: '/storage/avatars/abc123def456.jpg',
         },
       },
     },
@@ -599,13 +774,39 @@ export class AuthController {
     description: 'No se subió ningún archivo o formato inválido',
   })
   @ApiResponse({ status: 401, description: 'No autorizado' })
-  uploadProfilePhoto(@UploadedFile() file?: Express.Multer.File) {
+  async uploadProfilePhoto(
+    @UploadedFile() file?: Express.Multer.File,
+    @GetUser() user?: Usuario,
+  ) {
     if (!file) {
-      throw new Error('No se subió ningún archivo');
+      throw new BadRequestException('No se subió ningún archivo');
     }
+
+    // Comprimir la imagen a máximo 500KB
+    const compressed = await this.imageCompressionService.compressMulterFile(
+      file,
+      500,
+    );
+
+    // Guardar usando StorageService (maneja S3 o local automáticamente)
+    const fotoUrl = await this.storageService.saveBuffer(
+      compressed.buffer,
+      compressed.filename,
+      'avatars',
+      compressed.mimetype,
+    );
+
+    // Actualizar el perfil del usuario con la nueva foto
+    if (user) {
+      await this.updateProfileUseCase.execute(
+        user,
+        { fotoUrl },
+      );
+    }
+
     return {
       message: 'Foto de perfil subida exitosamente',
-      filePath: `/uploads/avatars/${file.filename}`,
+      fotoUrl,
     };
   }
 
