@@ -6,8 +6,12 @@ import { Certificado } from '@/entities/certificados/certificado.entity';
 import { Inscripcion } from '@/entities/inscripcion/inscripcion.entity';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const sharp = require('sharp');
-// Usar ruta absoluta al SVG para evitar problemas de resolución de path
-const SVG_ABSOLUTE_PATH = '/app/public/assets/certificado_svg.svg';
+import { join } from 'path';
+
+// Fix: Usar ruta dinámica basada en el directorio de trabajo actual (process.cwd())
+// Esto funciona tanto en Windows (Local) como en Linux (Docker/Render)
+const PUBLIC_ASSETS_PATH = join(process.cwd(), 'public', 'assets');
+const SVG_ABSOLUTE_PATH = join(PUBLIC_ASSETS_PATH, 'certificado_svg.svg');
 import { QrGeneratorService } from './qr-generator.service';
 import { readFileSync, existsSync } from 'fs';
 
@@ -50,10 +54,14 @@ export class PdfGeneratorService {
     const contienePeligrosas = titulo.includes('peligrosas');
 
    
+    const logoAndarName = 'andar.png';
+    const logoSarotoName = 'saroto.jpeg';
+    
+    // Construir rutas absolutas usando path.join para compatibilidad
     const logoPath =
       contieneSustancias && contienePeligrosas
-        ? '/app/public/assets/saroto.jpeg'
-        : '/app/public/assets/andar.png';
+        ? join(PUBLIC_ASSETS_PATH, logoSarotoName)
+        : join(PUBLIC_ASSETS_PATH, logoAndarName);
 
     console.log(`[PDF Debug] Logo Path seleccionado: ${logoPath}`);
 
