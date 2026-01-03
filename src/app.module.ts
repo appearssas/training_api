@@ -23,6 +23,7 @@ import { DashboardModule } from './infrastructure/dashboard/dashboard.module';
 import { ReportsModule } from './infrastructure/reports/reports.module';
 import { RolesModule } from './infrastructure/roles/roles.module';
 import { EmpresasModule } from './infrastructure/empresas/empresas.module';
+import { StorageModule } from './infrastructure/shared/storage/storage.module';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { EmpresasModule } from './infrastructure/empresas/empresas.module';
     }),
     ScheduleModule.forRoot(),
     DatabaseModule,
+    StorageModule,
     AuthModule,
     CapacitacionesModule,
     MaterialesModule,

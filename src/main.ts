@@ -13,6 +13,46 @@ async function bootstrap() {
   // Servir archivos de materiales desde storage
   // En Render, el disco se monta en /app/data, configurar STORAGE_PATH=/app/data
   const storagePath = process.env.STORAGE_PATH || join(process.cwd(), 'storage');
+  
+  // Verificar tipo de almacenamiento al iniciar
+  const bucketName = process.env.AWS_S3_BUCKET_NAME;
+  const accessKeyId = process.env.AWS_ACCESS_KEY_ID;
+  const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
+  const useS3 = !!(bucketName && accessKeyId && secretAccessKey);
+  
+  console.log('\n🔍 Verificación de almacenamiento:');
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  
+  if (useS3) {
+    const cloudFrontUrl = process.env.AWS_CLOUDFRONT_URL;
+    const region = process.env.AWS_REGION || 'us-east-1';
+    console.log('✅ Tipo: AWS S3');
+    console.log(`   Bucket: ${bucketName}`);
+    console.log(`   Región: ${region}`);
+    console.log(`   Access Key ID: ${accessKeyId ? '✅ Configurado' : '❌ No configurado'}`);
+    console.log(`   Secret Access Key: ${secretAccessKey ? '✅ Configurado' : '❌ No configurado'}`);
+    if (cloudFrontUrl) {
+      console.log(`   CloudFront: ${cloudFrontUrl}`);
+    } else {
+      console.log(`   CloudFront: ❌ No configurado (usando URL directa de S3)`);
+    }
+  } else {
+    const isRender = !!process.env.RENDER || storagePath.startsWith('/app/');
+    const storageType = isRender ? 'Render (disco persistente)' : 'Local';
+    console.log(`✅ Tipo: ${storageType}`);
+    console.log(`   Ruta: ${storagePath}`);
+    if (isRender) {
+      console.log(`   Variable RENDER: ${process.env.RENDER ? '✅ Detectada' : '❌ No detectada'}`);
+      console.log(`   Ruta detectada como Render: ${storagePath.startsWith('/app/') ? '✅ Sí' : '❌ No'}`);
+    }
+    console.log(`   Variables S3:`);
+    console.log(`     AWS_S3_BUCKET_NAME: ${bucketName ? '✅ Configurado' : '❌ No configurado'}`);
+    console.log(`     AWS_ACCESS_KEY_ID: ${accessKeyId ? '✅ Configurado' : '❌ No configurado'}`);
+    console.log(`     AWS_SECRET_ACCESS_KEY: ${secretAccessKey ? '✅ Configurado' : '❌ No configurado'}`);
+  }
+  
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+  
   app.useStaticAssets(storagePath, {
     prefix: '/storage',
   });

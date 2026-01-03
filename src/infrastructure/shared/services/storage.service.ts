@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, Optional } from '@nestjs/common';
+import { Injectable, BadRequestException, Optional, Inject } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { existsSync, mkdirSync, writeFileSync } from 'fs';
 import { join } from 'path';
@@ -10,18 +10,30 @@ export class StorageService {
   private readonly storagePath: string;
   private readonly materialsPath: string;
   private readonly certificatesPath: string;
+  private readonly avatarsPath: string;
   private readonly maxFileSize: number = 10 * 1024 * 1024; // 10MB
   private readonly useS3: boolean;
 
   constructor(
     private readonly configService: ConfigService,
-    @Optional() private readonly s3Service?: S3Service | null,
+    @Optional() @Inject(S3Service) private readonly s3Service?: S3Service | null,
   ) {
     // Verificar si se debe usar S3
     const bucketName = this.configService.get<string>('AWS_S3_BUCKET_NAME');
     const accessKeyId = this.configService.get<string>('AWS_ACCESS_KEY_ID');
     const secretAccessKey = this.configService.get<string>('AWS_SECRET_ACCESS_KEY');
+    
+    // Log de depuración para verificar la inyección
+    console.log('🔍 StorageService - Verificación de inyección:');
+    console.log(`   S3Service inyectado: ${this.s3Service ? '✅ Sí' : '❌ No (null/undefined)'}`);
+    console.log(`   Tipo de s3Service: ${typeof this.s3Service}`);
+    console.log(`   bucketName: ${bucketName ? '✅ Configurado' : '❌ No configurado'}`);
+    console.log(`   accessKeyId: ${accessKeyId ? '✅ Configurado' : '❌ No configurado'}`);
+    console.log(`   secretAccessKey: ${secretAccessKey ? '✅ Configurado' : '❌ No configurado'}`);
+    
     this.useS3 = !!(bucketName && accessKeyId && secretAccessKey && this.s3Service);
+    
+    console.log(`   useS3 resultante: ${this.useS3 ? '✅ SÍ' : '❌ NO'}`);
 
     if (!this.useS3) {
       // Ruta base de storage - usar variable de entorno o ruta por defecto
@@ -30,6 +42,22 @@ export class StorageService {
       this.storagePath = baseStoragePath;
       this.materialsPath = join(this.storagePath, 'materials');
       this.certificatesPath = join(this.storagePath, 'certificates');
+      this.avatarsPath = join(this.storagePath, 'avatars');
+
+      // Determinar si está en Render
+      const isRender = !!process.env.RENDER || baseStoragePath.startsWith('/app/');
+      const storageType = isRender ? 'Render (disco persistente)' : 'Local';
+
+      // Log del tipo de almacenamiento
+      console.log('📦 StorageService - Configuración de almacenamiento:');
+      console.log(`   ✅ Tipo: ${storageType}`);
+      console.log(`   📁 Ruta base: ${this.storagePath}`);
+      console.log(`   📁 Materiales: ${this.materialsPath}`);
+      console.log(`   📁 Certificados: ${this.certificatesPath}`);
+      console.log(`   📁 Avatares: ${this.avatarsPath}`);
+      if (isRender) {
+        console.log(`   🌐 Entorno: Render (disco persistente)`);
+      }
 
       // Crear directorios si no existen
       this.ensureDirectoriesExist();
@@ -38,6 +66,21 @@ export class StorageService {
       this.storagePath = '';
       this.materialsPath = '';
       this.certificatesPath = '';
+      this.avatarsPath = '';
+
+      // Log del tipo de almacenamiento S3
+      const cloudFrontUrl = this.configService.get<string>('AWS_CLOUDFRONT_URL');
+      const region = this.configService.get<string>('AWS_REGION') || 'us-east-1';
+      
+      console.log('📦 StorageService - Configuración de almacenamiento:');
+      console.log(`   ✅ Tipo: AWS S3`);
+      console.log(`   🪣 Bucket: ${bucketName}`);
+      console.log(`   🌍 Región: ${region}`);
+      if (cloudFrontUrl) {
+        console.log(`   ☁️  CloudFront: ${cloudFrontUrl}`);
+      } else {
+        console.log(`   ☁️  CloudFront: ❌ No configurado (usando URL directa de S3)`);
+      }
     }
   }
 
@@ -53,6 +96,9 @@ export class StorageService {
     }
     if (!existsSync(this.certificatesPath)) {
       mkdirSync(this.certificatesPath, { recursive: true });
+    }
+    if (!existsSync(this.avatarsPath)) {
+      mkdirSync(this.avatarsPath, { recursive: true });
     }
   }
 
@@ -85,7 +131,7 @@ export class StorageService {
   async saveFile(
     file: Express.Multer.File,
     allowedTypes: string[],
-    folder: 'materials' | 'certificates' = 'materials',
+    folder: 'materials' | 'certificates' | 'avatars' = 'materials',
   ): Promise<string> {
     // Validar tamaño
     if (file.size > this.maxFileSize) {
@@ -102,21 +148,33 @@ export class StorageService {
     }
 
     // Si está configurado S3, usar S3
+    console.log(`🔍 saveFile - Verificación antes de guardar:`);
+    console.log(`   useS3: ${this.useS3}`);
+    console.log(`   s3Service existe: ${!!this.s3Service}`);
+    console.log(`   folder: ${folder}`);
+    
     if (this.useS3 && this.s3Service) {
+      console.log(`✅ Usando S3 para guardar archivo`);
       try {
-        return await this.s3Service.uploadFile(file, folder);
+        const url = await this.s3Service.uploadFile(file, folder);
+        console.log(`✅ Archivo subido a S3: ${url}`);
+        return url;
       } catch (error) {
+        console.error(`❌ Error al subir a S3:`, error);
         throw new BadRequestException(
           `Error al subir archivo a S3: ${error instanceof Error ? error.message : 'Error desconocido'}`,
         );
       }
     }
+    
+    console.log(`⚠️ Usando almacenamiento local (useS3=${this.useS3}, s3Service=${!!this.s3Service})`);
 
     // Guardar localmente
     const fileName = this.generateFileName(file.originalname);
-    const filePath = folder === 'materials' 
-      ? join(this.materialsPath, fileName)
-      : join(this.certificatesPath, fileName);
+    const filePath = 
+      folder === 'materials' ? join(this.materialsPath, fileName) :
+      folder === 'certificates' ? join(this.certificatesPath, fileName) :
+      join(this.avatarsPath, fileName);
 
     try {
       // Guardar archivo
@@ -134,7 +192,7 @@ export class StorageService {
   /**
    * Guarda una imagen (PDF o imagen)
    */
-  async saveImageOrPdf(file: Express.Multer.File, folder: 'materials' | 'certificates' = 'materials'): Promise<string> {
+  async saveImageOrPdf(file: Express.Multer.File, folder: 'materials' | 'certificates' | 'avatars' = 'materials'): Promise<string> {
     const allowedTypes = [
       'image/jpeg',
       'image/png',
@@ -146,12 +204,12 @@ export class StorageService {
   }
 
   /**
-   * Guarda un buffer (útil para certificados PDF generados)
+   * Guarda un buffer (útil para certificados PDF generados o imágenes)
    */
   async saveBuffer(
     buffer: Buffer,
     fileName: string,
-    folder: 'materials' | 'certificates' = 'certificates',
+    folder: 'materials' | 'certificates' | 'avatars' = 'certificates',
     contentType: string = 'application/pdf',
   ): Promise<string> {
     // Si está configurado S3, usar S3
@@ -166,9 +224,10 @@ export class StorageService {
     }
 
     // Guardar localmente
-    const filePath = folder === 'materials'
-      ? join(this.materialsPath, fileName)
-      : join(this.certificatesPath, fileName);
+    const filePath = 
+      folder === 'materials' ? join(this.materialsPath, fileName) :
+      folder === 'certificates' ? join(this.certificatesPath, fileName) :
+      join(this.avatarsPath, fileName);
 
     try {
       writeFileSync(filePath, buffer);

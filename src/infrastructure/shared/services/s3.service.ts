@@ -45,7 +45,7 @@ export class S3Service {
    */
   async uploadFile(
     file: Express.Multer.File,
-    folder: 'materials' | 'certificates',
+    folder: 'materials' | 'certificates' | 'avatars',
   ): Promise<string> {
     const fileName = this.generateFileName(file.originalname, folder);
     const contentType = file.mimetype || 'application/octet-stream';
@@ -88,7 +88,7 @@ export class S3Service {
   async uploadBuffer(
     buffer: Buffer,
     fileName: string,
-    folder: 'materials' | 'certificates',
+    folder: 'materials' | 'certificates' | 'avatars',
     contentType: string = 'application/pdf',
   ): Promise<string> {
     const key = `${folder}/${fileName}`;
