@@ -294,9 +294,14 @@ export class CertificadosController {
     };
 
     // Si hay URL de certificado y es de S3/CloudFront o ruta dinámica, intentar redirigir
+    // Si hay URL de certificado y es de S3/CloudFront o ruta dinámica, intentar redirigir
     if (certificado.urlCertificado) {
-      // Caso 1: URL absoluta (S3, CDN)
-      if (certificado.urlCertificado.startsWith('http://') || certificado.urlCertificado.startsWith('https://')) {
+      // FIX PROD: Ignorar URLs locales antiguas que apuntan a storage (ej: http://localhost:3000/storage/...)
+      // Estas URLs son inaccesibles en producción o desde el cliente si apuntan al contenedor.
+      const isLegacyLocalStorageUrl = certificado.urlCertificado.includes('/storage/certificates/');
+
+      // Caso 1: URL absoluta (S3, CDN) pero NO local storage
+      if ((certificado.urlCertificado.startsWith('http://') || certificado.urlCertificado.startsWith('https://')) && !isLegacyLocalStorageUrl) {
         return res.redirect(certificado.urlCertificado);
       }
       

@@ -40,7 +40,7 @@ export class QrGeneratorService {
     const baseUrl = this.configService.get<string>('FRONTEND_URL') || 
                     this.configService.get<string>('PUBLIC_VERIFICATION_URL') || 
                     this.configService.get<string>('APP_URL') || 
-                    'http://localhost:9000';
+                    'https://training-dev.onrender.com'; // Fallback para producción si falta env var
     return `${baseUrl}/verify/${token}`;
   }
 
