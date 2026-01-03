@@ -48,6 +48,7 @@ services:
     volumes:
       # Montar el código fuente para hot-reload (usar bind mount para mejor rendimiento)
       - ./src:/app/src:cached
+      - ./public:/app/public:cached
       - ./package.json:/app/package.json
       - ./yarn.lock:/app/yarn.lock
       - ./tsconfig.json:/app/tsconfig.json
