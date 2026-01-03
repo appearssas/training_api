@@ -16,6 +16,19 @@ let PUBLIC_ASSETS_PATH = join(process.cwd(), 'public', 'assets');
 if (!existsSync(PUBLIC_ASSETS_PATH)) {
   console.warn(`[PDF Debug] Ruta dinámica no existe: ${PUBLIC_ASSETS_PATH}. Intentando ruta Docker estándar...`);
   PUBLIC_ASSETS_PATH = '/app/public/assets';
+  
+  // Second fallback: relative path (if workdir is /app, then ./public/assets might be valid)
+  if (!existsSync(PUBLIC_ASSETS_PATH)) {
+      console.warn(`[PDF Debug] Ruta Docker estándar tampoco existe. Intentando relativa ./public/assets`);
+      // Use path.resolve to get absolute path from relative
+      const relativePath = join(process.cwd(), 'public', 'assets');
+       if (existsSync(relativePath)) {
+           PUBLIC_ASSETS_PATH = relativePath;
+       } else {
+           // Last resort: just try 'public/assets' if the CWD is strangely set
+           PUBLIC_ASSETS_PATH = 'public/assets';
+       }
+  }
 }
 
 const SVG_ABSOLUTE_PATH = join(PUBLIC_ASSETS_PATH, 'certificado_svg.svg');
