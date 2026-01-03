@@ -6,6 +6,8 @@ import {
   Body,
   Query,
   UseGuards,
+  Res,
+  NotFoundException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -16,6 +18,7 @@ import {
   ApiParam,
   ApiBody,
 } from '@nestjs/swagger';
+import { Response } from 'express';
 import { AuthGuard } from '@nestjs/passport';
 import { RolesGuard, Roles } from '@/infrastructure/shared/guards/roles.guard';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -28,8 +31,6 @@ import { CheckExpirationsCron } from '@/application/certificates/jobs/check-expi
 
 @ApiTags('Certificates')
 @Controller('certificates')
-@UseGuards(AuthGuard('jwt'), RolesGuard)
-@ApiBearerAuth('JWT-auth')
 export class CertificatesController {
   constructor(
     @InjectRepository(ConfiguracionAlerta)
@@ -39,6 +40,8 @@ export class CertificatesController {
   ) {}
 
   @Get('expiring-report')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @ApiBearerAuth('JWT-auth')
   @Roles('ADMIN', 'CLIENTE', 'OPERADOR')
   @ApiOperation({
     summary: 'Obtener reporte de certificados próximos a vencer',
@@ -79,6 +82,8 @@ export class CertificatesController {
   }
 
   @Get('alert-configurations')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @ApiBearerAuth('JWT-auth')
   @Roles('ADMIN', 'CLIENTE', 'OPERADOR')
   @ApiOperation({
     summary: 'Obtener configuraciones de alertas',
@@ -108,6 +113,8 @@ export class CertificatesController {
   }
 
   @Patch('alert-configurations/:id')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @ApiBearerAuth('JWT-auth')
   @Roles('ADMIN')
   @ApiOperation({
     summary: 'Actualizar configuración de alerta',
@@ -155,6 +162,8 @@ export class CertificatesController {
   }
 
   @Get('check-expirations-manual')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @ApiBearerAuth('JWT-auth')
   @Roles('ADMIN')
   @ApiOperation({
     summary: 'Ejecutar verificación de vencimientos manualmente (testing)',
@@ -183,5 +192,18 @@ export class CertificatesController {
       success: true,
       message: 'Verificación de vencimientos ejecutada manualmente',
     };
+  }
+
+  @Get(':filename')
+  @ApiOperation({
+    summary: 'Redirigir a descarga de PDF',
+    description: 'Redirige las peticiones de PDF al controlador público de certificados.',
+  })
+  servePdfRedirect(@Param('filename') filename: string, @Res() res: Response) {
+    if (!filename.endsWith('.pdf')) {
+      throw new NotFoundException('Ruta no encontrada');
+    }
+    // Redirigir al controlador "public" que permite descarga sin autenticación directa
+    return res.redirect(`/public/files/${filename}`);
   }
 }
