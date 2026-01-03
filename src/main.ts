@@ -64,32 +64,17 @@ async function bootstrap() {
 
   // Habilitar CORS para permitir peticiones desde el frontend
   app.enableCors({
-    origin: true, // Permite cualquier origen en desarrollo
+    origin: [
+      'http://localhost:8080',
+      'http://localhost:9000',
+      'https://training-dev.onrender.com',
+      'https://plataforma.formar360.com',
+      process.env.FRONTEND_URL,
+    ].filter(Boolean), // Filtra valores nulos/undefined
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
   });
-
-  // Habilitar validación global con validación estricta de enums
-  app.useGlobalPipes(
-    new ValidationPipe({
-      whitelist: true,
-      forbidNonWhitelisted: true,
-      transform: true,
-      transformOptions: {
-        enableImplicitConversion: false, // Deshabilitar conversión implícita para validación estricta
-      },
-      // Validar enums estrictamente sin transformación
-      disableErrorMessages: false,
-      validationError: {
-        target: false,
-        value: false,
-      },
-    }),
-  );
-
-  // Habilitar CORS
-  app.enableCors();
 
   // Configuración de Swagger
   const config = new DocumentBuilder()
