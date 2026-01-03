@@ -24,6 +24,7 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { AuthGuard } from '@nestjs/passport';
 import { RolesGuard, Roles } from '@/infrastructure/shared/guards/roles.guard';
+import { FileCompressionInterceptor } from '@/infrastructure/shared/interceptors/file-compression.interceptor';
 import {
   CreateMaterialDto,
   UpdateMaterialDto,
@@ -50,7 +51,7 @@ export class MaterialesController {
   ) {}
 
   @Post('upload')
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(FileInterceptor('file'), FileCompressionInterceptor)
   @ApiOperation({
     summary: 'Subir un archivo (PDF o imagen)',
     description: 'Sube un archivo PDF o imagen y retorna la URL donde se almacenó',

@@ -18,6 +18,8 @@ import { PasswordResetRepository } from '@/infrastructure/auth/password-reset.re
 import { RolesGuard } from '@/infrastructure/shared/guards/roles.guard';
 import { EmailModule } from '@/infrastructure/email/email.module';
 import { AceptacionesModule } from '@/infrastructure/aceptaciones/aceptaciones.module';
+import { StorageModule } from '@/infrastructure/shared/storage/storage.module';
+import { ImageCompressionService } from '@/infrastructure/shared/services/image-compression.service';
 import { Usuario } from '@/entities/usuarios/usuario.entity';
 import { Persona } from '@/entities/persona/persona.entity';
 import { Rol } from '@/entities/roles/rol.entity';
@@ -39,6 +41,7 @@ import { PasswordResetToken } from '@/entities/password-reset/password-reset-tok
     ResetPasswordUseCase,
     JwtStrategy,
     RolesGuard,
+    ImageCompressionService,
     {
       provide: 'IAuthRepository',
       useClass: AuthRepositoryAdapter,
@@ -63,6 +66,7 @@ import { PasswordResetToken } from '@/entities/password-reset/password-reset-tok
     ConfigModule,
     EmailModule,
     AceptacionesModule,
+    StorageModule,
     JwtModule.registerAsync({
       inject: [ConfigService],
       imports: [ConfigModule],
