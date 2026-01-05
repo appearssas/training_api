@@ -67,14 +67,16 @@ async function bootstrap() {
   });
 
   // Habilitar CORS para permitir peticiones desde el frontend
+  const allowedOrigins: string[] = [
+    'http://localhost:8080',
+    'http://localhost:9000',
+    'https://training-dev.onrender.com',
+    'https://plataforma.formar360.com',
+    process.env.FRONTEND_URL,
+  ].filter((origin): origin is string => Boolean(origin)); // Filtra valores nulos/undefined y asegura tipo string
+
   app.enableCors({
-    origin: [
-      'http://localhost:8080',
-      'http://localhost:9000',
-      'https://training-dev.onrender.com',
-      'https://plataforma.formar360.com',
-      process.env.FRONTEND_URL,
-    ].filter(Boolean), // Filtra valores nulos/undefined
+    origin: allowedOrigins,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
