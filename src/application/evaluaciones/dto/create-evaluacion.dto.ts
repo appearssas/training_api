@@ -26,6 +26,15 @@ export class CreateOpcionRespuestaDto {
   @Length(1, 1000)
   texto: string;
 
+  @ApiPropertyOptional({
+    description: 'URL de la imagen para esta opción de respuesta',
+    example: 'https://example.com/image.jpg',
+  })
+  @IsOptional()
+  @IsString()
+  @Length(0, 500)
+  imagenUrl?: string;
+
   @ApiProperty({
     description: 'Indica si esta opción es correcta',
     example: false,
