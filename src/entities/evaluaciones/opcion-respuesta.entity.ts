@@ -24,6 +24,14 @@ export class OpcionRespuesta {
   @Column({ type: 'varchar', length: 1000 })
   texto: string;
 
+  @Column({
+    type: 'varchar',
+    length: 500,
+    nullable: true,
+    name: 'imagen_url',
+  })
+  imagenUrl: string | null;
+
   @Column({ type: 'tinyint', default: 0, name: 'es_correcta' })
   esCorrecta: boolean;
 
