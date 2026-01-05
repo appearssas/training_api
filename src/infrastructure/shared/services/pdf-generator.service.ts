@@ -1,12 +1,14 @@
 import { Injectable } from '@nestjs/common';
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const PDFDocument = require('pdfkit');
 import { ConfigService } from '@nestjs/config';
 import { Certificado } from '@/entities/certificados/certificado.entity';
 import { Inscripcion } from '@/entities/inscripcion/inscripcion.entity';
+import { join } from 'path';
+import { readFileSync, existsSync } from 'fs';
+import { QrGeneratorService } from './qr-generator.service';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const PDFDocument = require('pdfkit');
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const sharp = require('sharp');
-import { join } from 'path';
 
 // Fix: Usar ruta dinámica basada en el directorio de trabajo actual (process.cwd())
 // Esto funciona tanto en Windows (Local) como en Linux (Docker/Render)
@@ -48,9 +50,6 @@ try {
   console.error('Could not list assets directory:', error.message);
 }
 console.log('---------------------------------------------------------');
-
-import { QrGeneratorService } from './qr-generator.service';
-import { readFileSync, existsSync } from 'fs';
 
 @Injectable()
 export class PdfGeneratorService {
