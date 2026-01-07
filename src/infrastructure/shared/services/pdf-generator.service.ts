@@ -16,12 +16,12 @@ let PUBLIC_ASSETS_PATH = join(process.cwd(), 'public', 'assets');
 
 // Fallback robusto para producción en Docker
 if (!existsSync(PUBLIC_ASSETS_PATH)) {
-  console.warn(`[PDF Debug] Ruta dinámica no existe: ${PUBLIC_ASSETS_PATH}. Intentando ruta Docker estándar...`);
+ 
   PUBLIC_ASSETS_PATH = '/app/public/assets';
   
   // Second fallback: relative path (if workdir is /app, then ./public/assets might be valid)
   if (!existsSync(PUBLIC_ASSETS_PATH)) {
-      console.warn(`[PDF Debug] Ruta Docker estándar tampoco existe. Intentando relativa ./public/assets`);
+      
       // Use path.resolve to get absolute path from relative
       const relativePath = join(process.cwd(), 'public', 'assets');
        if (existsSync(relativePath)) {
@@ -35,12 +35,6 @@ if (!existsSync(PUBLIC_ASSETS_PATH)) {
 
 const SVG_ABSOLUTE_PATH = join(PUBLIC_ASSETS_PATH, 'certificado_svg.svg');
 
-console.log('---------------------------------------------------------');
-console.log('PDF GENERATOR SERVICE - ASSET PATH DEBUG');
-console.log('Process CWD:', process.cwd());
-console.log('PUBLIC_ASSETS_PATH:', PUBLIC_ASSETS_PATH);
-console.log('SVG_ABSOLUTE_PATH:', SVG_ABSOLUTE_PATH);
-console.log('SVG Exists?:', existsSync(SVG_ABSOLUTE_PATH));
 
 try {
   const { readdirSync } = require('fs');
@@ -49,7 +43,6 @@ try {
 } catch (error) {
   console.error('Could not list assets directory:', error.message);
 }
-console.log('---------------------------------------------------------');
 
 @Injectable()
 export class PdfGeneratorService {
@@ -90,32 +83,88 @@ export class PdfGeneratorService {
     const contienePeligrosas = titulo.includes('peligrosas');
 
    
-    const logoAndarName = 'andar.png';
-    const logoSarotoName = 'saroto.jpeg';
+    const logoAndarName = 'andar.svg';
+    const logoSarotoName = 'ceasaroto.svg';
+    const logoConfianzaName = 'confianza.svg';
     
-    // Construir rutas absolutas usando path.join para compatibilidad
-    const logoPath =
-      contieneSustancias && contienePeligrosas
+    // Usar Ceasaroto si cumple condiciones
+    const usarCeasaroto = contieneSustancias && contienePeligrosas;
+    
+    const mainLogoPath = usarCeasaroto
         ? join(PUBLIC_ASSETS_PATH, logoSarotoName)
         : join(PUBLIC_ASSETS_PATH, logoAndarName);
+    
+    const confianzaLogoPath = join(PUBLIC_ASSETS_PATH, logoConfianzaName);
 
-    console.log(`[PDF Debug] Logo Path seleccionado: ${logoPath}`);
 
-    const logoWidth = 120; // ajusta según necesites
-    const logoHeight = 60; // ajusta según necesites
-    const logoX = centerX - logoWidth / 2;
-    const logoY = 50; 
+    // Aumentar tamaño 15% si es Ceasaroto
+    // Aumentar tamaño +20% adicional (Iteration 4) (Total aprox +90%)
+    const mainLogoWidth = usarCeasaroto ? 251 : 126; 
+    const mainLogoHeight = usarCeasaroto ? 124 : 63; 
+    
+    // Confianza logo ampliado (Iteration 13 - Decoupled Y)
+    const confianzaLogoWidth = 208; 
+    const confianzaLogoHeight = 105; 
 
-    // Verificar existencia antes de intentar pintar (opcional pero recomendado)
-    if (existsSync(logoPath)) {
-        console.log(`[PDF Debug] El archivo de logo EXISTE. Intentando pintar en (${logoX}, ${logoY}).`);
-        doc.image(logoPath, logoX, logoY, {
-          width: logoWidth,
-          height: logoHeight,
-        });
-    } else {
-        console.warn(`[PDF Debug] ALERTA: Logo not found at: ${logoPath}`);
-    }
+    // Gap negativo para forzar cercanía
+    const gap = -20; 
+    
+    // Ancho página = 792. 
+    // Right Anchor adjustment: 767
+    const rightAnchorX = 767;
+
+    // Calcular posiciones de derecha a izquierda
+    // Calcular posiciones de derecha a izquierda
+    const startXConfianza = rightAnchorX - confianzaLogoWidth;
+    // Mover AMBOS logos 15px a la derecha. Ceasaroto ya tenía 30px, ahora 45px. Andar 15px.
+    const startXMain = startXConfianza - gap - mainLogoWidth + (usarCeasaroto ? 45 : 15);
+    
+    // Posiciones Y independientes (Iteración 13)
+    const logoYConfianza = 30; // Subido (High)
+    // Si es Ceasaroto, subir 10px más (20). Si no, mantener en 40.
+    const logoYMain = usarCeasaroto ? 20 : 40;
+
+    // Función helper para dibujar un logo con dimensiones específicas
+    const drawLogo = async (path: string, x: number, w: number, h: number, y: number) => {
+        if (existsSync(path)) {
+            try {
+                if (path.endsWith('.svg')) {
+                    // VECTOR RENDER (SVG-TO-PDFKIT)
+                    const svgContent = readFileSync(path, 'utf-8');
+                    // @ts-ignore
+                    const SVGtoPDF = require('svg-to-pdfkit');
+                    
+                    // Options: assume pt units, preserve aspect ratio
+                    SVGtoPDF(doc, svgContent, x, y, { 
+                        width: w, 
+                        height: h,
+                        preserveAspectRatio: 'xMidYMid meet',
+                        assumePt: true // Important for scaling behavior
+                    });
+                } else {
+                    // RASTER RENDER (IMAGES)
+                    const logoBuffer = readFileSync(path);
+                    doc.image(logoBuffer, x, y, {
+                        width: w,
+                        height: h,
+                        fit: [w, h],
+                        align: 'center',
+                        valign: 'center'
+                    });
+                }
+            } catch (err) {
+                console.error(`[PDF Debug] Error procesando logo ${path}:`, err);
+            }
+        } else {
+            console.warn(`[PDF Debug] ALERTA: Logo not found at: ${path}`);
+        }
+    };
+
+    // Dibujar Logo 1 (Izquierda del grupo) - Main Logo
+    await drawLogo(mainLogoPath, startXMain, mainLogoWidth, mainLogoHeight, logoYMain);
+
+    // Dibujar Logo 2 (Derecha del grupo) - Confianza
+    await drawLogo(confianzaLogoPath, startXConfianza, confianzaLogoWidth, confianzaLogoHeight, logoYConfianza);
 
     // 2. TÍTULO PRINCIPAL (Y=140)
     doc.x = 0;
@@ -215,15 +264,20 @@ export class PdfGeneratorService {
       width: docWidth,
       align: 'center',
     });
-    doc.text('Resolucion: 0000000000', 0, doc.y, {
+    const resolutionText = contieneSustancias && contienePeligrosas
+      ? 'Resolucion N° 1585 de 05 de junio de 2025, secretaria de educacion soacha'
+      : 'Resolución N° 1500-67-10/1811 de 28 de junio de 2024, secretaria de educacion villavicencio';
+
+    doc.text(resolutionText, 0, doc.y, {
       width: docWidth,
       align: 'center',
     });
 
     // 10. FIRMAS + GARABATOS FALSOS
+    // 10. FIRMAS + GARABATOS FALSOS
     const footerY = 500;
-    const col1X = centerX - 180;
-    const col2X = centerX + 80;
+    const col1X = centerX - 145; // Shifted +15 (was -160)
+    const col2X = centerX + 115; // Shifted +15 (was +100)
 
     doc.lineWidth(1).strokeColor('black');
 
@@ -306,11 +360,11 @@ export class PdfGeneratorService {
         const base64Data = qrBase64.split(',')[1];
         const qrBuffer = Buffer.from(base64Data, 'base64');
         const qrSize = 70;
-        const qrX = 690;
-        const qrY = 445;
+        const qrX = 687; // Movido 4px derecha (683 -> 687)
+        const qrY = 450; // Movido 5px arriba (455 -> 450)
         doc.image(qrBuffer, qrX, qrY, { width: qrSize, height: qrSize });
         
-        console.log(`[PDF] QR regenerado dinámicamente: ${urlVerificacion}`);
+       
       } catch (e) {
         console.error('Error generando QR dinámico:', e);
          // Fallback: intentar usar el guardado si falla el dinámico
@@ -322,7 +376,8 @@ export class PdfGeneratorService {
                  }
                 const base64Data = qrImageData.split(',')[1];
                 const qrBuffer = Buffer.from(base64Data, 'base64');
-                doc.image(qrBuffer, 690, 445, { width: 70, height: 70 });
+                // Ajustar también el fallback a las nuevas coordenadas
+                doc.image(qrBuffer, 687, 450, { width: 70, height: 70 });
             } catch(ex) {}
          }
       }
@@ -338,8 +393,10 @@ export class PdfGeneratorService {
   private async addCertificateBackground(doc: any): Promise<void> {
     try {
       if (existsSync(SVG_ABSOLUTE_PATH)) {
+        // REVERT TO RASTER (High-DPI) due to crash with vector background
         const svgBuffer = readFileSync(SVG_ABSOLUTE_PATH);
-        const pngBuffer = await sharp(svgBuffer).png().toBuffer();
+        // Render at 300 DPI (approx 4x standard 72 DPI) for crisp quality
+        const pngBuffer = await sharp(svgBuffer, { density: 300 }).png().toBuffer();
         doc.image(pngBuffer, 0, 0, { width: 792, height: 612 });
       }
     } catch (e) {

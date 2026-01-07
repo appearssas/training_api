@@ -137,6 +137,7 @@ export class CapacitacionesRepositoryAdapter implements ICapacitacionesRepositor
             const newOpcion = this.opcionRespuestaRepository.create({
               pregunta: savedPregunta,
               texto: opcionData.texto,
+              imagenUrl: opcionData.imagenUrl || null,
               esCorrecta: opcionData.esCorrecta,
               puntajeParcial: opcionData.puntajeParcial || 0.0,
               orden: opcionData.orden ?? j,
@@ -289,8 +290,25 @@ export class CapacitacionesRepositoryAdapter implements ICapacitacionesRepositor
           'secciones.lecciones',
           'evaluaciones',
           'evaluaciones.preguntas',
+          'evaluaciones.preguntas.tipoPregunta',
+          'evaluaciones.preguntas.opciones',
         ],
       });
+      
+      // Ordenar manualmente las relaciones después de cargar
+      if (result?.evaluaciones) {
+        result.evaluaciones.sort((a, b) => (a.orden || 0) - (b.orden || 0));
+        result.evaluaciones.forEach((evaluacion) => {
+          if (evaluacion.preguntas) {
+            evaluacion.preguntas.sort((a, b) => (a.orden || 0) - (b.orden || 0));
+            evaluacion.preguntas.forEach((pregunta) => {
+              if (pregunta.opciones) {
+                pregunta.opciones.sort((a, b) => (a.orden || 0) - (b.orden || 0));
+              }
+            });
+          }
+        });
+      }
       // #region agent log
       try {
         appendFileSync(

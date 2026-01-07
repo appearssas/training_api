@@ -244,9 +244,21 @@ export class IntentosRepositoryAdapter implements IIntentosRepository {
 
       // Solo calcular puntajes y porcentajes si NO es encuesta
       if (!esEncuesta) {
-        // Calcular el puntaje total real sumando los puntajes de todas las preguntas
+        // CORRECCIÓN CRÍTICA: Filtrar solo preguntas activas al calcular el puntaje total
+        // Esto asegura que el cálculo sea consistente con las preguntas que realmente se evalúan
+        // Si hay preguntas inactivas, no deben contar en el total para el cálculo del porcentaje
+        const preguntasActivas = intento.evaluacion.preguntas.filter(
+          (p) => p.activo !== false, // Incluir preguntas activas (activo = true o null/undefined)
+        );
+
+        console.log('=== DEBUG: Preguntas activas vs totales ===');
+        console.log('Total preguntas en evaluación:', intento.evaluacion.preguntas.length);
+        console.log('Preguntas activas:', preguntasActivas.length);
+        console.log('Total respuestas recibidas:', respuestas.length);
+
+        // Calcular el puntaje total real sumando solo las preguntas activas
         // Esto asegura consistencia incluso si el puntajeTotal de la evaluación no está actualizado
-        const puntajeTotalReal = intento.evaluacion.preguntas.reduce(
+        const puntajeTotalReal = preguntasActivas.reduce(
           (sum, pregunta) => {
             const puntaje = Number(pregunta.puntaje);
             return sum + (isNaN(puntaje) || puntaje <= 0 ? 0 : puntaje);
@@ -254,7 +266,24 @@ export class IntentosRepositoryAdapter implements IIntentosRepository {
           0
         );
 
-        // SIEMPRE usar el puntaje total real calculado de las preguntas
+        // Validar que todas las preguntas requeridas tengan respuesta
+        const preguntasRequeridas = preguntasActivas.filter((p) => p.requerida !== false);
+        const preguntasRequeridasSinRespuesta = preguntasRequeridas.filter(
+          (pregunta) => !respuestas.some((resp) => resp.pregunta.id === pregunta.id),
+        );
+
+        if (preguntasRequeridasSinRespuesta.length > 0) {
+          console.warn('⚠️ Hay preguntas requeridas sin respuesta:', 
+            preguntasRequeridasSinRespuesta.map((p) => ({ 
+              id: p.id, 
+              enunciado: p.enunciado.substring(0, 50) + '...',
+              puntaje: p.puntaje,
+            }))
+          );
+          // No lanzar error, pero registrar la advertencia para debugging
+        }
+
+        // SIEMPRE usar el puntaje total real calculado de las preguntas activas
         // Si es 0 o menor, significa que las preguntas no tienen puntaje configurado, usar el de la evaluación como fallback
         const puntajeTotalParaCalcular = puntajeTotalReal > 0 
           ? puntajeTotalReal 
@@ -262,15 +291,18 @@ export class IntentosRepositoryAdapter implements IIntentosRepository {
 
         // Logs para debugging
         console.log('=== DEBUG FINISH ATTEMPT ===');
-        console.log('Preguntas totales:', intento.evaluacion.preguntas.length);
+        console.log('Preguntas totales en evaluación:', intento.evaluacion.preguntas.length);
+        console.log('Preguntas activas:', preguntasActivas.length);
+        console.log('Preguntas requeridas:', preguntasRequeridas.length);
+        console.log('Preguntas requeridas sin respuesta:', preguntasRequeridasSinRespuesta.length);
         console.log('Respuestas recibidas:', respuestas.length);
         console.log('Puntaje obtenido:', puntajeObtenido);
-        console.log('Puntaje total real (suma de preguntas):', puntajeTotalReal);
-        console.log('Puntaje total de evaluación:', intento.evaluacion.puntajeTotal);
-        console.log('Puntaje total para calcular:', puntajeTotalParaCalcular);
+        console.log('Puntaje total real (suma de preguntas activas):', puntajeTotalReal);
+        console.log('Puntaje total de evaluación (campo):', intento.evaluacion.puntajeTotal);
+        console.log('Puntaje total para calcular porcentaje:', puntajeTotalParaCalcular);
         console.log('Minimo aprobacion:', intento.evaluacion.minimoAprobacion);
 
-        // Calcular porcentaje usando el puntaje total real calculado
+        // Calcular porcentaje usando el puntaje total real calculado (solo preguntas activas)
         // Asegurar que no haya división por cero
         porcentaje = puntajeTotalParaCalcular > 0
           ? this.scoringService.calculatePercentage(
@@ -280,6 +312,7 @@ export class IntentosRepositoryAdapter implements IIntentosRepository {
           : 0;
 
         console.log('Porcentaje calculado:', porcentaje);
+        console.log('Fórmula: (', puntajeObtenido, '/', puntajeTotalParaCalcular, ') * 100 =', porcentaje, '%');
 
         // Determinar si aprobó
         aprobado = this.scoringService.isPassed(
@@ -449,7 +482,14 @@ export class IntentosRepositoryAdapter implements IIntentosRepository {
         evaluacion: { id: evaluacionId },
         inscripcion: { id: inscripcionId },
       },
-      relations: ['evaluacion'],
+      relations: [
+        'evaluacion',
+        'respuestas',
+        'respuestas.pregunta',
+        'respuestas.opcionRespuesta',
+        'respuestas.respuestasMultiples',
+        'respuestas.respuestasMultiples.opcionRespuesta',
+      ],
       order: {
         numeroIntento: 'DESC',
       },
@@ -465,6 +505,11 @@ export class IntentosRepositoryAdapter implements IIntentosRepository {
         'evaluacion.preguntas.opciones',
         'evaluacion.preguntas.tipoPregunta',
         'inscripcion',
+        'respuestas',
+        'respuestas.pregunta',
+        'respuestas.opcionRespuesta',
+        'respuestas.respuestasMultiples',
+        'respuestas.respuestasMultiples.opcionRespuesta',
       ],
     });
   }

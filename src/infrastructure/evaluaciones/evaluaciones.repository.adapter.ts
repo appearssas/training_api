@@ -300,6 +300,7 @@ export class EvaluacionesRepositoryAdapter implements IEvaluacionesRepository {
           const newOpcion = this.opcionRespuestaRepository.create({
             pregunta,
             texto: opcionData.texto,
+            imagenUrl: opcionData.imagenUrl || null,
             esCorrecta: opcionData.esCorrecta,
             puntajeParcial: opcionData.puntajeParcial || 0.0,
             orden: opcionData.orden ?? j,
@@ -353,6 +354,9 @@ export class EvaluacionesRepositoryAdapter implements IEvaluacionesRepository {
         if (opcionData.texto !== undefined) {
           existingOpcion.texto = opcionData.texto;
         }
+        if (opcionData.imagenUrl !== undefined) {
+          existingOpcion.imagenUrl = opcionData.imagenUrl || null;
+        }
         if (opcionData.esCorrecta !== undefined) {
           existingOpcion.esCorrecta = opcionData.esCorrecta;
         }
@@ -376,6 +380,7 @@ export class EvaluacionesRepositoryAdapter implements IEvaluacionesRepository {
         const newOpcion = this.opcionRespuestaRepository.create({
           pregunta,
           texto: opcionData.texto,
+          imagenUrl: opcionData.imagenUrl || null,
           esCorrecta: opcionData.esCorrecta,
           puntajeParcial: opcionData.puntajeParcial || 0.0,
           orden: opcionData.orden ?? j,
