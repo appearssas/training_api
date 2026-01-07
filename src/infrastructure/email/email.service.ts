@@ -40,29 +40,19 @@ export class EmailService {
 
     try {
       // Soporta tanto EMAIL_* como MAIL_* para compatibilidad
-      const host =
-        this.configService.get<string>('EMAIL_HOST') ||
-        this.configService.get<string>('MAIL_HOST', 'smtp.gmail.com');
-      const port =
-        this.configService.get<number>('EMAIL_PORT') ||
-        this.configService.get<number>('MAIL_PORT', 587);
-      const secure =
-        this.configService.get<string>('EMAIL_SECURE', 'false') === 'true' ||
-        this.configService.get<boolean>('MAIL_SECURE', false);
-      const user =
-        this.configService.get<string>('EMAIL_USER') ||
-        this.configService.get<string>('MAIL_USER');
-      const password =
-        this.configService.get<string>('EMAIL_PASSWORD') ||
-        this.configService.get<string>('MAIL_PASSWORD');
+      const host = this.configService.get<string>('EMAIL_HOST');
+      const port = this.configService.get<number>('EMAIL_PORT');
+      const secure = this.configService.get<string>('EMAIL_SECURE');
+      const user = this.configService.get<string>('EMAIL_USER');
+      const password = this.configService.get<string>('EMAIL_PASSWORD');
 
       this.logger.log('🔧 Inicializando transporter de email...');
-      this.logger.log(`   HOST: ${host || 'NO CONFIGURADO'}`);
-      this.logger.log(`   PORT: ${port || 'NO CONFIGURADO'}`);
-      this.logger.log(`   SECURE: ${secure}`);
-      this.logger.log(`   USER: ${user || 'NO CONFIGURADO'}`);
+      this.logger.log(`HOST: ${host || 'NO CONFIGURADO'}`);
+      this.logger.log(`PORT: ${port || 'NO CONFIGURADO'}`);
+      this.logger.log(`SECURE: ${secure}`);
+      this.logger.log(`USER: ${user || 'NO CONFIGURADO'}`);
       this.logger.log(
-        `   PASSWORD: ${password ? '***CONFIGURADO***' : 'NO CONFIGURADO'}`,
+        `PASSWORD: ${password ? '***CONFIGURADO***' : 'NO CONFIGURADO'}`,
       );
 
       if (!host || !port || !user || !password) {
@@ -121,19 +111,10 @@ export class EmailService {
    * Por lo tanto, siempre usamos EMAIL_USER como FROM, ignorando EMAIL_FROM si es diferente.
    */
   private getFromEmail(): string {
-    const emailUser =
-      this.configService.get<string>('EMAIL_USER') ||
-      this.configService.get<string>('MAIL_USER', '');
-
-    // Obtener EMAIL_FROM si está configurado (solo para logging)
-    const configuredFrom =
-      this.configService.get<string>('EMAIL_FROM') ||
-      this.configService.get<string>('MAIL_FROM');
-
-    // Siempre usar EMAIL_USER como FROM para evitar errores de spoofing
+    const emailUser = this.configService.get<string>('EMAIL_USER');
+    const configuredFrom = this.configService.get<string>('EMAIL_FROM');
     const fromEmail = emailUser || 'noreply@capacitaciones.com';
 
-    // Si EMAIL_FROM está configurado pero es diferente, loguear una advertencia
     if (configuredFrom && configuredFrom !== emailUser && emailUser) {
       this.logger.warn(
         `EMAIL_FROM (${configuredFrom}) está configurado pero es diferente a EMAIL_USER (${emailUser}). ` +
@@ -157,31 +138,39 @@ export class EmailService {
       this.configService.get<string>('MAIL_ENABLED', 'false'),
     );
     const isEnabled = emailEnabled === 'true' && this.transporter !== null;
-    
+
     if (!isEnabled) {
       // Log detallado para diagnóstico en producción
       this.logger.warn('⚠️ Email NO está habilitado. Razones:');
-      this.logger.warn(`   EMAIL_ENABLED: ${emailEnabled} (esperado: 'true')`);
-      this.logger.warn(`   Transporter inicializado: ${this.transporter !== null ? 'SÍ' : 'NO'}`);
-      
+      this.logger.warn(`EMAIL_ENABLED: ${emailEnabled} (esperado: 'true')`);
+      this.logger.warn(
+        `Transporter inicializado: ${this.transporter !== null ? 'SÍ' : 'NO'}`,
+      );
+
       if (emailEnabled !== 'true') {
-        this.logger.warn('   → Configure EMAIL_ENABLED=true en las variables de entorno');
+        this.logger.warn(
+          '→ Configure EMAIL_ENABLED=true en las variables de entorno',
+        );
       }
-      
+
       if (this.transporter === null) {
-        const host = this.configService.get<string>('EMAIL_HOST') || this.configService.get<string>('MAIL_HOST');
-        const port = this.configService.get<string>('EMAIL_PORT') || this.configService.get<string>('MAIL_PORT');
-        const user = this.configService.get<string>('EMAIL_USER') || this.configService.get<string>('MAIL_USER');
-        const password = this.configService.get<string>('EMAIL_PASSWORD') || this.configService.get<string>('MAIL_PASSWORD');
-        
-        this.logger.warn('   → Transporter no inicializado. Verifique las variables:');
-        this.logger.warn(`      EMAIL_HOST: ${host || 'NO CONFIGURADO'}`);
-        this.logger.warn(`      EMAIL_PORT: ${port || 'NO CONFIGURADO'}`);
-        this.logger.warn(`      EMAIL_USER: ${user || 'NO CONFIGURADO'}`);
-        this.logger.warn(`      EMAIL_PASSWORD: ${password ? 'CONFIGURADO' : 'NO CONFIGURADO'}`);
+        const host = this.configService.get<string>('EMAIL_HOST');
+        const port = this.configService.get<string>('EMAIL_PORT');
+        const user = this.configService.get<string>('EMAIL_USER');
+        const password = this.configService.get<string>('EMAIL_PASSWORD');
+
+        this.logger.warn(
+          '   → Transporter no inicializado. Verifique las variables:',
+        );
+        this.logger.warn(`EMAIL_HOST: ${host || 'NO CONFIGURADO'}`);
+        this.logger.warn(`EMAIL_PORT: ${port || 'NO CONFIGURADO'}`);
+        this.logger.warn(`EMAIL_USER: ${user || 'NO CONFIGURADO'}`);
+        this.logger.warn(
+          `EMAIL_PASSWORD: ${password ? 'CONFIGURADO' : 'NO CONFIGURADO'}`,
+        );
       }
     }
-    
+
     return isEnabled;
   }
 
@@ -353,27 +342,33 @@ export class EmailService {
 
     try {
       if (!this.transporter) {
-        const errorMsg = 'Transporter no está configurado. Verifique que EMAIL_ENABLED=true y todas las variables de email estén configuradas.';
+        const errorMsg =
+          'Transporter no está configurado. Verifique que EMAIL_ENABLED=true y todas las variables de email estén configuradas.';
         this.logger.error(`❌ ${errorMsg}`);
         throw new Error(errorMsg);
       }
 
       this.logger.log(`📧 Enviando email de recuperación a: ${to}`);
-      
+
       const result = await this.transporter.sendMail({
         from: this.getFromEmail(),
         to,
         subject: 'Recuperación de Contraseña - Sistema de Capacitaciones',
         html: htmlContent,
       });
-      
+
       this.logger.log(`✅ Email de recuperación enviado exitosamente a: ${to}`);
       this.logger.debug(`   Message ID: ${result.messageId}`);
       this.logger.debug(`   Response: ${result.response}`);
     } catch (error) {
-      this.logger.error(`❌ Error al enviar email de recuperación a ${to}:`, error);
-      this.logger.error(`   Error details: ${error instanceof Error ? error.message : String(error)}`);
-      
+      this.logger.error(
+        `❌ Error al enviar email de recuperación a ${to}:`,
+        error,
+      );
+      this.logger.error(
+        `   Error details: ${error instanceof Error ? error.message : String(error)}`,
+      );
+
       // Si es un error de nodemailer, incluir más detalles
       if (error && typeof error === 'object' && 'code' in error) {
         this.logger.error(`   Error code: ${error.code}`);
@@ -381,8 +376,10 @@ export class EmailService {
           this.logger.error(`   Failed command: ${error.command}`);
         }
       }
-      
-      throw new Error(`No se pudo enviar el correo de recuperación: ${error instanceof Error ? error.message : String(error)}`);
+
+      throw new Error(
+        `No se pudo enviar el correo de recuperación: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
   }
 
