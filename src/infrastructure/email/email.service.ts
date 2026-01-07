@@ -30,7 +30,10 @@ export class EmailService {
 
     if (emailEnabled !== 'true') {
       this.logger.warn(
-        'EMAIL_ENABLED=false - Los correos se mostrarán solo en logs',
+        '⚠️ EMAIL_ENABLED=false o no configurado - Los correos se mostrarán solo en logs',
+      );
+      this.logger.warn(
+        '   Para habilitar el envío de emails, configure EMAIL_ENABLED=true en las variables de entorno',
       );
       return;
     }
@@ -153,7 +156,33 @@ export class EmailService {
       'EMAIL_ENABLED',
       this.configService.get<string>('MAIL_ENABLED', 'false'),
     );
-    return emailEnabled === 'true' && this.transporter !== null;
+    const isEnabled = emailEnabled === 'true' && this.transporter !== null;
+    
+    if (!isEnabled) {
+      // Log detallado para diagnóstico en producción
+      this.logger.warn('⚠️ Email NO está habilitado. Razones:');
+      this.logger.warn(`   EMAIL_ENABLED: ${emailEnabled} (esperado: 'true')`);
+      this.logger.warn(`   Transporter inicializado: ${this.transporter !== null ? 'SÍ' : 'NO'}`);
+      
+      if (emailEnabled !== 'true') {
+        this.logger.warn('   → Configure EMAIL_ENABLED=true en las variables de entorno');
+      }
+      
+      if (this.transporter === null) {
+        const host = this.configService.get<string>('EMAIL_HOST') || this.configService.get<string>('MAIL_HOST');
+        const port = this.configService.get<string>('EMAIL_PORT') || this.configService.get<string>('MAIL_PORT');
+        const user = this.configService.get<string>('EMAIL_USER') || this.configService.get<string>('MAIL_USER');
+        const password = this.configService.get<string>('EMAIL_PASSWORD') || this.configService.get<string>('MAIL_PASSWORD');
+        
+        this.logger.warn('   → Transporter no inicializado. Verifique las variables:');
+        this.logger.warn(`      EMAIL_HOST: ${host || 'NO CONFIGURADO'}`);
+        this.logger.warn(`      EMAIL_PORT: ${port || 'NO CONFIGURADO'}`);
+        this.logger.warn(`      EMAIL_USER: ${user || 'NO CONFIGURADO'}`);
+        this.logger.warn(`      EMAIL_PASSWORD: ${password ? 'CONFIGURADO' : 'NO CONFIGURADO'}`);
+      }
+    }
+    
+    return isEnabled;
   }
 
   /**
@@ -252,6 +281,17 @@ export class EmailService {
       this.logger.log(
         '═══════════════════════════════════════════════════════',
       );
+      this.logger.error(
+        '❌ ERROR: El email NO se envió porque EMAIL_ENABLED no está configurado como "true" o las variables de email no están configuradas correctamente.',
+      );
+      this.logger.error(
+        '   Para habilitar el envío de emails en producción, configure:',
+      );
+      this.logger.error('   - EMAIL_ENABLED=true');
+      this.logger.error('   - EMAIL_HOST=<servidor-smtp>');
+      this.logger.error('   - EMAIL_PORT=<puerto>');
+      this.logger.error('   - EMAIL_USER=<usuario>');
+      this.logger.error('   - EMAIL_PASSWORD=<contraseña>');
       return;
     }
 
@@ -313,19 +353,36 @@ export class EmailService {
 
     try {
       if (!this.transporter) {
-        throw new Error('Transporter no está configurado');
+        const errorMsg = 'Transporter no está configurado. Verifique que EMAIL_ENABLED=true y todas las variables de email estén configuradas.';
+        this.logger.error(`❌ ${errorMsg}`);
+        throw new Error(errorMsg);
       }
 
-      await this.transporter.sendMail({
+      this.logger.log(`📧 Enviando email de recuperación a: ${to}`);
+      
+      const result = await this.transporter.sendMail({
         from: this.getFromEmail(),
         to,
         subject: 'Recuperación de Contraseña - Sistema de Capacitaciones',
         html: htmlContent,
       });
-      this.logger.log(`Email de recuperación enviado a: ${to}`);
+      
+      this.logger.log(`✅ Email de recuperación enviado exitosamente a: ${to}`);
+      this.logger.debug(`   Message ID: ${result.messageId}`);
+      this.logger.debug(`   Response: ${result.response}`);
     } catch (error) {
-      this.logger.error(`Error al enviar email de recuperación:`, error);
-      throw new Error('No se pudo enviar el correo de recuperación');
+      this.logger.error(`❌ Error al enviar email de recuperación a ${to}:`, error);
+      this.logger.error(`   Error details: ${error instanceof Error ? error.message : String(error)}`);
+      
+      // Si es un error de nodemailer, incluir más detalles
+      if (error && typeof error === 'object' && 'code' in error) {
+        this.logger.error(`   Error code: ${error.code}`);
+        if ('command' in error) {
+          this.logger.error(`   Failed command: ${error.command}`);
+        }
+      }
+      
+      throw new Error(`No se pudo enviar el correo de recuperación: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
