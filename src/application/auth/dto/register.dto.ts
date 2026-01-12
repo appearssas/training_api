@@ -4,7 +4,6 @@ import {
   IsString,
   MinLength,
   IsOptional,
-  IsEnum,
   IsDateString,
   IsBoolean,
 } from 'class-validator';
@@ -35,7 +34,8 @@ export class RegisterDto {
     default: TipoDocumento.CC,
   })
   @IsStrictEnum(TipoDocumento, {
-    message: 'tipoDocumento debe ser uno de los valores permitidos: CC, TI, CE, PA, RC, NIT',
+    message:
+      'tipoDocumento debe ser uno de los valores permitidos: CC, TI, CE, PA, RC, NIT',
   })
   @IsOptional()
   tipoDocumento?: TipoDocumento;
@@ -57,7 +57,8 @@ export class RegisterDto {
   apellidos?: string;
 
   @ApiProperty({
-    description: 'Tipo de persona: NATURAL o JURIDICA. Si no se especifica, se determina automáticamente: JURIDICA si tiene razón social, NATURAL en caso contrario.',
+    description:
+      'Tipo de persona: NATURAL o JURIDICA. Si no se especifica, se determina automáticamente: JURIDICA si tiene razón social, NATURAL en caso contrario.',
     enum: ['NATURAL', 'JURIDICA'],
     example: 'NATURAL',
     default: 'NATURAL',
@@ -70,7 +71,8 @@ export class RegisterDto {
   tipoPersona?: 'NATURAL' | 'JURIDICA';
 
   @ApiPropertyOptional({
-    description: 'Razón Social (obligatorio para personas jurídicas). Si se proporciona razón social, el tipoPersona se establecerá automáticamente como JURIDICA.',
+    description:
+      'Razón Social (obligatorio para personas jurídicas). Si se proporciona razón social, el tipoPersona se establecerá automáticamente como JURIDICA.',
     example: 'Empresa SAS',
   })
   @IsString()
@@ -107,7 +109,8 @@ export class RegisterDto {
     example: Genero.MASCULINO,
   })
   @IsStrictEnum(Genero, {
-    message: 'genero debe ser uno de los valores permitidos: M (MASCULINO), F (FEMENINO), O (OTRO)',
+    message:
+      'genero debe ser uno de los valores permitidos: M (MASCULINO), F (FEMENINO), O (OTRO)',
   })
   @IsOptional()
   genero?: Genero;
@@ -181,7 +184,8 @@ export class RegisterDto {
   biografia?: string;
 
   @ApiPropertyOptional({
-    description: 'Indica si el usuario debe ser habilitado inmediatamente. Por defecto es false.',
+    description:
+      'Indica si el usuario debe ser habilitado inmediatamente. Por defecto es false.',
     example: false,
     default: false,
   })
@@ -189,7 +193,8 @@ export class RegisterDto {
   habilitado?: boolean;
 
   @ApiPropertyOptional({
-    description: 'Indica si el usuario acepta los términos y condiciones. Si es true, se aceptarán automáticamente todos los documentos legales activos después del registro.',
+    description:
+      'Indica si el usuario acepta los términos y condiciones. Si es true, se aceptarán automáticamente todos los documentos legales activos después del registro.',
     example: true,
     default: false,
   })
@@ -198,7 +203,8 @@ export class RegisterDto {
   aceptaTerminos?: boolean;
 
   @ApiPropertyOptional({
-    description: 'Indica si el usuario acepta la política de tratamiento de datos personales. Si es true junto con aceptaTerminos, se aceptarán automáticamente todos los documentos legales activos después del registro.',
+    description:
+      'Indica si el usuario acepta la política de tratamiento de datos personales. Si es true junto con aceptaTerminos, se aceptarán automáticamente todos los documentos legales activos después del registro.',
     example: true,
     default: false,
   })
@@ -207,7 +213,8 @@ export class RegisterDto {
   aceptaPoliticaDatos?: boolean;
 
   @ApiPropertyOptional({
-    description: 'ID de la empresa a la que pertenece el usuario. Si no se proporciona y el usuario que crea es CLIENTE, se usará automáticamente su empresa.',
+    description:
+      'ID de la empresa a la que pertenece el usuario. Si no se proporciona y el usuario que crea es CLIENTE, se usará automáticamente su empresa.',
     example: 1,
     type: Number,
   })

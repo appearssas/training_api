@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
@@ -17,7 +17,7 @@ import { AuthRepositoryAdapter } from '@/infrastructure/auth/auth.repository.ada
 import { PasswordResetRepository } from '@/infrastructure/auth/password-reset.repository.adapter';
 import { RolesGuard } from '@/infrastructure/shared/guards/roles.guard';
 import { EmailModule } from '@/infrastructure/email/email.module';
-import { AceptacionesModule } from '@/infrastructure/aceptaciones/aceptaciones.module';
+import { TermsModule } from '@/infrastructure/terms/terms.module';
 import { StorageModule } from '@/infrastructure/shared/storage/storage.module';
 import { ImageCompressionService } from '@/infrastructure/shared/services/image-compression.service';
 import { Usuario } from '@/entities/usuarios/usuario.entity';
@@ -51,7 +51,13 @@ import { PasswordResetToken } from '@/entities/password-reset/password-reset-tok
       useClass: PasswordResetRepository,
     },
   ],
-  exports: [JwtStrategy, PassportModule, JwtModule, TypeOrmModule],
+  exports: [
+    JwtStrategy, 
+    PassportModule, 
+    JwtModule, 
+    TypeOrmModule,
+    'IAuthRepository', // Exportar IAuthRepository para que otros módulos puedan usarlo
+  ],
   imports: [
     TypeOrmModule.forFeature([
       Usuario,
@@ -62,10 +68,10 @@ import { PasswordResetToken } from '@/entities/password-reset/password-reset-tok
       Instructor,
       PasswordResetToken,
     ]),
-    PassportModule.register({ defaultStrategy: 'jwt' }),
+    PassportModule.register({ defaultStrategy: 'jwt' }), // defaultStrategy no aplica guards automáticamente
     ConfigModule,
     EmailModule,
-    AceptacionesModule,
+    forwardRef(() => TermsModule), // Usar forwardRef para resolver dependencia circular
     StorageModule,
     JwtModule.registerAsync({
       inject: [ConfigService],

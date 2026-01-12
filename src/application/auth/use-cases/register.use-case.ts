@@ -178,12 +178,12 @@ export class RegisterUseCase {
           await this.emailService.enviarCredencialesTemporales(
             registerDto.email,
             nombreCompleto,
-            registerDto.username,
+            registerDto.numeroDocumento, // El username siempre es el número de documento
             passwordTemporal,
           );
 
           this.logger.log(
-            `✅ Email con credenciales enviado a ${registerDto.email} para usuario ${registerDto.username}`,
+            `✅ Email con credenciales enviado a ${registerDto.email} para usuario ${registerDto.numeroDocumento}`,
           );
         } catch (error) {
           // No fallar el registro si falla el envío de email, solo loguearlo
@@ -196,7 +196,7 @@ export class RegisterUseCase {
         }
       } else {
         this.logger.warn(
-          `⚠️ Usuario ${registerDto.username} creado sin email, no se enviaron credenciales por correo.`,
+          `⚠️ Usuario ${registerDto.numeroDocumento} creado sin email, no se enviaron credenciales por correo.`,
         );
       }
 

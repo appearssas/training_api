@@ -12,8 +12,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage, memoryStorage } from 'multer';
-import { extname } from 'path';
+import { memoryStorage } from 'multer';
 import {
   ApiTags,
   ApiOperation,
@@ -26,6 +25,7 @@ import {
 import { AuthGuard } from '@nestjs/passport';
 import { Inject } from '@nestjs/common';
 import { IAuthRepository } from '@/domain/auth/ports/auth.repository.port';
+import { Public } from '@/infrastructure/shared/auth/decorators/public.decorator';
 import { LoginUseCase } from '@/application/auth/use-cases/login.use-case';
 import { RefreshTokenUseCase } from '@/application/auth/use-cases/refresh-token.use-case';
 import { RegisterUseCase } from '@/application/auth/use-cases/register.use-case';
@@ -103,6 +103,7 @@ export class AuthController {
   ) {}
 
   @Post('public/register')
+  @Public()
   @ApiOperation({
     summary: 'Registro público de usuario',
     description: `Endpoint público para que nuevos usuarios se registren en el sistema.
@@ -115,7 +116,7 @@ export class AuthController {
 - **NATURAL**: Persona física (por defecto)
 - **JURIDICA**: Persona jurídica (requiere razón social y tipo de documento NIT)
 
-**Nota:** 
+**Nota:**
 - El usuario queda en estado "No habilitado" hasta que un administrador lo apruebe.
 - Los términos y condiciones se aceptan automáticamente si se envían en el payload.`,
   })
@@ -139,7 +140,9 @@ export class AuthController {
     status: 409,
     description: 'El usuario, email o documento ya existe',
   })
-  async publicRegister(@Body() registerDto: RegisterDto): Promise<{ message: string }> {
+  async publicRegister(
+    @Body() registerDto: RegisterDto,
+  ): Promise<{ message: string }> {
     // Para registro público, no hay usuario actual, así que pasamos undefined
     const result = await this.registerUseCase.execute(registerDto, undefined);
     return result;
@@ -203,6 +206,7 @@ export class AuthController {
   }
 
   @Post('login')
+  @Public()
   @ApiOperation({
     summary: 'Iniciar sesión',
     description: `Inicia sesión en el sistema con credenciales de usuario.
@@ -450,6 +454,7 @@ export class AuthController {
   }
 
   @Get('refresh')
+  @Public()
   @UseGuards(AuthGuard('jwt'))
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Refrescar token de acceso' })
@@ -588,6 +593,7 @@ export class AuthController {
   }
 
   @Post('register/photo')
+  @Public()
   @ApiOperation({
     summary: 'Subir foto de perfil durante el registro (público)',
     description:
@@ -701,7 +707,10 @@ export class AuthController {
       },
     },
   })
-  @ApiResponse({ status: 401, description: 'Contraseña inválida o no autorizado' })
+  @ApiResponse({
+    status: 401,
+    description: 'Contraseña inválida o no autorizado',
+  })
   async validatePassword(
     @GetUser() user: Usuario,
     @Body() body: { password: string },
@@ -711,7 +720,10 @@ export class AuthController {
       throw new NotFoundException('Usuario no encontrado');
     }
 
-    const isValid = this.authRepository.comparePassword(body.password, fullUser.passwordHash);
+    const isValid = this.authRepository.comparePassword(
+      body.password,
+      fullUser.passwordHash,
+    );
     return { valid: isValid };
   }
 
@@ -798,10 +810,7 @@ export class AuthController {
 
     // Actualizar el perfil del usuario con la nueva foto
     if (user) {
-      await this.updateProfileUseCase.execute(
-        user,
-        { fotoUrl },
-      );
+      await this.updateProfileUseCase.execute(user, { fotoUrl });
     }
 
     return {
@@ -811,6 +820,7 @@ export class AuthController {
   }
 
   @Post('password-reset/request')
+  @Public()
   @ApiOperation({ summary: 'Solicitar recuperación de contraseña' })
   @ApiBody({ type: RequestPasswordResetDto })
   @ApiResponse({
@@ -840,6 +850,7 @@ export class AuthController {
   }
 
   @Post('password-reset/reset')
+  @Public()
   @ApiOperation({ summary: 'Resetear contraseña con token' })
   @ApiBody({ type: ResetPasswordDto })
   @ApiResponse({
