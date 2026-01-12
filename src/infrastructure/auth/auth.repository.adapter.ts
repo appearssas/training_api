@@ -198,7 +198,8 @@ export class AuthRepositoryAdapter implements IAuthRepository {
 
       // 3. Crear usuario
       const usuario = this.userRepository.create({
-        ...usuarioData,
+        username: savedPersona.numeroDocumento, // El username siempre es el número de documento
+        passwordHash: usuarioData.passwordHash,
         persona: savedPersona,
         rolPrincipal: rol,
         activo: true,

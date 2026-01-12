@@ -1,7 +1,8 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
-import { APP_FILTER } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD } from '@nestjs/core';
+import { JwtAuthGuard } from './infrastructure/shared/guards/jwt-auth.guard';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { CapacitacionesModule } from './infrastructure/capacitaciones/capacitaciones.module';
@@ -15,7 +16,6 @@ import { DatabaseModule } from './infrastructure/shared/database/database.module
 import { PersonasModule } from './infrastructure/personas/personas.module';
 import { CertificatesModule } from './infrastructure/certificates/certificates.module';
 import { PagosModule } from './infrastructure/pagos/pagos.module';
-import { AceptacionesModule } from './infrastructure/aceptaciones/aceptaciones.module';
 import { UsuariosModule } from './infrastructure/usuarios/usuarios.module';
 import { IntentosModule } from './infrastructure/intentos/intentos.module';
 import { TermsModule } from './infrastructure/terms/terms.module';
@@ -44,7 +44,6 @@ import { StorageModule } from './infrastructure/shared/storage/storage.module';
     PersonasModule,
     CertificatesModule,
     PagosModule,
-    AceptacionesModule,
     UsuariosModule,
     TermsModule,
     DashboardModule,
@@ -58,6 +57,10 @@ import { StorageModule } from './infrastructure/shared/storage/storage.module';
     {
       provide: APP_FILTER,
       useClass: GlobalExceptionFilter,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
     },
   ],
 })
