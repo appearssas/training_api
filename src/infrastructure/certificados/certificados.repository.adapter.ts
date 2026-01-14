@@ -29,16 +29,26 @@ export class CertificadosRepositoryAdapter implements ICertificadosRepository {
 
   async create(createCertificadoDto: CreateCertificadoDto): Promise<Certificado> {
     try {
+      // Log para debugging: verificar qué inscripcionId se recibe en el repositorio
+      console.log('🔍 CertificadosRepositoryAdapter.create - inscripcionId recibido:', createCertificadoDto.inscripcionId);
+      
       // CORRECCIÓN: Cargar inscripción con todas las relaciones necesarias
       // Esto asegura que el certificado tenga acceso a los datos correctos de la capacitación
-      const inscripcion = await this.inscripcionRepository.findOne({
-        where: { id: createCertificadoDto.inscripcionId },
-        relations: [
-          'estudiante',
-          'capacitacion',
-          'capacitacion.instructor',
-          'capacitacion.tipoCapacitacion',
-        ],
+      // IMPORTANTE: Usar QueryBuilder para evitar problemas de caché de TypeORM
+      const inscripcion = await this.inscripcionRepository
+        .createQueryBuilder('inscripcion')
+        .where('inscripcion.id = :id', { id: createCertificadoDto.inscripcionId })
+        .leftJoinAndSelect('inscripcion.estudiante', 'estudiante')
+        .leftJoinAndSelect('inscripcion.capacitacion', 'capacitacion')
+        .leftJoinAndSelect('capacitacion.instructor', 'instructor')
+        .leftJoinAndSelect('capacitacion.tipoCapacitacion', 'tipoCapacitacion')
+        .getOne();
+      
+      // Log para verificar qué inscripción se cargó
+      console.log('🔍 CertificadosRepositoryAdapter.create - inscripción cargada:', {
+        id: inscripcion?.id,
+        capacitacionId: inscripcion?.capacitacion?.id,
+        capacitacionTitulo: inscripcion?.capacitacion?.titulo,
       });
 
       if (!inscripcion) {

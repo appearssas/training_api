@@ -39,14 +39,28 @@ export class EvaluationScoringService {
       return Number(pregunta.puntaje);
     }
 
-    // Si la pregunta no tiene opciones y no es OPEN_TEXT, retornar 0
+    // Pregunta de completar espacios (FILL_BLANKS)
+    // Similar a OPEN_TEXT, requiere respuesta de texto
+    if (tipoPregunta === 'FILL_BLANKS') {
+      if (!respuestaEstudiante.textoRespuesta || respuestaEstudiante.textoRespuesta.trim() === '') {
+        console.log(`Pregunta ${pregunta.id} (FILL_BLANKS): Sin respuesta o respuesta vacía`);
+        return 0;
+      }
+      // Por ahora, otorgar puntaje completo si hay respuesta
+      // En el futuro, se podría implementar validación más estricta
+      console.log(`Pregunta ${pregunta.id} (FILL_BLANKS): Respuesta encontrada, otorgando puntaje completo`);
+      return Number(pregunta.puntaje);
+    }
+
+    // Si la pregunta no tiene opciones y no es OPEN_TEXT ni FILL_BLANKS, retornar 0
     if (!pregunta.opciones || pregunta.opciones.length === 0) {
-      console.warn(`Pregunta ${pregunta.id} no tiene opciones y no es OPEN_TEXT`);
+      console.warn(`Pregunta ${pregunta.id} no tiene opciones y no es OPEN_TEXT ni FILL_BLANKS`);
       return 0;
     }
 
-    // Pregunta de única respuesta (SINGLE_CHOICE, TRUE_FALSE, IMAGE_SELECTION)
-    if (tipoPregunta === 'SINGLE_CHOICE' || tipoPregunta === 'TRUE_FALSE' || tipoPregunta === 'IMAGE_SELECTION') {
+    // Pregunta de única respuesta (SINGLE_CHOICE, TRUE_FALSE, YES_NO, SELECT_IMAGE)
+    // CORRECCIÓN: Cambiar IMAGE_SELECTION por SELECT_IMAGE (código correcto en BD)
+    if (tipoPregunta === 'SINGLE_CHOICE' || tipoPregunta === 'TRUE_FALSE' || tipoPregunta === 'YES_NO' || tipoPregunta === 'SELECT_IMAGE') {
       if (!respuestaEstudiante.opcionRespuesta) {
         console.log(`Pregunta ${pregunta.id} (${tipoPregunta}): Sin opción seleccionada`);
         return 0;

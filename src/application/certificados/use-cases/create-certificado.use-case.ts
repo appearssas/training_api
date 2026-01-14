@@ -33,6 +33,9 @@ export class CreateCertificadoUseCase {
   ) {}
 
   async execute(createCertificadoDto: CreateCertificadoDto): Promise<Certificado> {
+    // Log para debugging: verificar qué inscripcionId se recibe
+    console.log('🔍 CreateCertificadoUseCase.execute - inscripcionId recibido:', createCertificadoDto.inscripcionId);
+    
     // Validar que la inscripción existe y está aprobada
     const inscripcion = await this.inscripcionRepository.findOne({
       where: { id: createCertificadoDto.inscripcionId },
@@ -42,6 +45,13 @@ export class CreateCertificadoUseCase {
         'capacitacion.instructor',
         'capacitacion.tipoCapacitacion',
       ],
+    });
+    
+    // Log para verificar qué inscripción se cargó
+    console.log('🔍 CreateCertificadoUseCase.execute - inscripción cargada:', {
+      id: inscripcion?.id,
+      capacitacionId: inscripcion?.capacitacion?.id,
+      capacitacionTitulo: inscripcion?.capacitacion?.titulo,
     });
 
     if (!inscripcion) {
@@ -104,7 +114,7 @@ export class CreateCertificadoUseCase {
 
     // Preparar datos del certificado
     const certificadoData: any = {
-      inscripcion: { id: createCertificadoDto.inscripcionId } as any,
+      inscripcionId: createCertificadoDto.inscripcionId,
       numeroCertificado: `CERT-${Date.now()}-${Math.random().toString(36).substring(7)}`,
       fechaAprobacionReal: new Date(), // Fecha real de aprobación
       hashVerificacion,

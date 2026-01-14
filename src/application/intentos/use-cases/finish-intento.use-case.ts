@@ -44,9 +44,9 @@ export class FinishIntentoUseCase {
       try {
         console.log(`🎓 Intento ${intentoId} aprobado. Verificando generación de certificado...`);
         
-        // Obtener inscripción ID (asumiendo que intento tiene la relación cargada o se puede obtener)
-        // Nota: getAttemptById debería traer la relación inscripcion
-        const inscripcionId = intento.inscripcion?.id;
+        // CORRECCIÓN: Usar intentoFinalizado que tiene las relaciones cargadas
+        // Obtener inscripción ID desde el intento finalizado
+        const inscripcionId = intentoFinalizado.inscripcion?.id;
         
         if (inscripcionId) {
           // Verificar si ya existe certificado para evitar duplicados

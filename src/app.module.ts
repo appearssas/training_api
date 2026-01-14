@@ -24,6 +24,7 @@ import { ReportsModule } from './infrastructure/reports/reports.module';
 import { RolesModule } from './infrastructure/roles/roles.module';
 import { EmpresasModule } from './infrastructure/empresas/empresas.module';
 import { StorageModule } from './infrastructure/shared/storage/storage.module';
+import { ResenasModule } from './infrastructure/resenas/resenas.module';
 
 @Module({
   imports: [
@@ -50,6 +51,7 @@ import { StorageModule } from './infrastructure/shared/storage/storage.module';
     ReportsModule,
     RolesModule,
     EmpresasModule,
+    ResenasModule,
   ],
   controllers: [AppController],
   providers: [
