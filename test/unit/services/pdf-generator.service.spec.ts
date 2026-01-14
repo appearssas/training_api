@@ -36,7 +36,14 @@ jest.mock('fs', () => ({
 }));
 
 // Mock svg-to-pdfkit
-jest.mock('svg-to-pdfkit', () => jest.fn());
+// Este módulo se requiere dinámicamente, así que lo marcamos como virtual
+// para evitar que Jest intente resolverlo desde node_modules
+jest.mock('svg-to-pdfkit', () => {
+  return jest.fn((doc: any, svg: string, x: number, y: number, options?: any) => {
+    // Mock de la función SVGtoPDF - no hace nada en el test
+    return;
+  });
+}, { virtual: true });
 
 describe('PdfGeneratorService', () => {
   let service: PdfGeneratorService;
