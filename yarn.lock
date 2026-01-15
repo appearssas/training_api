@@ -7404,7 +7404,7 @@ supports-preserve-symlinks-flag@^1.0.0:
 
 svg-to-pdfkit@^0.1.8:
   version "0.1.8"
-  resolved "https://registry.npmjs.org/svg-to-pdfkit/-/svg-to-pdfkit-0.1.8.tgz"
+  resolved "https://registry.yarnpkg.com/svg-to-pdfkit/-/svg-to-pdfkit-0.1.8.tgz#5921765922044843f0c1a5b25ec1ef8a4a33b8af"
   integrity sha512-QItiGZBy5TstGy+q8mjQTMGRlDDOARXLxH+sgVm1n/LYeo0zFcQlcCh8m4zi8QxctrxB9Kue/lStc/RD5iLadQ==
   dependencies:
     pdfkit ">=0.8.1"

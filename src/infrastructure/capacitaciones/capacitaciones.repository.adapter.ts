@@ -206,7 +206,10 @@ export class CapacitacionesRepositoryAdapter implements ICapacitacionesRepositor
         .leftJoinAndSelect('capacitacion.tipoCapacitacion', 'tipoCapacitacion')
         .leftJoinAndSelect('capacitacion.modalidad', 'modalidad')
         .leftJoinAndSelect('capacitacion.instructor', 'instructor')
-        .leftJoinAndSelect('capacitacion.evaluaciones', 'evaluaciones');
+        .leftJoinAndSelect('capacitacion.evaluaciones', 'evaluaciones')
+        .leftJoinAndSelect('capacitacion.inscripciones', 'inscripciones')
+        .leftJoinAndSelect('inscripciones.resenas', 'resenas')
+        .leftJoinAndSelect('inscripciones.estudiante', 'estudiante');
 
       if (search) {
         queryBuilder.where(
@@ -225,8 +228,54 @@ export class CapacitacionesRepositoryAdapter implements ICapacitacionesRepositor
 
       const [data, total] = await queryBuilder.getManyAndCount();
 
+      // Calcular promedio de calificaciones y mapear reseñas para cada capacitación
+      const dataWithRatings = data.map((capacitacion) => {
+        if (capacitacion.inscripciones) {
+          // Mapear reseñas manteniendo referencia a su inscripción para acceder al estudiante
+          const todasLasResenas = capacitacion.inscripciones
+            .flatMap((inscripcion) => 
+              (inscripcion.resenas || [])
+                .filter((resena) => resena.activo !== false)
+                .map((resena) => ({
+                  resena,
+                  inscripcion, // Mantener referencia a la inscripción para acceder al estudiante
+                }))
+            );
+          
+          if (todasLasResenas.length > 0) {
+            const sumaCalificaciones = todasLasResenas.reduce(
+              (suma, item) => suma + item.resena.calificacion,
+              0,
+            );
+            (capacitacion as any).promedioCalificacion = Number(
+              (sumaCalificaciones / todasLasResenas.length).toFixed(2),
+            );
+            
+            // Agregar todas las reseñas a la capacitación para facilitar el acceso
+            (capacitacion as any).resenas = todasLasResenas.map((item) => ({
+              id: item.resena.id,
+              alumnoId: item.inscripcion?.estudiante?.id || null,
+              calificacion: item.resena.calificacion,
+              comentario: item.resena.comentario || null,
+              fechaCreacion: item.resena.fechaCreacion 
+                ? (typeof item.resena.fechaCreacion === 'string' 
+                    ? item.resena.fechaCreacion 
+                    : new Date(item.resena.fechaCreacion).toISOString())
+                : new Date().toISOString(),
+            }));
+          } else {
+            (capacitacion as any).promedioCalificacion = 0;
+            (capacitacion as any).resenas = [];
+          }
+        } else {
+          (capacitacion as any).promedioCalificacion = 0;
+          (capacitacion as any).resenas = [];
+        }
+        return capacitacion;
+      });
+
       return {
-        data,
+        data: dataWithRatings,
         total,
         page,
         limit,
@@ -292,6 +341,9 @@ export class CapacitacionesRepositoryAdapter implements ICapacitacionesRepositor
           'evaluaciones.preguntas',
           'evaluaciones.preguntas.tipoPregunta',
           'evaluaciones.preguntas.opciones',
+          'inscripciones',
+          'inscripciones.resenas',
+          'inscripciones.estudiante',
         ],
       });
       

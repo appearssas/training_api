@@ -230,26 +230,36 @@ export class IntentosRepositoryAdapter implements IIntentosRepository {
       let porcentaje: number | null = null;
       let aprobado: boolean | null = null;
 
+      // CORRECCIÓN CRÍTICA: Filtrar solo preguntas activas UNA VEZ al inicio
+      // Esto asegura que el cálculo sea consistente con las preguntas que realmente se evalúan
+      // Si hay preguntas inactivas, no deben contar en el total para el cálculo del porcentaje
+      const preguntasActivas = intento.evaluacion.preguntas.filter(
+        (p) => p.activo !== false, // Incluir preguntas activas (activo = true o null/undefined)
+      );
+
       if (esEncuesta) {
         console.log('⚠ Encuesta detectada: NO se calcularán puntajes ni se determinará aprobación');
         // Para encuestas, no calcular puntajes
         // Los valores se mantendrán como null
       } else {
         // Calcular puntaje total solo si NO es encuesta
+        console.log('=== CÁLCULO DE PUNTAJE OBTENIDO ===');
+        console.log('Total respuestas a evaluar:', respuestas.length);
+        console.log('Total preguntas en evaluación:', intento.evaluacion.preguntas.length);
+        console.log('Preguntas activas:', preguntasActivas.length);
+        
+        // IMPORTANTE: Pasar solo las preguntas activas para el cálculo
         puntajeObtenido = this.scoringService.calculateTotalScore(
           respuestas,
-          intento.evaluacion.preguntas,
+          preguntasActivas, // Usar solo preguntas activas
         );
+        
+        console.log('Puntaje obtenido calculado:', puntajeObtenido);
+        console.log('=== FIN CÁLCULO DE PUNTAJE OBTENIDO ===');
       }
 
       // Solo calcular puntajes y porcentajes si NO es encuesta
       if (!esEncuesta) {
-        // CORRECCIÓN CRÍTICA: Filtrar solo preguntas activas al calcular el puntaje total
-        // Esto asegura que el cálculo sea consistente con las preguntas que realmente se evalúan
-        // Si hay preguntas inactivas, no deben contar en el total para el cálculo del porcentaje
-        const preguntasActivas = intento.evaluacion.preguntas.filter(
-          (p) => p.activo !== false, // Incluir preguntas activas (activo = true o null/undefined)
-        );
 
         console.log('=== DEBUG: Preguntas activas vs totales ===');
         console.log('Total preguntas en evaluación:', intento.evaluacion.preguntas.length);
@@ -261,10 +271,16 @@ export class IntentosRepositoryAdapter implements IIntentosRepository {
         const puntajeTotalReal = preguntasActivas.reduce(
           (sum, pregunta) => {
             const puntaje = Number(pregunta.puntaje);
-            return sum + (isNaN(puntaje) || puntaje <= 0 ? 0 : puntaje);
+            const puntajeValido = isNaN(puntaje) || puntaje <= 0 ? 0 : puntaje;
+            console.log(`  Pregunta activa ID ${pregunta.id}: puntaje = ${puntaje} (válido: ${puntajeValido})`);
+            return sum + puntajeValido;
           },
           0
         );
+        
+        console.log('=== CÁLCULO DE PUNTAJE TOTAL REAL ===');
+        console.log('Preguntas activas encontradas:', preguntasActivas.length);
+        console.log('Puntaje total real calculado:', puntajeTotalReal);
 
         // Validar que todas las preguntas requeridas tengan respuesta
         const preguntasRequeridas = preguntasActivas.filter((p) => p.requerida !== false);
@@ -285,9 +301,29 @@ export class IntentosRepositoryAdapter implements IIntentosRepository {
 
         // SIEMPRE usar el puntaje total real calculado de las preguntas activas
         // Si es 0 o menor, significa que las preguntas no tienen puntaje configurado, usar el de la evaluación como fallback
-        const puntajeTotalParaCalcular = puntajeTotalReal > 0 
-          ? puntajeTotalReal 
-          : Number(intento.evaluacion.puntajeTotal || 100);
+        // IMPORTANTE: Priorizar siempre el puntajeTotalReal para evitar inconsistencias
+        let puntajeTotalParaCalcular = puntajeTotalReal;
+        
+        // Si el puntajeTotalReal es 0 o inválido, intentar usar el de la evaluación
+        // pero solo si hay preguntas activas (para evitar usar un valor incorrecto)
+        if (puntajeTotalParaCalcular <= 0 && preguntasActivas.length > 0) {
+          console.warn('⚠️ Puntaje total real es 0 o inválido, pero hay preguntas activas. Recalculando...');
+          // Recalcular sumando todos los puntajes, incluso si son 0
+          puntajeTotalParaCalcular = preguntasActivas.reduce(
+            (sum, pregunta) => {
+              const puntaje = Number(pregunta.puntaje) || 0;
+              console.log(`  Pregunta ${pregunta.id}: puntaje = ${puntaje}`);
+              return sum + puntaje;
+            },
+            0
+          );
+        }
+        
+        // Si aún es 0 o inválido, usar el de la evaluación como último recurso
+        if (puntajeTotalParaCalcular <= 0) {
+          console.warn('⚠️ Usando puntajeTotal de evaluación como fallback:', intento.evaluacion.puntajeTotal);
+          puntajeTotalParaCalcular = Number(intento.evaluacion.puntajeTotal || 100);
+        }
 
         // Logs para debugging
         console.log('=== DEBUG FINISH ATTEMPT ===');
@@ -443,6 +479,7 @@ export class IntentosRepositoryAdapter implements IIntentosRepository {
           console.log(
             `Generando certificado para inscripción ${inscripcionIdParaCertificado} (después del commit)...`,
           );
+          console.log('🔍 IntentosRepositoryAdapter - inscripcionId que se enviará:', inscripcionIdParaCertificado);
           await this.createCertificadoUseCase.execute({
             inscripcionId: inscripcionIdParaCertificado,
             esRetroactivo: false,
@@ -464,7 +501,19 @@ export class IntentosRepositoryAdapter implements IIntentosRepository {
         }
       }
 
-      return intentoFinalizado;
+      // Recargar el intento finalizado con todas las relaciones para asegurar que estén disponibles
+      const intentoConRelaciones = await this.intentoRepository.findOne({
+        where: { id: intentoFinalizado.id },
+        relations: [
+          'evaluacion',
+          'inscripcion',
+          'inscripcion.estudiante',
+          'inscripcion.capacitacion',
+          'respuestas',
+        ],
+      });
+
+      return intentoConRelaciones || intentoFinalizado;
     } catch (error) {
       await queryRunner.rollbackTransaction();
       throw error;

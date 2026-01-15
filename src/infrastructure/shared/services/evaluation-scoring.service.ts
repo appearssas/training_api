@@ -22,56 +22,60 @@ export class EvaluationScoringService {
     respuestaEstudiante: RespuestaEstudiante,
   ): number {
     const tipoPregunta = pregunta.tipoPregunta?.codigo?.toUpperCase() || '';
-    console.log(`Calculando puntaje para pregunta ${pregunta.id}, tipo: ${tipoPregunta}, codigo: ${pregunta.tipoPregunta?.codigo}`);
 
     // Pregunta de texto abierto (OPEN_TEXT)
     // Por defecto, si tiene respuesta, se otorga el puntaje completo
     // En el futuro se podría implementar calificación manual o automática con IA
     if (tipoPregunta === 'OPEN_TEXT') {
       if (!respuestaEstudiante.textoRespuesta || respuestaEstudiante.textoRespuesta.trim() === '') {
-        console.log(`Pregunta ${pregunta.id} (OPEN_TEXT): Sin respuesta o respuesta vacía`);
         return 0;
       }
       // Si tiene respuesta válida, otorgar el puntaje completo
       // NOTA: Esto es un comportamiento por defecto. En producción, las preguntas OPEN_TEXT
       // deberían ser calificadas manualmente o tener un sistema de calificación automática
-      console.log(`Pregunta ${pregunta.id} (OPEN_TEXT): Respuesta encontrada, otorgando puntaje completo`);
       return Number(pregunta.puntaje);
     }
 
-    // Si la pregunta no tiene opciones y no es OPEN_TEXT, retornar 0
+    // Pregunta de completar espacios (FILL_BLANKS)
+    // Similar a OPEN_TEXT, requiere respuesta de texto
+    if (tipoPregunta === 'FILL_BLANKS') {
+      if (!respuestaEstudiante.textoRespuesta || respuestaEstudiante.textoRespuesta.trim() === '') {
+        return 0;
+      }
+      // Por ahora, otorgar puntaje completo si hay respuesta
+      // En el futuro, se podría implementar validación más estricta
+      return Number(pregunta.puntaje);
+    }
+
+    // Si la pregunta no tiene opciones y no es OPEN_TEXT ni FILL_BLANKS, retornar 0
     if (!pregunta.opciones || pregunta.opciones.length === 0) {
-      console.warn(`Pregunta ${pregunta.id} no tiene opciones y no es OPEN_TEXT`);
+      console.warn(`Pregunta ${pregunta.id} no tiene opciones y no es OPEN_TEXT ni FILL_BLANKS`);
       return 0;
     }
 
-    // Pregunta de única respuesta (SINGLE_CHOICE, TRUE_FALSE, IMAGE_SELECTION)
-    if (tipoPregunta === 'SINGLE_CHOICE' || tipoPregunta === 'TRUE_FALSE' || tipoPregunta === 'IMAGE_SELECTION') {
+    // Pregunta de única respuesta (SINGLE_CHOICE, TRUE_FALSE, YES_NO, SELECT_IMAGE)
+    // CORRECCIÓN: Cambiar IMAGE_SELECTION por SELECT_IMAGE (código correcto en BD)
+    if (tipoPregunta === 'SINGLE_CHOICE' || tipoPregunta === 'TRUE_FALSE' || tipoPregunta === 'YES_NO' || tipoPregunta === 'SELECT_IMAGE') {
       if (!respuestaEstudiante.opcionRespuesta) {
-        console.log(`Pregunta ${pregunta.id} (${tipoPregunta}): Sin opción seleccionada`);
         return 0;
       }
 
       // Si la opción seleccionada es correcta, dar el puntaje completo
       if (respuestaEstudiante.opcionRespuesta.esCorrecta) {
-        console.log(`Pregunta ${pregunta.id} (${tipoPregunta}): Opción correcta seleccionada`);
         return Number(pregunta.puntaje);
       }
 
       // Si tiene puntaje parcial, usar ese
       if (respuestaEstudiante.opcionRespuesta.puntajeParcial > 0) {
-        console.log(`Pregunta ${pregunta.id} (${tipoPregunta}): Usando puntaje parcial`);
         return Number(respuestaEstudiante.opcionRespuesta.puntajeParcial);
       }
 
-      console.log(`Pregunta ${pregunta.id} (${tipoPregunta}): Opción incorrecta seleccionada`);
       return 0;
     }
 
     // Pregunta de múltiple respuesta (MULTIPLE_CHOICE, MATCHING)
     if (tipoPregunta === 'MULTIPLE_CHOICE' || tipoPregunta === 'MATCHING') {
       if (!respuestaEstudiante.respuestasMultiples || respuestaEstudiante.respuestasMultiples.length === 0) {
-        console.log(`Pregunta ${pregunta.id} (${tipoPregunta}): Sin respuestas múltiples`);
         return 0;
       }
 
@@ -91,7 +95,6 @@ export class EvaluationScoringService {
 
       if (todasCorrectasSeleccionadas && ningunaIncorrectaSeleccionada) {
         // Puntaje completo
-        console.log(`Pregunta ${pregunta.id} (${tipoPregunta}): Todas las opciones correctas seleccionadas`);
         return Number(pregunta.puntaje);
       }
 
@@ -114,7 +117,6 @@ export class EvaluationScoringService {
         }
       }
 
-      console.log(`Pregunta ${pregunta.id} (${tipoPregunta}): Puntaje parcial calculado: ${puntajeParcial}`);
       return puntajeParcial;
     }
 
@@ -134,45 +136,18 @@ export class EvaluationScoringService {
   ): number {
     let puntajeTotal = 0;
 
-    console.log('=== DEBUG calculateTotalScore ===');
-    console.log('Total preguntas recibidas:', preguntas.length);
-    
     // CORRECCIÓN: Filtrar solo preguntas activas para el cálculo
     // Esto asegura que solo se evalúen las preguntas que realmente están activas
     const preguntasActivas = preguntas.filter((p) => p.activo !== false);
-    console.log('Preguntas activas:', preguntasActivas.length);
-    console.log('Total respuestas:', respuestasEstudiante.length);
 
-    respuestasEstudiante.forEach((respuesta, index) => {
+    respuestasEstudiante.forEach((respuesta) => {
       // Buscar la pregunta solo entre las activas
       const pregunta = preguntasActivas.find((p) => p.id === respuesta.pregunta.id);
       if (pregunta) {
         const puntajePregunta = this.calculateQuestionScore(pregunta, respuesta);
-        console.log(`Respuesta ${index + 1}: Pregunta ID ${pregunta.id}, Puntaje obtenido: ${puntajePregunta}, Puntaje max: ${pregunta.puntaje}`);
         puntajeTotal += puntajePregunta;
-      } else {
-        console.warn(`No se encontró la pregunta activa con ID ${respuesta.pregunta.id} para la respuesta ${index + 1}`);
       }
     });
-
-    // Verificar si hay preguntas activas sin respuesta
-    const preguntasActivasSinRespuesta = preguntasActivas.filter(
-      (pregunta) => !respuestasEstudiante.some((resp) => resp.pregunta.id === pregunta.id),
-    );
-    
-    if (preguntasActivasSinRespuesta.length > 0) {
-      console.warn('⚠️ Preguntas activas sin respuesta:', 
-        preguntasActivasSinRespuesta.map((p) => ({ 
-          id: p.id, 
-          enunciado: p.enunciado.substring(0, 50) + '...', 
-          puntaje: p.puntaje,
-          requerida: p.requerida,
-        }))
-      );
-    }
-
-    console.log('Puntaje total calculado:', puntajeTotal);
-    console.log('=== FIN DEBUG calculateTotalScore ===');
 
     return Number(puntajeTotal.toFixed(2));
   }
