@@ -438,7 +438,6 @@
         <text class="cls-13" transform="translate(306.24 188.71)"><tspan class="cls-20"><tspan x="0" y="0">CONFIANZA IPS SAS</tspan></tspan><tspan class="cls-15"><tspan x="-192.6" y="17">Licencia en Seguridad y Salud en el Trabajo, Resolución N° 7601 de la secretaria de Salud</tspan></tspan><tspan class="cls-15"><tspan x="-21.25" y="34">del Meta 28 de septiembre de 2021</tspan></tspan><tspan class="cls-21"><tspan x="9.54" y="74">CERTIFICA QUE:</tspan></tspan><tspan class="cls-16"><tspan x="-244.34" y="134" xml:space="preserve">                                           Cedula de Ciudadanía N° </tspan></tspan><tspan class="cls-16"><tspan x="-139.84" y="174">Ha realizado y aprobado satisfactoriamente el curso de</tspan></tspan></text>
         <text class="cls-12" transform="translate(181.07 151.26)"><tspan x="0" y="0">CERTIFICADO DE APROBACIÓN</tspan></text>
         <rect class="cls-13" x="96.14" y="371.73" width="601.57" height="33.57" rx="16.78" ry="16.78"/>
-        <text class="cls-11" transform="translate(295.91 422.01)"><tspan x="0" y="0" xml:space="preserve">Con una intensidad de      horas</tspan><tspan x="-147.32" y="15" xml:space="preserve">Culminado el                                           , Vigente hasta el                                               </tspan></text>
         <line class="cls-8" x1="131.53" y1="496.75" x2="323.42" y2="496.75"/>
         <line class="cls-8" x1="467.74" y1="496.75" x2="659.63" y2="496.75"/>
         <g>
@@ -496,6 +495,7 @@
           <path class="cls-26" d="M574.97,67.44c-1.78,0-3.22,1.44-3.22,3.22s1.44,3.22,3.22,3.22,3.22-1.44,3.22-3.22-1.44-3.22-3.22-3.22ZM575.59,73.25c-1.43,0-2.59-1.16-2.59-2.59s1.16-2.59,2.59-2.59,2.59,1.16,2.59,2.59-1.16,2.59-2.59,2.59Z"/>
           <path class="cls-2" d="M583.28,76.21c-1.06,0-1.92.86-1.92,1.92s.86,1.92,1.92,1.92,1.92-.86,1.92-1.92-.86-1.92-1.92-1.92ZM583.66,79.66c-.85,0-1.54-.69-1.54-1.54s.69-1.54,1.54-1.54,1.54.69,1.54,1.54-.69,1.54-1.54,1.54h0Z"/>
         </g>
+        <text class="cls-11" transform="translate(289.23 422.01)"><tspan x="0" y="0" xml:space="preserve">Con una intensidad de          horas</tspan><tspan x="-143.98" y="15" xml:space="preserve">Culminado el                                                  , Vigente hasta el                                          </tspan></text>
       </g>
     </g>
   </g>
