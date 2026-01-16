@@ -33,7 +33,6 @@ if (!existsSync(PUBLIC_ASSETS_PATH)) {
   }
 }
 
-const SVG_ABSOLUTE_PATH = join(PUBLIC_ASSETS_PATH, 'certificado_svg.svg');
 
 
 try {
@@ -59,6 +58,11 @@ export class PdfGeneratorService {
     });
 
     const buffers: Buffer[] = [];
+    
+    // Register Fonts
+    doc.registerFont('Montserrat', join(PUBLIC_ASSETS_PATH, 'fonts', 'Montserrat-Regular.ttf'));
+    doc.registerFont('Montserrat-Bold', join(PUBLIC_ASSETS_PATH, 'fonts', 'Montserrat-Bold.ttf'));
+
     doc.on('data', (buffer) => buffers.push(buffer));
 
     const inscripcion = certificado.inscripcion as Inscripcion;
@@ -73,98 +77,9 @@ export class PdfGeneratorService {
     const docWidth = doc.page.width;
     const centerX = docWidth / 2;
 
+
     // 1. FONDO
-    await this.addCertificateBackground(doc);
-
-    // 0. LOGO SUPERIOR CENTRADO (CONDICIONAL) - Moved after background
-    const titulo = (capacitacion?.titulo || '').toLowerCase().trim();
-    // FIX: Usar minusculas porque 'titulo' ya fue convertido a .toLowerCase()
-    const contieneSustancias = titulo.includes('sustancias');
-    const contienePeligrosas = titulo.includes('peligrosas');
-
-   
-    const logoAndarName = 'andar.svg';
-    const logoSarotoName = 'ceasaroto.svg';
-    const logoConfianzaName = 'confianza.svg';
-    
-    // Usar Ceasaroto si cumple condiciones
-    const usarCeasaroto = contieneSustancias && contienePeligrosas;
-    
-    const mainLogoPath = usarCeasaroto
-        ? join(PUBLIC_ASSETS_PATH, logoSarotoName)
-        : join(PUBLIC_ASSETS_PATH, logoAndarName);
-    
-    const confianzaLogoPath = join(PUBLIC_ASSETS_PATH, logoConfianzaName);
-
-
-    // Aumentar tamaño 15% si es Ceasaroto
-    // Aumentar tamaño +20% adicional (Iteration 4) (Total aprox +90%)
-    const mainLogoWidth = usarCeasaroto ? 251 : 126; 
-    const mainLogoHeight = usarCeasaroto ? 124 : 63; 
-    
-    // Confianza logo ampliado (Iteration 13 - Decoupled Y)
-    const confianzaLogoWidth = 208; 
-    const confianzaLogoHeight = 105; 
-
-    // Gap negativo para forzar cercanía
-    const gap = -20; 
-    
-    // Ancho página = 792. 
-    // Right Anchor adjustment: 767
-    const rightAnchorX = 767;
-
-    // Calcular posiciones de derecha a izquierda
-    // Calcular posiciones de derecha a izquierda
-    const startXConfianza = rightAnchorX - confianzaLogoWidth;
-    // Mover AMBOS logos 15px a la derecha. Ceasaroto ya tenía 30px, ahora 45px. Andar 15px.
-    const startXMain = startXConfianza - gap - mainLogoWidth + (usarCeasaroto ? 45 : 15);
-    
-    // Posiciones Y independientes (Iteración 13)
-    const logoYConfianza = 30; // Subido (High)
-    // Si es Ceasaroto, subir 10px más (20). Si no, mantener en 40.
-    const logoYMain = usarCeasaroto ? 20 : 40;
-
-    // Función helper para dibujar un logo con dimensiones específicas
-    const drawLogo = async (path: string, x: number, w: number, h: number, y: number) => {
-        if (existsSync(path)) {
-            try {
-                if (path.endsWith('.svg')) {
-                    // VECTOR RENDER (SVG-TO-PDFKIT)
-                    const svgContent = readFileSync(path, 'utf-8');
-                    // @ts-ignore
-                    const SVGtoPDF = require('svg-to-pdfkit');
-                    
-                    // Options: assume pt units, preserve aspect ratio
-                    SVGtoPDF(doc, svgContent, x, y, { 
-                        width: w, 
-                        height: h,
-                        preserveAspectRatio: 'xMidYMid meet',
-                        assumePt: true // Important for scaling behavior
-                    });
-                } else {
-                    // RASTER RENDER (IMAGES)
-                    const logoBuffer = readFileSync(path);
-                    doc.image(logoBuffer, x, y, {
-                        width: w,
-                        height: h,
-                        fit: [w, h],
-                        align: 'center',
-                        valign: 'center'
-                    });
-                }
-            } catch (err) {
-                console.error(`[PDF Debug] Error procesando logo ${path}:`, err);
-            }
-        } else {
-            console.warn(`[PDF Debug] ALERTA: Logo not found at: ${path}`);
-        }
-    };
-
-    // Dibujar Logo 1 (Izquierda del grupo) - Main Logo
-    await drawLogo(mainLogoPath, startXMain, mainLogoWidth, mainLogoHeight, logoYMain);
-
-    // Dibujar Logo 2 (Derecha del grupo) - Confianza
-    await drawLogo(confianzaLogoPath, startXConfianza, confianzaLogoWidth, confianzaLogoHeight, logoYConfianza);
+    await this.addCertificateBackground(doc, capacitacion);
 
     // 2. TÍTULO PRINCIPAL (Y=140)
     doc.x = 0;
@@ -172,18 +87,13 @@ export class PdfGeneratorService {
 
     doc
       .fontSize(22)
-      .fillColor('#0D47A1')
-      .font('Helvetica-Bold')
-      .text('CERTIFICADO DE APROBACIÓN', { align: 'center' });
+      .fillColor('#292561')
+      .font('Montserrat-Bold')
 
     doc.moveDown(0.5);
 
     // 3. HEADER TEXT
-    doc.fontSize(10).fillColor('black');
-    doc.font('Helvetica').text('Otorgado por', { align: 'center' });
-    doc.moveDown(0.2);
-    doc.fontSize(12).font('Helvetica-Bold').text('FORMAR360', { align: 'center' });
-    doc.moveDown(0.2);
+    doc.fontSize(10).fillColor('#292561');
 
     doc.moveDown(1.2);
 
@@ -193,12 +103,6 @@ export class PdfGeneratorService {
     doc.moveTo(centerX - 120, lineaY).lineTo(centerX - 70, lineaY).stroke();
     doc.moveTo(centerX + 70, lineaY).lineTo(centerX + 120, lineaY).stroke();
 
-    doc
-      .fontSize(9)
-      .fillColor('#666666')
-      .font('Helvetica')
-      .text('CERTIFICA QUE:', { align: 'center' });
-
     doc.moveDown(1.0);
 
     // 5. NOMBRE ESTUDIANTE
@@ -207,48 +111,41 @@ export class PdfGeneratorService {
         ? `${estudiante.nombres} ${estudiante.apellidos}`.toUpperCase()
         : 'ESTUDIANTE';
 
+    doc.y += 90;
     doc
       .fontSize(22)
-      .fillColor('#0D47A1')
-      .font('Helvetica-Bold')
+      .fillColor('#292561')
+      .font('Montserrat-Bold')
       .text(nombreCompleto, { align: 'center' });
+    doc.y -= 90;
 
-    doc.moveDown(0.3);
+    doc.moveDown(3.3);
 
     // 6. CÉDULA
     const documento = estudiante?.numeroDocumento || 'N/A';
     doc
-      .fontSize(11)
-      .fillColor('black')
-      .font('Helvetica')
-      .text(`Cédula de ciudadanía N.° ${documento}`, { align: 'center' });
+      .fontSize(14.5)
+      .fillColor('#292561')
+      .font('Montserrat-Bold')
+      .text(` ${documento}`, 83, doc.y + 9.5, { align: 'center', width: docWidth });
 
-    doc.moveDown(1.2);
+    doc.moveDown(6.5);
 
     // 7. DESCRIPCIÓN
-    doc
-      .fontSize(11)
-      .fillColor('#444444')
-      .font('Helvetica')
-      .text('Ha realizado y aprobado satisfactoriamente el curso de:', { align: 'center' });
 
-    doc.moveDown(0.8);
 
     // 8. CURSO (BOTÓN AZUL)
     const cursoNombre = (capacitacion?.titulo || 'CURSO SIN NOMBRE').toUpperCase();
 
-    doc.fontSize(14).font('Helvetica-Bold');
+    doc.fontSize(21).font('Montserrat-Bold');
     const textWidth = doc.widthOfString(cursoNombre);
     const boxPadding = 20;
     const boxWidth = textWidth + boxPadding * 2;
     const boxHeight = 30;
     const boxX = centerX - boxWidth / 2;
-    const boxY = doc.y;
+    const boxY = doc.y - 68.5;
 
-    doc
-      .roundedRect(boxX, boxY, boxWidth, boxHeight, 8)
-      .fillColor('#0D47A1')
-      .fill();
+ 
     doc
       .fillColor('white')
       .text(cursoNombre, boxX, boxY + 8, { width: boxWidth, align: 'center' });
@@ -257,21 +154,54 @@ export class PdfGeneratorService {
 
     // 9. DETALLES (CENTRADO)
     doc.x = 0;
-    doc.fillColor('black');
-    doc.fontSize(10).font('Helvetica');
+    doc.fillColor('#292561');
+    doc.fontSize(12).font('Montserrat-Bold');
 
-    doc.text('Con una intensidad de 20 horas', 0, doc.y, {
+    const tituloForDuration = (capacitacion?.titulo || '').toLowerCase().trim();
+    let duration = '20';
+
+    if (
+        tituloForDuration.includes('curso') &&
+        (tituloForDuration.includes('basico') || tituloForDuration.includes('básico')) &&
+        tituloForDuration.includes('transporte') &&
+        (tituloForDuration.includes('mercancias') || tituloForDuration.includes('mercancías')) &&
+        tituloForDuration.includes('peligrosas')
+    ) {
+        duration = '60';
+    } else if (
+        (tituloForDuration.includes('manipulacion') || tituloForDuration.includes('manipulación')) &&
+        tituloForDuration.includes('alimentos')
+    ) {
+        duration = '10';
+    }
+
+    doc.text(duration, 47, doc.y - 3, {
       width: docWidth,
       align: 'center',
     });
-    const resolutionText = contieneSustancias && contienePeligrosas
-      ? 'Resolucion N° 1585 de 05 de junio de 2025, secretaria de educacion soacha'
-      : 'Resolución N° 1500-67-10/1811 de 28 de junio de 2024, secretaria de educacion villavicencio';
 
-    doc.text(resolutionText, 0, doc.y, {
-      width: docWidth,
-      align: 'center',
-    });
+    doc.moveDown(1);
+
+    const localeDateOptions: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'long', day: '2-digit' };
+    const fechaEmision = certificado.fechaEmision
+      ? new Date(certificado.fechaEmision).toLocaleDateString('es-ES', localeDateOptions)
+      : '';
+    const fechaVencimiento = certificado.fechaVencimiento
+      ? new Date(certificado.fechaVencimiento).toLocaleDateString('es-ES', localeDateOptions)
+      : '';
+
+    doc.fontSize(12.5).font('Montserrat');
+    // Emission: Up 10px, shifted Left 50px
+    doc.text(`${fechaEmision}`, -83, doc.y - 14, { width: docWidth, align: 'center' });
+    
+    if (fechaVencimiento) {
+        // Expiration: Up 20px (from current cursor), shifted Right 60px
+        doc.text(`${fechaVencimiento}.`, 164, doc.y - 17, { width: docWidth, align: 'center' });
+    }
+
+ doc.x = 0;
+    doc.fillColor('#292561');
+    doc.fontSize(11.5).font('Montserrat');
 
     // 10. FIRMAS + GARABATOS FALSOS
     // 10. FIRMAS + GARABATOS FALSOS
@@ -297,17 +227,26 @@ export class PdfGeneratorService {
       .stroke();
     doc.restore();
 
-    doc.moveTo(col1X - 80, footerY).lineTo(col1X + 80, footerY).stroke();
-    doc.text('Anderson Herrera Díaz', col1X - 80, footerY + 5, {
-      width: 160,
+  let instructorname =  'Viviana Paola Rojas Hincapie';
+  let instructornametp =  'Instructor / Entrenador\nTSA REG xxxxxxxxx\nLicencia SST';
+
+    if (
+        ((tituloForDuration.includes('manipulacion') || tituloForDuration.includes('manipulación')) && tituloForDuration.includes('alimentos')) ||
+        (tituloForDuration.includes('primeros') && tituloForDuration.includes('auxilios'))
+    ) {
+        instructorname = 'Nini Johana Peña Vanegaz';
+        instructornametp =  'Instructor / Entrenador\nTSA REG xxxxxxxxx\nLicencia SST';
+    }
+    doc.font('Montserrat-Bold').text(instructorname, col1X - 160, footerY + 5, {
+      width: 260,
       align: 'center',
     });
     doc
-      .fontSize(8)
-      .font('Helvetica')
-      .text(
-        'Instructor / Entrenador\nTSA REG 37544429\nLicencia SST',
-        col1X - 80,
+      .fontSize(10.5)
+      .font('Montserrat')
+      .text(instructornametp
+       ,
+        col1X - 110,
         footerY + 20,
         { width: 160, align: 'center' },
       );
@@ -328,20 +267,29 @@ export class PdfGeneratorService {
       .stroke();
     doc.restore();
 
-    doc.moveTo(col2X - 80, footerY).lineTo(col2X + 80, footerY).stroke();
-    doc.fontSize(10).font('Helvetica-Bold').text(
-      'Edwin Julian Parra Morales',
-      col2X - 80,
+   
+    let representativeName = 'Alfonso Alejandro Velasco Reyes';
+
+    if (
+        ((tituloForDuration.includes('manipulacion') || tituloForDuration.includes('manipulación')) && tituloForDuration.includes('alimentos')) ||
+        (tituloForDuration.includes('primeros') && tituloForDuration.includes('auxilios'))
+    ) {
+        representativeName = 'Francy Dayany Gonzalez Galindo';
+    }
+
+    doc.fontSize(11.5).font('Montserrat-Bold').text(
+      representativeName,
+      col2X - 70, // Shifted left to center wider box (was -20)
       footerY + 5,
       {
-        width: 160,
+        width: 260, // Increased from 160 to fit full name
         align: 'center',
       },
     );
     doc
-      .fontSize(8)
-      .font('Helvetica')
-      .text('Representante Legal\nANDAR DEL LLANO', col2X - 80, footerY + 20, {
+      .fontSize(10.5)
+      .font('Montserrat')
+      .text('Representante Legal\n', col2X - 20, footerY + 20, {
         width: 160,
         align: 'center',
       });
@@ -352,10 +300,10 @@ export class PdfGeneratorService {
       try {
         // 1. Generar URL completa basada en la configuración ACTUAL del servidor
         const urlVerificacion = this.qrGeneratorService.generateVerificationUrlForQR(certificado.hashVerificacion);
-        
+
         // 2. Generar imagen QR en tiempo real
         const qrBase64 = await this.qrGeneratorService.generateQRCode(urlVerificacion);
-        
+
         // 3. Procesar imagen
         const base64Data = qrBase64.split(',')[1];
         const qrBuffer = Buffer.from(base64Data, 'base64');
@@ -363,8 +311,8 @@ export class PdfGeneratorService {
         const qrX = 687; // Movido 4px derecha (683 -> 687)
         const qrY = 450; // Movido 5px arriba (455 -> 450)
         doc.image(qrBuffer, qrX, qrY, { width: qrSize, height: qrSize });
-        
-       
+
+
       } catch (e) {
         console.error('Error generando QR dinámico:', e);
          // Fallback: intentar usar el guardado si falla el dinámico
@@ -383,6 +331,76 @@ export class PdfGeneratorService {
       }
     }
 
+    // 12. Footer with Legal Text and Contact Info
+    const footerTextY = 576;
+    doc.fillColor('#292561');
+    doc.fontSize(10).font('Montserrat');
+    // We use a wide box starting at 0 to center effectively across the landscape page (width 792)
+    // Adjusted X to -150 to shift the whole block left
+    
+    // Calculate widths manually to ensure perfect alignment without overlaps
+    doc.fontSize(10);
+    doc.font('Montserrat');
+    const t1 = 'Certificado emitido por ';
+    const t3 = ' en alianza con ';
+    const t5 = ' La autenticidad de este documento puede verificarse escaneando el código QR.';
+    
+    doc.font('Montserrat-Bold');
+    const t2 = 'FORMAR360';
+
+    // Logic for Alliance Company Name (Same as Background Logic)
+    let allianceCompany = 'ANDAR DEL LLANO.'; // Default logic (if no match)
+
+    if (
+        (tituloForDuration.includes('manipulacion') || tituloForDuration.includes('manipulación')) &&
+        tituloForDuration.includes('alimentos') ||
+        (tituloForDuration.includes('primeros') && tituloForDuration.includes('auxilios'))
+    ) {
+         allianceCompany = 'IPS CONFIANZA.';
+    } else if (
+        (tituloForDuration.includes('curso') && (tituloForDuration.includes('basico') || tituloForDuration.includes('básico')) && tituloForDuration.includes('transporte') &&
+        (tituloForDuration.includes('mercancias') || tituloForDuration.includes('mercancías')) &&
+        tituloForDuration.includes('peligrosas')) || (tituloForDuration.includes('transporte') &&
+        (tituloForDuration.includes('mercancias') || tituloForDuration.includes('mercancías')) &&
+        tituloForDuration.includes('peligrosas'))
+    ) {
+        allianceCompany = 'CEASAROTO.';
+    }
+
+    const t4 = allianceCompany;
+    
+    const w1 = doc.font('Montserrat').widthOfString(t1);
+    const w2 = doc.font('Montserrat-Bold').widthOfString(t2);
+    const w3 = doc.font('Montserrat').widthOfString(t3);
+    const w4 = doc.font('Montserrat-Bold').widthOfString(t4);
+    const w5 = doc.font('Montserrat').widthOfString(t5);
+    
+    const totalWidth = w1 + w2 + w3 + w4 + w5;
+    
+    // Target Center is 396 (792/2). Shifted left by 125 (moved 25px right from 150).
+    // Start X = TargetCenter - (TotalWidth / 2)
+    const targetCenterX = (792 / 2);
+    let currentX = targetCenterX - (totalWidth / 2);
+    
+    doc.fillColor('#292561');
+    
+    doc.font('Montserrat').text(t1, currentX, footerTextY, { continued: false, lineBreak: false });
+    currentX += w1;
+    
+    doc.font('Montserrat-Bold').text(t2, currentX, footerTextY, { continued: false, lineBreak: false });
+    currentX += w2;
+    
+    doc.font('Montserrat').text(t3, currentX, footerTextY, { continued: false, lineBreak: false });
+    currentX += w3;
+    
+    doc.font('Montserrat-Bold').text(t4, currentX, footerTextY, { continued: false, lineBreak: false });
+    currentX += w4;
+    
+    doc.font('Montserrat').text(t5, currentX, footerTextY, { continued: false, lineBreak: false });
+
+  
+    doc.fillColor('#292561'); // Reset to #292561
+
     doc.end();
     return new Promise((resolve, reject) => {
       doc.on('end', () => resolve(Buffer.concat(buffers)));
@@ -390,17 +408,50 @@ export class PdfGeneratorService {
     });
   }
 
-  private async addCertificateBackground(doc: any): Promise<void> {
+  private async addCertificateBackground(doc: any, capacitacion: any): Promise<void> {
     try {
-      if (existsSync(SVG_ABSOLUTE_PATH)) {
+        let backgroundName = 'fondoGeneral.svg'; // Default value (Por defecto)
+
+        if (capacitacion?.titulo) {
+            const titulo = capacitacion.titulo.toLowerCase();
+
+            // Logic: Alimentos -> Fondo Alimentos
+            // "debe incluir manipulación y alimentos o primeros auxilios"
+            if (
+                (titulo.includes('manipulación') && titulo.includes('alimentos')) ||
+                (titulo.includes('primeros') && titulo.includes('auxilios'))
+            ) {
+                backgroundName = 'fondoAlimentos.svg';
+            }
+            // Logic: Sustancias / Mercancías Peligrosas -> Fondo Sustancias
+            // "debe incluir transporte, mercancias y peligrosas"
+            else if (
+                (titulo.includes('curso') && (titulo.includes('basico') || titulo.includes('básico')) && titulo.includes('transporte') &&
+                (titulo.includes('mercancias') || titulo.includes('mercancías')) &&
+                titulo.includes('peligrosas')) || (titulo.includes('transporte') &&
+                (titulo.includes('mercancias') || titulo.includes('mercancías')) &&
+                titulo.includes('peligrosas'))
+            ) {
+                 backgroundName = 'fondoSustanciasP.svg';
+            }
+            // Else -> Default is already set to fondoGeneral.svg
+        }
+        
+        const backgroundPath = join(PUBLIC_ASSETS_PATH, backgroundName);
+
+      if (existsSync(backgroundPath)) {
         // REVERT TO RASTER (High-DPI) due to crash with vector background
-        const svgBuffer = readFileSync(SVG_ABSOLUTE_PATH);
+        // Render raster at 300 DPI for best print quality
+        const svgBuffer = readFileSync(backgroundPath);
         // Render at 300 DPI (approx 4x standard 72 DPI) for crisp quality
         const pngBuffer = await sharp(svgBuffer, { density: 300 }).png().toBuffer();
         doc.image(pngBuffer, 0, 0, { width: 792, height: 612 });
+      } else {
+        console.warn(`[PDF Warning] Background not found: ${backgroundPath}`);
       }
     } catch (e) {
       console.error(e);
     }
   }
 }
+
