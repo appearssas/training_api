@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Usuario } from '@/entities/usuarios/usuario.entity';
+import { IS_PUBLIC_KEY } from '../auth/decorators/public.decorator';
 
 /**
  * Clave de metadatos para almacenar los roles requeridos
@@ -50,6 +51,17 @@ export class RolesGuard implements CanActivate {
   constructor(private reflector: Reflector) {}
 
   canActivate(context: ExecutionContext): boolean {
+    // Verificar si el endpoint es público
+    const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
+
+    // Si es público, permitir el acceso sin verificar roles
+    if (isPublic) {
+      return true;
+    }
+
     // Obtener los roles requeridos del decorador @Roles()
     const requiredRoles = this.reflector.getAllAndOverride<string[]>(ROLES_KEY, [
       context.getHandler(),
