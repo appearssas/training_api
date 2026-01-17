@@ -24,6 +24,7 @@ import {
   EmpresasModule,
   ResenasModule,
   DocumentosLegalesModule,
+  ConfiguracionSesionModule,
   GlobalExceptionFilter,
   CertificatesModule,
   PagosModule,
@@ -56,6 +57,7 @@ import {
     EmpresasModule,
     ResenasModule,
     DocumentosLegalesModule,
+    ConfiguracionSesionModule,
   ],
   controllers: [AppController],
   providers: [
