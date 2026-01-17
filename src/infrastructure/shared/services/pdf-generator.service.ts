@@ -98,10 +98,7 @@ export class PdfGeneratorService {
     doc.moveDown(1.2);
 
     // 4. CERTIFICA QUE
-    const lineaY = doc.y + 6;
-    doc.lineWidth(0.5).strokeColor('#999999');
-    doc.moveTo(centerX - 120, lineaY).lineTo(centerX - 70, lineaY).stroke();
-    doc.moveTo(centerX + 70, lineaY).lineTo(centerX + 120, lineaY).stroke();
+ 
 
     doc.moveDown(1.0);
 
@@ -175,7 +172,7 @@ export class PdfGeneratorService {
         duration = '10';
     }
 
-    doc.text(duration, 47, doc.y - 3, {
+    doc.text(duration, 47, doc.y - 3.5, {
       width: docWidth,
       align: 'center',
     });
@@ -192,11 +189,11 @@ export class PdfGeneratorService {
 
     doc.fontSize(12.5).font('Montserrat');
     // Emission: Up 10px, shifted Left 50px
-    doc.text(`${fechaEmision}`, -83, doc.y - 14, { width: docWidth, align: 'center' });
+    doc.text(`${fechaEmision}`, -80, doc.y - 14.5, { width: docWidth, align: 'center' });
     
     if (fechaVencimiento) {
         // Expiration: Up 20px (from current cursor), shifted Right 60px
-        doc.text(`${fechaVencimiento}.`, 164, doc.y - 17, { width: docWidth, align: 'center' });
+        doc.text(`${fechaVencimiento}.`, 186, doc.y - 16, { width: docWidth, align: 'center' });
     }
 
  doc.x = 0;
@@ -308,8 +305,8 @@ export class PdfGeneratorService {
         const base64Data = qrBase64.split(',')[1];
         const qrBuffer = Buffer.from(base64Data, 'base64');
         const qrSize = 70;
-        const qrX = 687; // Movido 4px derecha (683 -> 687)
-        const qrY = 450; // Movido 5px arriba (455 -> 450)
+        const qrX = 688; // Movido 4px derecha (683 -> 687)
+        const qrY = 448.5; // Movido 5px arriba (455 -> 450)
         doc.image(qrBuffer, qrX, qrY, { width: qrSize, height: qrSize });
 
 
