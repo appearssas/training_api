@@ -224,11 +224,18 @@ export class PdfGeneratorService {
 
     if (existsSync(instructorSigPath)) {
         try {
-            const insSigWidth = 120;
-            const insSigHeight = 50;
+            let insSigWidth = 191; // Viviana (+30% total)
+            let insSigHeight = 80;
+            let xOffset = 50; // Viviana shift right
+
+            if (instructorSignatureImage === 'firma_nini_pena.png') {
+                insSigWidth = 145; // Nini (Standard)
+                insSigHeight = 61;
+                xOffset = 0;
+            }
             // Center over the instructor name text box
             // Instructor name box starts at col1X - 160, width 260. Center is col1X - 160 + 130 = col1X - 30.
-            const insSigX = (col1X - 30) - (insSigWidth / 2);
+            const insSigX = ((col1X - 30) - (insSigWidth / 2)) + xOffset;
             const insSigY = footerY - 45; 
 
             const insSigBuffer = readFileSync(instructorSigPath);
@@ -280,8 +287,8 @@ export class PdfGeneratorService {
         try {
             // Center of the text box is roughly col2X + 60
             // We want to center the image there.
-            const sigWidth = 120;
-            const sigHeight = 50; 
+            const sigWidth = 145;
+            const sigHeight = 61; 
             // Adjust X to center over the name text box (col2X - 70 + 260/2 = col2X + 60)
             const sigX = (col2X + 60) - (sigWidth / 2);
             const sigY = footerY - 45; // Place above the name
