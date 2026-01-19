@@ -208,21 +208,35 @@ export class PdfGeneratorService {
 
     doc.lineWidth(1).strokeColor('black');
 
-    // Firma izquierda (garabato)
-    doc.save();
-    doc.strokeColor('#000066').lineWidth(2);
-    doc
-      .moveTo(col1X - 30, footerY - 20)
-      .bezierCurveTo(
-        col1X - 20,
-        footerY - 40,
-        col1X + 20,
-        footerY - 10,
-        col1X + 40,
-        footerY - 30,
-      )
-      .stroke();
-    doc.restore();
+    // Firma izquierda (Imagen Real - Instructor)
+    // Viviana Rojas (General) vs Nini Peña (Alimentos/Primeros Auxilios)
+    
+    let instructorSignatureImage = 'firma_viviana_rojas.png'; // Default
+    
+    if (
+        ((tituloForDuration.includes('manipulacion') || tituloForDuration.includes('manipulación')) && tituloForDuration.includes('alimentos')) ||
+        (tituloForDuration.includes('primeros') && tituloForDuration.includes('auxilios'))
+    ) {
+        instructorSignatureImage = 'firma_nini_pena.png';
+    }
+
+    const instructorSigPath = join(PUBLIC_ASSETS_PATH, instructorSignatureImage);
+
+    if (existsSync(instructorSigPath)) {
+        try {
+            const insSigWidth = 120;
+            const insSigHeight = 50;
+            // Center over the instructor name text box
+            // Instructor name box starts at col1X - 160, width 260. Center is col1X - 160 + 130 = col1X - 30.
+            const insSigX = (col1X - 30) - (insSigWidth / 2);
+            const insSigY = footerY - 45; 
+
+            const insSigBuffer = readFileSync(instructorSigPath);
+            doc.image(insSigBuffer, insSigX, insSigY, { width: insSigWidth, height: insSigHeight, fit: [insSigWidth, insSigHeight] });
+        } catch (e) {
+            console.error('Error loading instructor signature image:', e);
+        }
+    }
 
   let instructorname =  'Viviana Paola Rojas Hincapie';
   let instructornametp =  'Instructor / Entrenador\nTSA REG xxxxxxxxx\nLicencia SST';
@@ -249,20 +263,35 @@ export class PdfGeneratorService {
       );
 
     // Firma derecha (garabato)
-    doc.save();
-    doc.strokeColor('#000066').lineWidth(2);
-    doc
-      .moveTo(col2X - 40, footerY - 25)
-      .bezierCurveTo(
-        col2X - 10,
-        footerY - 10,
-        col2X + 10,
-        footerY - 45,
-        col2X + 50,
-        footerY - 20,
-      )
-      .stroke();
-    doc.restore();
+    // Firma derecha (Imagen Real)
+    let signatureImageName = 'firma_alfonso_velasco.png'; // Default (Sustancias, General, etc.)
+    
+    // Logic: Alimentos / Primeros Auxilios -> Firma Francy
+    if (
+        ((tituloForDuration.includes('manipulacion') || tituloForDuration.includes('manipulación')) && tituloForDuration.includes('alimentos')) ||
+        (tituloForDuration.includes('primeros') && tituloForDuration.includes('auxilios'))
+    ) {
+        signatureImageName = 'firma_francy_gonzalez.png';
+    }
+
+    const signaturePath = join(PUBLIC_ASSETS_PATH, signatureImageName);
+    
+    if (existsSync(signaturePath)) {
+        try {
+            // Center of the text box is roughly col2X + 60
+            // We want to center the image there.
+            const sigWidth = 120;
+            const sigHeight = 50; 
+            // Adjust X to center over the name text box (col2X - 70 + 260/2 = col2X + 60)
+            const sigX = (col2X + 60) - (sigWidth / 2);
+            const sigY = footerY - 45; // Place above the name
+
+            const sigBuffer = readFileSync(signaturePath);
+            doc.image(sigBuffer, sigX, sigY, { width: sigWidth, height: sigHeight, fit: [sigWidth, sigHeight] });
+        } catch (e) {
+            console.error('Error loading signature image:', e);
+        }
+    }
 
    
     let representativeName = 'Alfonso Alejandro Velasco Reyes';
