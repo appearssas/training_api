@@ -4,6 +4,7 @@ export { EvaluacionesModule } from '@/infrastructure/evaluaciones/evaluaciones.m
 export { InscripcionesModule } from '@/infrastructure/inscripciones/inscripciones.module';
 export { CertificadosModule } from '@/infrastructure/certificados/certificados.module';
 export { GlobalExceptionFilter } from '@/infrastructure/shared/filters/global-exception.filter';
+export { DbRetryInterceptor } from '@/infrastructure/shared/interceptors/db-retry.interceptor';
 export { AuthModule } from '@/infrastructure/auth/auth.module';
 export { DatabaseModule } from '@/infrastructure/shared/database/database.module';
 export { PersonasModule } from '@/infrastructure/personas/personas.module';

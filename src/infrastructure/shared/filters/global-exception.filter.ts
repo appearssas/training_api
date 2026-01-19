@@ -7,6 +7,10 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
+import { isTransientDbError } from '../utils/db-retry.util';
+
+const RETRY_MESSAGE =
+  'Conexión con la base de datos interrumpida. Por favor, intente de nuevo en unos segundos.';
 
 interface ExceptionWithMessage {
   message?: string;
@@ -42,11 +46,21 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         });
       }
 
-      // Si el mensaje es un string, devolverlo directamente
-      const message = typeof errorResponse.message === 'string' 
-        ? errorResponse.message 
+      const message = typeof errorResponse.message === 'string'
+        ? errorResponse.message
         : 'Bad Request';
-      
+
+      if (isTransientDbError({ message })) {
+        this.logger.warn('Transient DB error (e.g. ECONNRESET) rethrown as BadRequest:', message);
+        return response.status(HttpStatus.SERVICE_UNAVAILABLE).json({
+          statusCode: HttpStatus.SERVICE_UNAVAILABLE,
+          message: RETRY_MESSAGE,
+          error: 'Service Unavailable',
+          timestamp: new Date().toISOString(),
+          path: request.url,
+        });
+      }
+
       this.logger.error('BadRequestException:', message);
       return response.status(HttpStatus.BAD_REQUEST).json({
         statusCode: HttpStatus.BAD_REQUEST,
@@ -86,6 +100,15 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     // Capturar errores de base de datos
     if (exceptionWithMessage.name === 'QueryFailedError') {
       this.logger.error('Database error:', exception);
+      if (isTransientDbError(exception)) {
+        return response.status(HttpStatus.SERVICE_UNAVAILABLE).json({
+          statusCode: HttpStatus.SERVICE_UNAVAILABLE,
+          message: RETRY_MESSAGE,
+          error: 'Service Unavailable',
+          timestamp: new Date().toISOString(),
+          path: request.url,
+        });
+      }
       return response.status(HttpStatus.BAD_REQUEST).json({
         statusCode: HttpStatus.BAD_REQUEST,
         message: 'Database operation failed',
