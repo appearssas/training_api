@@ -227,16 +227,18 @@ export class PdfGeneratorService {
             let insSigWidth = 191; // Viviana (+30% total)
             let insSigHeight = 80;
             let xOffset = 50; // Viviana shift right
+            let yOffset = -10; // Viviana shift up
 
             if (instructorSignatureImage === 'firma_nini_pena.png') {
                 insSigWidth = 145; // Nini (Standard)
                 insSigHeight = 61;
                 xOffset = 0;
+                yOffset = 0;
             }
             // Center over the instructor name text box
             // Instructor name box starts at col1X - 160, width 260. Center is col1X - 160 + 130 = col1X - 30.
             const insSigX = ((col1X - 30) - (insSigWidth / 2)) + xOffset;
-            const insSigY = footerY - 45; 
+            const insSigY = footerY - 45 + yOffset; 
 
             const insSigBuffer = readFileSync(instructorSigPath);
             doc.image(insSigBuffer, insSigX, insSigY, { width: insSigWidth, height: insSigHeight, fit: [insSigWidth, insSigHeight] });
