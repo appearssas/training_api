@@ -5,11 +5,15 @@ import {
   BadRequestException,
   Logger,
 } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { IAuthRepository } from '@/domain/auth/ports/auth.repository.port';
 import { RegisterDto, TipoRegistro } from '@/application/auth/dto/register.dto';
 import { AceptarTerminosUseCase } from '@/application/aceptaciones/use-cases/aceptar-terminos.use-case';
 import { ObtenerDocumentosActivosUseCase } from '@/application/aceptaciones/use-cases/obtener-documentos-activos.use-case';
 import { EmailService } from '@/infrastructure/email/email.service';
+import { Empresa } from '@/entities/empresas/empresa.entity';
+import { sanitizeEmpresaData } from '@/infrastructure/shared/helpers/empresa-sanitizer.helper';
 
 @Injectable()
 export class RegisterUseCase {
@@ -18,6 +22,8 @@ export class RegisterUseCase {
   constructor(
     @Inject('IAuthRepository')
     private readonly authRepository: IAuthRepository,
+    @InjectRepository(Empresa)
+    private readonly empresaRepository: Repository<Empresa>,
     private readonly aceptarTerminosUseCase: AceptarTerminosUseCase,
     private readonly obtenerDocumentosActivosUseCase: ObtenerDocumentosActivosUseCase,
     private readonly emailService: EmailService,
@@ -95,7 +101,8 @@ export class RegisterUseCase {
         );
       }
 
-      // Determinar empresaId: si el usuario actual es CLIENTE y no se proporciona empresaId, usar su empresa
+      // Determinar empresaId:
+      // 1) DTO; 2) empresa del usuario CLIENTE que crea; 3) find-or-create si hay razonSocial
       let empresaId = registerDto.empresaId;
       if (
         !empresaId &&
@@ -106,6 +113,37 @@ export class RegisterUseCase {
         this.logger.log(
           `Usuario CLIENTE creando usuario, asignando automáticamente empresaId: ${empresaId}`,
         );
+      }
+      // Si hay razonSocial y aún no tenemos empresa, crear o reutilizar Empresa
+      if (!empresaId && registerDto.razonSocial?.trim()) {
+        const docSanitized = sanitizeEmpresaData({
+          numeroDocumento: registerDto.numeroDocumento,
+        });
+        let empresa = await this.empresaRepository.findOne({
+          where: { numeroDocumento: docSanitized.numeroDocumento },
+        });
+        if (!empresa) {
+          const raw = {
+            numeroDocumento: registerDto.numeroDocumento,
+            tipoDocumento: registerDto.tipoDocumento || 'NIT',
+            razonSocial: registerDto.razonSocial,
+            email: registerDto.email,
+            telefono: registerDto.telefono,
+            direccion: registerDto.direccion,
+            activo: true,
+            eliminada: false,
+          };
+          empresa = this.empresaRepository.create(sanitizeEmpresaData(raw));
+          empresa = await this.empresaRepository.save(empresa);
+          this.logger.log(
+            `Empresa creada para registro: id=${empresa.id}, razonSocial=${empresa.razonSocial}`,
+          );
+        } else {
+          this.logger.log(
+            `Empresa existente reutilizada para registro: id=${empresa.id}`,
+          );
+        }
+        empresaId = empresa.id;
       }
 
       // Preparar datos de persona

@@ -3,15 +3,16 @@ import {
   Get,
   Post,
   Put,
+  Patch,
   Delete,
   Body,
   Param,
+  Query,
   ParseIntPipe,
   UseGuards,
   HttpCode,
   HttpStatus,
   NotFoundException,
-  BadRequestException,
   ConflictException,
 } from '@nestjs/common';
 import {
@@ -21,6 +22,7 @@ import {
   ApiBearerAuth,
   ApiBody,
   ApiParam,
+  ApiQuery,
 } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
 import { RolesGuard, Roles } from '@/infrastructure/shared/guards/roles.guard';
@@ -28,6 +30,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Empresa } from '@/entities/empresas/empresa.entity';
 import { CreateEmpresaDto, UpdateEmpresaDto } from '@/application/empresas/dto';
+import { sanitizeEmpresaData } from '@/infrastructure/shared/helpers/empresa-sanitizer.helper';
 
 @ApiTags('empresas')
 @Controller('empresas')
@@ -78,7 +81,7 @@ export class EmpresasController {
   })
   async findAll(): Promise<Empresa[]> {
     return await this.empresaRepository.find({
-      where: { activo: true },
+      where: { activo: true, eliminada: false },
       order: { razonSocial: 'ASC' },
     });
   }
@@ -119,23 +122,120 @@ export class EmpresasController {
     description: 'Ya existe una empresa con ese número de documento',
   })
   async create(@Body() createEmpresaDto: CreateEmpresaDto): Promise<Empresa> {
-    // Verificar si ya existe una empresa con el mismo número de documento
+    const base = {
+      ...createEmpresaDto,
+      tipoDocumento: createEmpresaDto.tipoDocumento || 'NIT',
+    };
+    const sanitized = sanitizeEmpresaData(base);
+
     const existingEmpresa = await this.empresaRepository.findOne({
-      where: { numeroDocumento: createEmpresaDto.numeroDocumento },
+      where: { numeroDocumento: sanitized.numeroDocumento },
     });
 
     if (existingEmpresa) {
       throw new ConflictException(
-        `Ya existe una empresa con el número de documento ${createEmpresaDto.numeroDocumento}`,
+        `Ya existe una empresa con el número de documento ${sanitized.numeroDocumento}`,
       );
     }
 
     const empresa = this.empresaRepository.create({
-      ...createEmpresaDto,
-      tipoDocumento: createEmpresaDto.tipoDocumento || 'NIT',
+      ...sanitized,
       activo: true,
     });
 
+    return await this.empresaRepository.save(empresa);
+  }
+
+  @Get('buscar')
+  @Roles('ADMIN')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Búsqueda avanzada de empresas',
+    description:
+      'Lista empresas con filtros (búsqueda por texto, estado activo, tipo documento) y paginación. Solo ADMIN.',
+  })
+  @ApiQuery({ name: 'search', required: false, description: 'Texto en razón social, documento, email o teléfono' })
+  @ApiQuery({ name: 'activo', required: false, description: 'Filtrar por estado: true, false' })
+  @ApiQuery({ name: 'eliminadas', required: false, description: 'true = solo empresas eliminadas (soft-delete). Si no, las eliminadas se excluyen de todos los filtros.' })
+  @ApiQuery({ name: 'tipoDocumento', required: false, description: 'Filtrar por tipo de documento (NIT, CC, etc.)' })
+  @ApiQuery({ name: 'page', required: false, type: Number, description: 'Página (default 1)' })
+  @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Registros por página (default 10)' })
+  @ApiResponse({
+    status: 200,
+    description: 'Lista paginada de empresas',
+    schema: {
+      type: 'object',
+      properties: {
+        data: { type: 'array', items: { $ref: '#/components/schemas/Empresa' } },
+        total: { type: 'number' },
+        page: { type: 'number' },
+        limit: { type: 'number' },
+        totalPages: { type: 'number' },
+      },
+    },
+  })
+  async buscar(
+    @Query('search') search?: string,
+    @Query('activo') activo?: string,
+    @Query('eliminadas') eliminadas?: string,
+    @Query('tipoDocumento') tipoDocumento?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ): Promise<{ data: Empresa[]; total: number; page: number; limit: number; totalPages: number }> {
+    const pageNum = Math.max(1, parseInt(page || '1', 10) || 1);
+    const limitNum = Math.min(100, Math.max(1, parseInt(limit || '10', 10) || 10));
+    const skip = (pageNum - 1) * limitNum;
+
+    const qb = this.empresaRepository
+      .createQueryBuilder('e')
+      .orderBy('e.razonSocial', 'ASC');
+
+    if (search && search.trim()) {
+      const term = `%${search.trim()}%`;
+      qb.andWhere(
+        '(e.razonSocial LIKE :term OR e.numeroDocumento LIKE :term OR e.email LIKE :term OR e.telefono LIKE :term)',
+        { term },
+      );
+    }
+
+    // Filtro eliminadas: si eliminadas=true, solo las eliminadas; si no, se excluyen de todos los resultados
+    if (eliminadas === 'true') {
+      qb.andWhere('e.eliminada = :eliminada', { eliminada: true });
+    } else {
+      qb.andWhere('e.eliminada = :eliminada', { eliminada: false });
+      if (activo === 'true' || activo === 'false') {
+        qb.andWhere('e.activo = :activo', { activo: activo === 'true' });
+      }
+    }
+
+    if (tipoDocumento && tipoDocumento.trim()) {
+      qb.andWhere('e.tipoDocumento = :tipoDocumento', {
+        tipoDocumento: tipoDocumento.trim(),
+      });
+    }
+
+    const [data, total] = await qb.skip(skip).take(limitNum).getManyAndCount();
+    const totalPages = Math.ceil(total / limitNum);
+
+    return { data, total, page: pageNum, limit: limitNum, totalPages };
+  }
+
+  @Patch(':id/toggle-status')
+  @Roles('ADMIN')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Activar o desactivar una empresa',
+    description: 'Invierte el estado activo de la empresa. Solo ADMIN.',
+  })
+  @ApiParam({ name: 'id', type: 'number', description: 'ID de la empresa' })
+  @ApiResponse({ status: 200, description: 'Empresa actualizada' })
+  @ApiResponse({ status: 404, description: 'Empresa no encontrada' })
+  async toggleStatus(@Param('id', ParseIntPipe) id: number): Promise<Empresa> {
+    const empresa = await this.empresaRepository.findOne({ where: { id } });
+    if (!empresa) {
+      throw new NotFoundException(`Empresa con ID ${id} no encontrada`);
+    }
+    empresa.activo = !empresa.activo;
     return await this.empresaRepository.save(empresa);
   }
 
@@ -175,20 +275,21 @@ export class EmpresasController {
       throw new NotFoundException(`Empresa con ID ${id} no encontrada`);
     }
 
-    // Si se está actualizando el número de documento, verificar que no exista otra empresa con el mismo
-    if (updateEmpresaDto.numeroDocumento && updateEmpresaDto.numeroDocumento !== empresa.numeroDocumento) {
+    const sanitized = sanitizeEmpresaData(updateEmpresaDto);
+
+    if (sanitized.numeroDocumento && sanitized.numeroDocumento !== empresa.numeroDocumento) {
       const existingEmpresa = await this.empresaRepository.findOne({
-        where: { numeroDocumento: updateEmpresaDto.numeroDocumento },
+        where: { numeroDocumento: sanitized.numeroDocumento },
       });
 
       if (existingEmpresa) {
         throw new ConflictException(
-          `Ya existe otra empresa con el número de documento ${updateEmpresaDto.numeroDocumento}`,
+          `Ya existe otra empresa con el número de documento ${sanitized.numeroDocumento}`,
         );
       }
     }
 
-    Object.assign(empresa, updateEmpresaDto);
+    Object.assign(empresa, sanitized);
     return await this.empresaRepository.save(empresa);
   }
 
@@ -222,9 +323,10 @@ export class EmpresasController {
     }
 
     empresa.activo = false;
+    empresa.eliminada = true;
     await this.empresaRepository.save(empresa);
 
-    return { message: `Empresa ${empresa.razonSocial} ha sido desactivada exitosamente` };
+    return { message: `Empresa ${empresa.razonSocial} ha sido eliminada exitosamente` };
   }
 }
 

@@ -52,6 +52,9 @@ export class Empresa {
   @Column({ type: 'tinyint', default: 1 })
   activo: boolean;
 
+  @Column({ type: 'tinyint', default: 0, name: 'eliminada' })
+  eliminada: boolean;
+
   @CreateDateColumn({ name: 'fecha_creacion' })
   fechaCreacion: Date;
 
