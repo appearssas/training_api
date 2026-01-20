@@ -1,45 +1,46 @@
 import { Persona } from '@/entities/persona/persona.entity';
 
 /**
- * Sanitiza los datos personales de una persona convirtiendo a mayúsculas
- * los campos de texto que deben almacenarse en mayúsculas.
- * 
- * Campos que se sanitizan:
- * - nombres: Convertido a mayúsculas
- * - apellidos: Convertido a mayúsculas
- * - direccion: Convertido a mayúsculas (si existe)
- * 
- * Campos que NO se sanitizan:
- * - email: Se mantiene en minúsculas (se normaliza por separado)
- * - numeroDocumento: Se mantiene tal cual
- * - telefono: Se mantiene tal cual
- * 
+ * Sanitiza los datos personales: todos los string en mayúsculas (trim + toUpperCase).
+ * fotoUrl solo se recorta (las URLs son case-sensitive).
+ *
  * @param personaData - Datos parciales de la persona a sanitizar
- * @returns Datos sanitizados con campos en mayúsculas
+ * @returns Datos sanitizados con strings en mayúsculas
  */
 export function sanitizePersonaData(
   personaData: Partial<Persona>,
 ): Partial<Persona> {
   const sanitized = { ...personaData };
 
-  // Sanitizar nombres
-  if (sanitized.nombres && typeof sanitized.nombres === 'string') {
+  if (typeof sanitized.numeroDocumento === 'string') {
+    sanitized.numeroDocumento = sanitized.numeroDocumento.trim().toUpperCase();
+  }
+  if (typeof sanitized.tipoDocumento === 'string') {
+    sanitized.tipoDocumento = sanitized.tipoDocumento.trim().toUpperCase();
+  }
+  if (typeof sanitized.tipoPersona === 'string') {
+    sanitized.tipoPersona = sanitized.tipoPersona.trim().toUpperCase() as 'NATURAL' | 'JURIDICA';
+  }
+  if (typeof sanitized.nombres === 'string') {
     sanitized.nombres = sanitized.nombres.trim().toUpperCase();
   }
-
-  // Sanitizar apellidos
-  if (sanitized.apellidos && typeof sanitized.apellidos === 'string') {
+  if (typeof sanitized.apellidos === 'string') {
     sanitized.apellidos = sanitized.apellidos.trim().toUpperCase();
   }
-
-  // Sanitizar dirección
-  if (sanitized.direccion && typeof sanitized.direccion === 'string') {
+  if (typeof sanitized.email === 'string') {
+    sanitized.email = sanitized.email.trim().toUpperCase();
+  }
+  if (typeof sanitized.telefono === 'string') {
+    sanitized.telefono = sanitized.telefono.trim().toUpperCase();
+  }
+  if (typeof sanitized.direccion === 'string') {
     sanitized.direccion = sanitized.direccion.trim().toUpperCase();
   }
-
-  // Normalizar email a minúsculas (si existe)
-  if (sanitized.email && typeof sanitized.email === 'string') {
-    sanitized.email = sanitized.email.trim().toLowerCase();
+  if (typeof sanitized.biografia === 'string') {
+    sanitized.biografia = sanitized.biografia.trim().toUpperCase();
+  }
+  if (typeof sanitized.fotoUrl === 'string') {
+    sanitized.fotoUrl = sanitized.fotoUrl.trim();
   }
 
   return sanitized;

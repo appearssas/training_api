@@ -27,6 +27,7 @@ import { PersonaRol } from '@/entities/roles/persona-rol.entity';
 import { Alumno } from '@/entities/alumnos/alumno.entity';
 import { Instructor } from '@/entities/instructores/instructor.entity';
 import { PasswordResetToken } from '@/entities/password-reset/password-reset-token.entity';
+import { Empresa } from '@/entities/empresas/empresa.entity';
 
 @Module({
   controllers: [AuthController],
@@ -67,6 +68,7 @@ import { PasswordResetToken } from '@/entities/password-reset/password-reset-tok
       Alumno,
       Instructor,
       PasswordResetToken,
+      Empresa,
     ]),
     PassportModule.register({ defaultStrategy: 'jwt' }), // defaultStrategy no aplica guards automáticamente
     ConfigModule,
