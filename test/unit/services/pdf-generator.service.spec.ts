@@ -14,6 +14,7 @@ jest.mock('pdfkit', () => {
       fontSize: jest.fn(),
       text: jest.fn(),
       end: jest.fn(),
+      registerFont: jest.fn(),
     };
     return mockDoc;
   });
