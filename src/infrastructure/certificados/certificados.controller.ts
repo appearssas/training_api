@@ -102,12 +102,52 @@ export class CertificadosController {
   @ApiOperation({
     summary: 'Obtener lista de certificados con paginación',
     description:
-      'Todos los roles autenticados pueden ver la lista de certificados.',
+      'ADMIN: ve todos los certificados. INSTRUCTOR: solo los de capacitaciones donde es instructor. ALUMNO/CLIENTE/OPERADOR: solo los propios (donde es el estudiante). Requiere JWT. Filtros en `filters`: `studentId`, `courseId`, `status` (valid|expired|revoked).',
   })
-  @ApiBody({ type: PaginationDto })
-  @ApiResponse({ status: 200, description: 'Lista de certificados' })
-  findAll(@Body() pagination: PaginationDto) {
-    return this.findAllCertificadosUseCase.execute(pagination);
+  @ApiBody({
+    type: PaginationDto,
+    examples: {
+      minimo: {
+        summary: 'Mínimo (page y limit)',
+        value: { page: 1, limit: 10 },
+      },
+      conBusqueda: {
+        summary: 'Con búsqueda',
+        value: { page: 1, limit: 10, search: 'Juan' },
+      },
+      conFiltros: {
+        summary: 'Con filtros',
+        value: {
+          page: 1,
+          limit: 10,
+          filters: { studentId: 1, courseId: 2, status: 'valid' },
+          sortField: 'fechaEmision',
+          sortOrder: 'DESC',
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de certificados con paginación',
+    schema: {
+      type: 'object',
+      properties: {
+        data: { type: 'array', items: { type: 'object' } },
+        total: { type: 'number', example: 25 },
+        page: { type: 'number', example: 1 },
+        limit: { type: 'number', example: 10 },
+        totalPages: { type: 'number', example: 3 },
+      },
+    },
+  })
+  @ApiResponse({ status: 401, description: 'No autorizado. Usar Authorize con JWT.' })
+  findAll(@Body() pagination: PaginationDto, @GetUser() user: any) {
+    const userContext = {
+      rol: user?.rolPrincipal?.codigo ?? '',
+      personaId: user?.persona?.id ?? null,
+    };
+    return this.findAllCertificadosUseCase.execute(pagination, userContext);
   }
 
   @Post('estudiante/:estudianteId')
