@@ -207,23 +207,25 @@ export class CertificadosRepositoryAdapter implements ICertificadosRepository {
         }
       }
 
-      // Filtro por estado (status)
-      if (filters?.status) {
-        if (filters.status === 'valid') {
+      // Filtro por estado (status): normalizar a minúsculas por si llega con otro formato
+      const status = filters?.status ? String(filters.status).toLowerCase().trim() : '';
+      if (status) {
+        if (status === 'valid') {
           queryBuilder.andWhere('certificado.activo = :activo', { activo: true });
           queryBuilder.andWhere(
             '(certificado.fechaVencimiento IS NULL OR certificado.fechaVencimiento > :now)',
             { now: new Date() },
           );
-        } else if (filters.status === 'expired') {
-          queryBuilder.andWhere(
-            'certificado.fechaVencimiento IS NOT NULL AND certificado.fechaVencimiento <= :now',
-            { now: new Date() },
-          );
-        } else if (filters.status === 'revoked') {
+        } else if (status === 'expired') {
+          // Vencidos: fechaVencimiento no nula y ya pasada (usar fecha de hoy para evitar zonas horarias)
+          const hoy = new Date();
+          hoy.setHours(23, 59, 59, 999);
+          queryBuilder.andWhere('certificado.fechaVencimiento IS NOT NULL');
+          queryBuilder.andWhere('certificado.fechaVencimiento <= :hoy', { hoy });
+        } else if (status === 'revoked') {
           queryBuilder.andWhere('certificado.activo = :activo', { activo: false });
         }
-        console.log(`🔍 Filtrado por estado: ${filters.status}`);
+        console.log(`🔍 Filtrado por estado: ${status}`);
       }
 
       // Filtro de búsqueda general
