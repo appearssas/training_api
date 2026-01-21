@@ -134,17 +134,17 @@ async function bootstrap() {
 - **Intentos limitados**: Control de número máximo de intentos permitidos por evaluación
 - **Consulta de evaluaciones**: Endpoints para obtener evaluaciones por ID o por curso`,
     )
-    .setVersion('1.0')
+    .setVersion('1.1')
     .addBearerAuth(
       {
         type: 'http',
         scheme: 'bearer',
         bearerFormat: 'JWT',
-        name: 'JWT',
-        description: 'Ingresa el token JWT',
+        name: 'Authorization',
+        description: 'Pegar solo el token JWT (sin "Bearer "). Obtenerlo desde POST /auth/login.',
         in: 'header',
       },
-      'JWT-auth', // Este nombre se usará en los decoradores @ApiBearerAuth()
+      'JWT-auth',
     )
     .addTag('auth', 'Endpoints de autenticación y registro de usuarios')
     .addTag('users', 'Endpoints de gestión de usuarios (listar, editar, eliminar) - Solo ADMIN')
@@ -163,6 +163,9 @@ async function bootstrap() {
   SwaggerModule.setup('docs', app, document, {
     swaggerOptions: {
       persistAuthorization: true,
+      docExpansion: 'list',
+      filter: true,
+      showRequestDuration: true,
     },
   });
 

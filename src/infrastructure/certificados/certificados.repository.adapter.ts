@@ -6,7 +6,10 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, QueryFailedError } from 'typeorm';
-import { ICertificadosRepository } from '@/domain/certificados/ports/certificados.repository.port';
+import {
+  ICertificadosRepository,
+  CertificadosUserContext,
+} from '@/domain/certificados/ports/certificados.repository.port';
 import { Certificado } from '@/entities/certificados/certificado.entity';
 import { Inscripcion } from '@/entities/inscripcion/inscripcion.entity';
 import { CreateCertificadoDto } from '@/application/certificados/dto/create-certificado.dto';
@@ -142,9 +145,13 @@ export class CertificadosRepositoryAdapter implements ICertificadosRepository {
     }
   }
 
-  async findAll(pagination: PaginationDto): Promise<any> {
+  async findAll(
+    pagination: PaginationDto,
+    userContext?: CertificadosUserContext,
+  ): Promise<any> {
     try {
-      const { page = 1, limit = 10, search, sortField, sortOrder, filters } = pagination;
+      const { page = 1, limit = 10, search, sortField, sortOrder, filters } =
+        pagination;
       const skip = (page - 1) * limit;
 
       // IMPORTANTE: Usar QueryBuilder con leftJoinAndSelect para forzar la carga de relaciones
@@ -156,6 +163,31 @@ export class CertificadosRepositoryAdapter implements ICertificadosRepository {
         .leftJoinAndSelect('inscripcion.capacitacion', 'capacitacion')
         .leftJoinAndSelect('capacitacion.instructor', 'instructor')
         .leftJoinAndSelect('capacitacion.tipoCapacitacion', 'tipoCapacitacion');
+
+      // Control de visibilidad por rol: ADMIN ve todos; el resto solo "creados por ellos"
+      const rol = userContext?.rol ?? '';
+      const personaId = userContext?.personaId ?? null;
+      if (rol !== 'ADMIN' && personaId != null) {
+        if (rol === 'INSTRUCTOR') {
+          // Solo certificados de capacitaciones donde el usuario es el instructor
+          queryBuilder.andWhere('instructor.id = :personaId', { personaId });
+          console.log(
+            `🔐 [findAll] Filtro INSTRUCTOR: instructor.id = ${personaId}`,
+          );
+        } else {
+          // ALUMNO, CLIENTE, OPERADOR: solo certificados donde el usuario es el estudiante
+          queryBuilder.andWhere('estudiante.id = :personaId', { personaId });
+          console.log(
+            `🔐 [findAll] Filtro ${rol}: estudiante.id = ${personaId}`,
+          );
+        }
+      } else if (rol !== 'ADMIN' && personaId == null) {
+        // Sin persona (ej. usuario mal configurado): no devolver certificados
+        queryBuilder.andWhere('1 = 0');
+        console.log(`🔐 [findAll] Rol ${rol} sin personaId: sin resultados.`);
+      } else {
+        console.log(`🔐 [findAll] ADMIN: sin filtro por usuario.`);
+      }
 
       // Filtro por estudiante (studentId)
       if (filters?.studentId) {
