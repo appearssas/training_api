@@ -102,6 +102,11 @@ export class PdfGeneratorService {
 
     doc.moveDown(1.0);
 
+    const tituloLower = (capacitacion?.titulo || '').toLowerCase().trim();
+    const isAlimentos = (tituloLower.includes('alimentos') && (tituloLower.includes('manipulación') || tituloLower.includes('manipulacion'))) || 
+                        (tituloLower.includes('primeros') && tituloLower.includes('auxilios'));
+    const isCesaroto = (tituloLower.includes('transporte') && (tituloLower.includes('mercancias') || tituloLower.includes('mercancías')) && tituloLower.includes('peligrosas'));
+
     // 5. NOMBRE ESTUDIANTE
     const nombreCompleto =
       estudiante?.nombres && estudiante?.apellidos
@@ -120,11 +125,30 @@ export class PdfGeneratorService {
 
     // 6. CÉDULA
     const documento = estudiante?.numeroDocumento || 'N/A';
+    
+    // Ajuste específico para Cesaroto en la posición del documento
+    let cedulaXShift = 89;
+    let cedulaYShift = 9.5;
+    let align: any = 'center';
+    let width = docWidth;
+
+    if (isCesaroto) {
+        cedulaXShift = 455; // Movido otros 10px a la izquierda (era 465)
+        cedulaYShift = 12.5;
+        align = 'left';
+        width = 200;
+    } else if (isAlimentos) {
+        cedulaXShift = 93; // Valor para Alimentos (puedes ajustarlo aquí)
+        cedulaYShift = 12.5;
+        align = 'center';
+        width = docWidth;
+    }
+
     doc
       .fontSize(14.5)
       .fillColor('#292561')
       .font('Montserrat-Bold')
-      .text(` ${documento}`, 83, doc.y + 9.5, { align: 'center', width: docWidth });
+      .text(` ${documento}`, cedulaXShift, doc.y + cedulaYShift, { align, width });
 
     doc.moveDown(6.5);
 
@@ -134,13 +158,31 @@ export class PdfGeneratorService {
     // 8. CURSO (BOTÓN AZUL)
     const cursoNombre = (capacitacion?.titulo || 'CURSO SIN NOMBRE').toUpperCase();
 
-    doc.fontSize(21).font('Montserrat-Bold');
+    let cursoFontSize = 21;
+    doc.fontSize(cursoFontSize).font('Montserrat-Bold');
+    
+    // Auto-ajuste de tamaño de letra (como en el frontend)
+    const maxBoxWidth = 580; // Espacio seguro dentro del recuadro azul
+    while (doc.widthOfString(cursoNombre) > maxBoxWidth && cursoFontSize > 11) {
+      cursoFontSize -= 0.5;
+      doc.fontSize(cursoFontSize);
+    }
+
     const textWidth = doc.widthOfString(cursoNombre);
     const boxPadding = 20;
     const boxWidth = textWidth + boxPadding * 2;
     const boxHeight = 30;
     const boxX = centerX - boxWidth / 2;
-    const boxY = doc.y - 68.5;
+    
+    // Ajuste de posición vertical del título
+    let cursoYShift = -68.5;
+    if (isCesaroto) {
+        cursoYShift = -68.5; // Ajustar aquí para Cesaroto
+    } else if (isAlimentos) {
+        cursoYShift = -72.5; // Ajustar aquí para Alimentos
+    }
+    
+    const boxY = doc.y + cursoYShift;
 
  
     doc
@@ -157,22 +199,24 @@ export class PdfGeneratorService {
     const tituloForDuration = (capacitacion?.titulo || '').toLowerCase().trim();
     let duration = '20';
 
-    if (
-        tituloForDuration.includes('curso') &&
-        (tituloForDuration.includes('basico') || tituloForDuration.includes('básico')) &&
-        tituloForDuration.includes('transporte') &&
-        (tituloForDuration.includes('mercancias') || tituloForDuration.includes('mercancías')) &&
-        tituloForDuration.includes('peligrosas')
-    ) {
+    if (isCesaroto) {
         duration = '60';
-    } else if (
-        (tituloForDuration.includes('manipulacion') || tituloForDuration.includes('manipulación')) &&
-        tituloForDuration.includes('alimentos')
-    ) {
+    } else if (isAlimentos) {
         duration = '10';
     }
 
-    doc.text(duration, 47, doc.y - 3.5, {
+    // Ajuste específico para Cesaroto en la posición de la hora
+    let durationXShift = 47;
+    let durationYOffset = -3.5;
+    if (isCesaroto) {
+        durationXShift = 40; // Se mantiene en 40
+        durationYOffset = -5.5; // Subido 3px (era -3.5)
+    } else if (isAlimentos) {
+        durationXShift = 47; // Ajustar aquí para Alimentos
+        durationYOffset = -2.5; // Ajustar aquí para Alimentos
+    }
+
+    doc.text(duration, durationXShift, doc.y + durationYOffset, {
       width: docWidth,
       align: 'center',
     });
@@ -188,12 +232,31 @@ export class PdfGeneratorService {
       : '';
 
     doc.fontSize(12.5).font('Montserrat');
-    // Emission: Up 10px, shifted Left 50px
-    doc.text(`${fechaEmision}`, -80, doc.y - 14.5, { width: docWidth, align: 'center' });
+    
+    // Ajustes específicos para Cesaroto en las fechas
+    let emissionXOffset = -67;
+    let emissionYOffset = -14.5;
+    let expiryXOffset = 173;
+    let expiryYOffset = -16;
+
+    if (isCesaroto) {
+        emissionXOffset = -74; // Movido 6px a la derecha (era -80)
+        emissionYOffset = -14.5; // Subido 3px (era -14.5)
+        expiryXOffset = 169;   // Movido 10px a la izquierda (era 186)
+        expiryYOffset = -16;   // Subido 3px (era -16)
+    } else if (isAlimentos) {
+        emissionXOffset = -67; // Valor para Alimentos
+        emissionYOffset = -15.5; 
+        expiryXOffset = 173;   
+        expiryYOffset = -15;   
+    }
+
+    // Emission
+    doc.text(`${fechaEmision}`, emissionXOffset, doc.y + emissionYOffset, { width: docWidth, align: 'center' });
     
     if (fechaVencimiento) {
-        // Expiration: Up 20px (from current cursor), shifted Right 60px
-        doc.text(`${fechaVencimiento}.`, 186, doc.y - 16, { width: docWidth, align: 'center' });
+        // Expiration
+        doc.text(`${fechaVencimiento}.`, expiryXOffset, doc.y + expiryYOffset, { width: docWidth, align: 'center' });
     }
 
  doc.x = 0;
@@ -213,10 +276,7 @@ export class PdfGeneratorService {
     
     let instructorSignatureImage = 'firma_viviana_rojas.png'; // Default
     
-    if (
-        ((tituloForDuration.includes('manipulacion') || tituloForDuration.includes('manipulación')) && tituloForDuration.includes('alimentos')) ||
-        (tituloForDuration.includes('primeros') && tituloForDuration.includes('auxilios'))
-    ) {
+    if (isAlimentos) {
         instructorSignatureImage = 'firma_nini_pena.png';
     }
 
@@ -250,10 +310,7 @@ export class PdfGeneratorService {
   let instructorname =  'Viviana Paola Rojas Hincapie';
   let instructornametp =  'Instructor / Entrenador\nTSA REG xxxxxxxxx\nLicencia SST';
 
-    if (
-        ((tituloForDuration.includes('manipulacion') || tituloForDuration.includes('manipulación')) && tituloForDuration.includes('alimentos')) ||
-        (tituloForDuration.includes('primeros') && tituloForDuration.includes('auxilios'))
-    ) {
+    if (isAlimentos) {
         instructorname = 'Nini Johana Peña Vanegaz';
         instructornametp =  'Instructor / Entrenador\nTSA REG xxxxxxxxx\nLicencia SST';
     }
@@ -276,10 +333,7 @@ export class PdfGeneratorService {
     let signatureImageName = 'firma_alfonso_velasco.png'; // Default (Sustancias, General, etc.)
     
     // Logic: Alimentos / Primeros Auxilios -> Firma Francy
-    if (
-        ((tituloForDuration.includes('manipulacion') || tituloForDuration.includes('manipulación')) && tituloForDuration.includes('alimentos')) ||
-        (tituloForDuration.includes('primeros') && tituloForDuration.includes('auxilios'))
-    ) {
+    if (isAlimentos) {
         signatureImageName = 'firma_francy_gonzalez.png';
     }
 
@@ -305,10 +359,7 @@ export class PdfGeneratorService {
    
     let representativeName = 'Alfonso Alejandro Velasco Reyes';
 
-    if (
-        ((tituloForDuration.includes('manipulacion') || tituloForDuration.includes('manipulación')) && tituloForDuration.includes('alimentos')) ||
-        (tituloForDuration.includes('primeros') && tituloForDuration.includes('auxilios'))
-    ) {
+    if (isAlimentos) {
         representativeName = 'Francy Dayany Gonzalez Galindo';
     }
 
@@ -386,19 +437,9 @@ export class PdfGeneratorService {
     // Logic for Alliance Company Name (Same as Background Logic)
     let allianceCompany = 'ANDAR DEL LLANO.'; // Default logic (if no match)
 
-    if (
-        (tituloForDuration.includes('manipulacion') || tituloForDuration.includes('manipulación')) &&
-        tituloForDuration.includes('alimentos') ||
-        (tituloForDuration.includes('primeros') && tituloForDuration.includes('auxilios'))
-    ) {
+    if (isAlimentos) {
          allianceCompany = 'IPS CONFIANZA.';
-    } else if (
-        (tituloForDuration.includes('curso') && (tituloForDuration.includes('basico') || tituloForDuration.includes('básico')) && tituloForDuration.includes('transporte') &&
-        (tituloForDuration.includes('mercancias') || tituloForDuration.includes('mercancías')) &&
-        tituloForDuration.includes('peligrosas')) || (tituloForDuration.includes('transporte') &&
-        (tituloForDuration.includes('mercancias') || tituloForDuration.includes('mercancías')) &&
-        tituloForDuration.includes('peligrosas'))
-    ) {
+    } else if (isCesaroto) {
         allianceCompany = 'CEASAROTO.';
     }
 
