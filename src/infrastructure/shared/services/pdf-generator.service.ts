@@ -21,6 +21,10 @@ export interface PdfConfig {
     duracion?: { x?: number; y?: number; fontSize?: number; color?: [number, number, number]; bold?: boolean };
     fechaEmision?: { x?: number; y?: number; fontSize?: number; color?: [number, number, number]; bold?: boolean };
     fechaVencimiento?: { x?: number; y?: number; fontSize?: number; color?: [number, number, number]; bold?: boolean };
+    instructorNombre?: { x?: number; y?: number; fontSize?: number; color?: [number, number, number]; bold?: boolean };
+    instructorFirma?: { x?: number; y?: number; width?: number; height?: number };
+    representanteNombre?: { x?: number; y?: number; fontSize?: number; color?: [number, number, number]; bold?: boolean };
+    representanteFirma?: { x?: number; y?: number; width?: number; height?: number };
     qr?: { x?: number; y?: number; size?: number };
     footer?: { x?: number; y?: number; fontSize?: number; color?: [number, number, number]; bold?: boolean };
   };
@@ -34,6 +38,10 @@ export interface PdfConfig {
     duracion?: { x?: number; y?: number; fontSize?: number; color?: [number, number, number]; bold?: boolean };
     fechaEmision?: { x?: number; y?: number; fontSize?: number; color?: [number, number, number]; bold?: boolean };
     fechaVencimiento?: { x?: number; y?: number; fontSize?: number; color?: [number, number, number]; bold?: boolean };
+    instructorNombre?: { x?: number; y?: number; fontSize?: number; color?: [number, number, number]; bold?: boolean };
+    instructorFirma?: { x?: number; y?: number; width?: number; height?: number };
+    representanteNombre?: { x?: number; y?: number; fontSize?: number; color?: [number, number, number]; bold?: boolean };
+    representanteFirma?: { x?: number; y?: number; width?: number; height?: number };
     qr?: { x?: number; y?: number; size?: number };
     footer?: { x?: number; y?: number; fontSize?: number; color?: [number, number, number]; bold?: boolean };
   };
@@ -622,24 +630,76 @@ export class PdfGeneratorService {
     const instructorSig = this.getInstructorDetails(isAlimentos);
 
     // Imagen de firma del instructor (Y: 450pt)
+    const instructorFirmaConfig = isAlimentos
+      ? config?.alimentos?.instructorFirma
+      : config?.otros?.instructorFirma;
+    const defaultSigWidth = isAlimentos ? 145 : 190;
+    const defaultSigHeight = isAlimentos ? 61 : 80;
+    const defaultSigX = isAlimentos ? 160 : 251 - 95;
+    const defaultSigY = 455;
+
+    const instructorFirmaX =
+      instructorFirmaConfig?.x !== undefined
+        ? instructorFirmaConfig.x
+        : defaultSigX;
+    const instructorFirmaY =
+      instructorFirmaConfig?.y !== undefined
+        ? instructorFirmaConfig.y
+        : defaultSigY;
+    const instructorFirmaWidth =
+      instructorFirmaConfig?.width !== undefined
+        ? instructorFirmaConfig.width
+        : defaultSigWidth;
+    const instructorFirmaHeight =
+      instructorFirmaConfig?.height !== undefined
+        ? instructorFirmaConfig.height
+        : defaultSigHeight;
+
     if (existsSync(instructorSig.signatureImage)) {
       try {
-        const instructorSigImg = await this.loadImageAsDataUrl(instructorSig.signatureImage);
-        // Ajustar tamaño según la firma (Viviana es más grande)
-        const sigWidth = isAlimentos ? 145 : 190;
-        const sigHeight = isAlimentos ? 61 : 80;
-        const sigX = isAlimentos ? 251 - 72.5 : 251 - 95;
-        doc.addImage(instructorSigImg, 'PNG', sigX, 450, sigWidth, sigHeight);
+        const instructorSigImg = await this.loadImageAsDataUrl(
+          instructorSig.signatureImage,
+        );
+        doc.addImage(
+          instructorSigImg,
+          'PNG',
+          instructorFirmaX,
+          instructorFirmaY,
+          instructorFirmaWidth,
+          instructorFirmaHeight,
+        );
       } catch (error) {
         console.warn('No se pudo cargar la firma del instructor:', error);
       }
     }
 
     // Nombre del instructor (Y: 495pt)
-    doc.setFontSize(10);
-    doc.setTextColor(41, 37, 97);
-    doc.setFont('helvetica', 'bold');
-    doc.text(instructorSig.name, 235, 495, { align: 'center' });
+    const instructorNombreConfig = isAlimentos
+      ? config?.alimentos?.instructorNombre
+      : config?.otros?.instructorNombre;
+    const instructorNombreX =
+      instructorNombreConfig?.x !== undefined ? instructorNombreConfig.x : 160;
+    const instructorNombreY =
+      instructorNombreConfig?.y !== undefined ? instructorNombreConfig.y : 505;
+    const instructorNombreFontSize =
+      instructorNombreConfig?.fontSize !== undefined
+        ? instructorNombreConfig.fontSize
+        : 10;
+    const instructorNombreColor = instructorNombreConfig?.color ?? [41, 37, 97];
+    const instructorNombreBold =
+      instructorNombreConfig?.bold !== undefined
+        ? instructorNombreConfig.bold
+        : true;
+
+    doc.setFontSize(instructorNombreFontSize);
+    doc.setTextColor(...instructorNombreColor);
+    doc.setFont('helvetica', instructorNombreBold ? 'bold' : 'normal');
+    doc.text(
+      instructorSig.name,
+      instructorNombreX,
+      instructorNombreY,
+      instructorNombreX === pageWidth / 2 ? { align: 'center' } : undefined,
+    );
 
     // Rol del instructor (Y: 513pt)
     doc.setFontSize(9.5);
@@ -654,20 +714,81 @@ export class PdfGeneratorService {
     const repSig = this.getRepresentativeDetails(isAlimentos);
 
     // Imagen de firma del representante (Y: 455pt)
+    const representanteFirmaConfig = isAlimentos
+      ? config?.alimentos?.representanteFirma
+      : config?.otros?.representanteFirma;
+    const defaultRepSigX = 490;
+    const defaultRepSigY = 505;
+    const defaultRepSigWidth = 145;
+    const defaultRepSigHeight = 61;
+
+    const representanteFirmaX =
+      representanteFirmaConfig?.x !== undefined
+        ? representanteFirmaConfig.x
+        : defaultRepSigX;
+    const representanteFirmaY =
+      representanteFirmaConfig?.y !== undefined
+        ? representanteFirmaConfig.y
+        : defaultRepSigY;
+    const representanteFirmaWidth =
+      representanteFirmaConfig?.width !== undefined
+        ? representanteFirmaConfig.width
+        : defaultRepSigWidth;
+    const representanteFirmaHeight =
+      representanteFirmaConfig?.height !== undefined
+        ? representanteFirmaConfig.height
+        : defaultRepSigHeight;
+
     if (existsSync(repSig.signatureImage)) {
       try {
         const repSigImg = await this.loadImageAsDataUrl(repSig.signatureImage);
-        doc.addImage(repSigImg, 'PNG', 571 - 72.5, 455, 145, 61);
+        doc.addImage(
+          repSigImg,
+          'PNG',
+          representanteFirmaX,
+          representanteFirmaY,
+          representanteFirmaWidth,
+          representanteFirmaHeight,
+        );
       } catch (error) {
         console.warn('No se pudo cargar la firma del representante:', error);
       }
     }
 
     // Nombre del representante (Y: 495pt)
-    doc.setFontSize(9.9);
-    doc.setTextColor(41, 37, 97);
-    doc.setFont('helvetica', 'bold');
-    doc.text(repSig.name, 565.5, 495, { align: 'center' });
+    const representanteNombreConfig = isAlimentos
+      ? config?.alimentos?.representanteNombre
+      : config?.otros?.representanteNombre;
+    const representanteNombreX =
+      representanteNombreConfig?.x !== undefined
+        ? representanteNombreConfig.x
+        : 490;
+    const representanteNombreY =
+      representanteNombreConfig?.y !== undefined
+        ? representanteNombreConfig.y
+        : 506;
+    const representanteNombreFontSize =
+      representanteNombreConfig?.fontSize !== undefined
+        ? representanteNombreConfig.fontSize
+        : 9.9;
+    const representanteNombreColor =
+      representanteNombreConfig?.color ?? [41, 37, 97];
+    const representanteNombreBold =
+      representanteNombreConfig?.bold !== undefined
+        ? representanteNombreConfig.bold
+        : true;
+
+    doc.setFontSize(representanteNombreFontSize);
+    doc.setTextColor(...representanteNombreColor);
+    doc.setFont('helvetica', representanteNombreBold ? 'bold' : 'normal');
+    doc.text(
+      repSig.name,
+      representanteNombreX,
+      representanteNombreY,
+      representanteNombreX === pageWidth / 2
+        ? { align: 'center' }
+        : undefined,
+    );
 
     // Rol del representante (Y: 513pt)
     doc.setFontSize(9.5);

@@ -469,6 +469,113 @@
         </div>
 
         <div class="section">
+          <div class="section-title">✍️ Firma del Instructor</div>
+          <div class="field-group">
+            <label>Posición X</label>
+            <input type="number" id="alimentos-instructorFirma-x" value="160" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Posición Y</label>
+            <input type="number" id="alimentos-instructorFirma-y" value="455" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Ancho</label>
+            <input type="number" id="alimentos-instructorFirma-width" value="145" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Alto</label>
+            <input type="number" id="alimentos-instructorFirma-height" value="61" step="0.1" onchange="updatePDF()">
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">✍️ Nombre del Instructor</div>
+          <div class="field-group">
+            <label>Posición X (centrado = 235)</label>
+            <input type="number" id="alimentos-instructorNombre-x" value="160" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Posición Y</label>
+            <input type="number" id="alimentos-instructorNombre-y" value="505" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Tamaño de Fuente</label>
+            <input type="number" id="alimentos-instructorNombre-fontSize" value="10" step="0.5" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Negrita</label>
+            <input type="checkbox" id="alimentos-instructorNombre-bold" checked onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Color RGB</label>
+            <div class="color-input">
+              <input type="color" id="alimentos-instructorNombre-color-picker" value="#292561"
+                onchange="updateColorFromPicker('alimentos-instructorNombre')">
+              <input type="number" id="alimentos-instructorNombre-color-r" value="41" min="0" max="255"
+                onchange="updatePDF()">
+              <input type="number" id="alimentos-instructorNombre-color-g" value="37" min="0" max="255"
+                onchange="updatePDF()">
+              <input type="number" id="alimentos-instructorNombre-color-b" value="97" min="0" max="255"
+                onchange="updatePDF()">
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">✍️ Firma del Representante</div>
+          <div class="field-group">
+            <label>Posición X</label>
+            <input type="number" id="alimentos-representanteFirma-x" value="498.5" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Posición Y</label>
+            <input type="number" id="alimentos-representanteFirma-y" value="455" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Ancho</label>
+            <input type="number" id="alimentos-representanteFirma-width" value="145" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Alto</label>
+            <input type="number" id="alimentos-representanteFirma-height" value="61" step="0.1" onchange="updatePDF()">
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">✍️ Nombre del Representante</div>
+          <div class="field-group">
+            <label>Posición X (centrado = 565.5)</label>
+            <input type="number" id="alimentos-representanteNombre-x" value="490" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Posición Y</label>
+            <input type="number" id="alimentos-representanteNombre-y" value="505" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Tamaño de Fuente</label>
+            <input type="number" id="alimentos-representanteNombre-fontSize" value="9.9" step="0.5"
+              onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Negrita</label>
+            <input type="checkbox" id="alimentos-representanteNombre-bold" checked onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Color RGB</label>
+            <div class="color-input">
+              <input type="color" id="alimentos-representanteNombre-color-picker" value="#292561"
+                onchange="updateColorFromPicker('alimentos-representanteNombre')">
+              <input type="number" id="alimentos-representanteNombre-color-r" value="41" min="0" max="255"
+                onchange="updatePDF()">
+              <input type="number" id="alimentos-representanteNombre-color-g" value="37" min="0" max="255"
+                onchange="updatePDF()">
+              <input type="number" id="alimentos-representanteNombre-color-b" value="97" min="0" max="255"
+                onchange="updatePDF()">
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
           <div class="section-title">📄 Pie de Página</div>
           <div class="field-group">
             <label>Posición X (centrado = 396)</label>
@@ -514,6 +621,112 @@
           <div class="field-group">
             <label>Tamaño</label>
             <input type="number" id="otros-qr-size" value="70" step="1" onchange="updatePDF()">
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">✍️ Firma del Instructor</div>
+          <div class="field-group">
+            <label>Posición X</label>
+            <input type="number" id="otros-instructorFirma-x" value="156" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Posición Y</label>
+            <input type="number" id="otros-instructorFirma-y" value="450" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Ancho</label>
+            <input type="number" id="otros-instructorFirma-width" value="190" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Alto</label>
+            <input type="number" id="otros-instructorFirma-height" value="80" step="0.1" onchange="updatePDF()">
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">✍️ Nombre del Instructor</div>
+          <div class="field-group">
+            <label>Posición X (centrado = 235)</label>
+            <input type="number" id="otros-instructorNombre-x" value="235" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Posición Y</label>
+            <input type="number" id="otros-instructorNombre-y" value="495" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Tamaño de Fuente</label>
+            <input type="number" id="otros-instructorNombre-fontSize" value="10" step="0.5" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Negrita</label>
+            <input type="checkbox" id="otros-instructorNombre-bold" checked onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Color RGB</label>
+            <div class="color-input">
+              <input type="color" id="otros-instructorNombre-color-picker" value="#292561"
+                onchange="updateColorFromPicker('otros-instructorNombre')">
+              <input type="number" id="otros-instructorNombre-color-r" value="41" min="0" max="255"
+                onchange="updatePDF()">
+              <input type="number" id="otros-instructorNombre-color-g" value="37" min="0" max="255"
+                onchange="updatePDF()">
+              <input type="number" id="otros-instructorNombre-color-b" value="97" min="0" max="255"
+                onchange="updatePDF()">
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">✍️ Firma del Representante</div>
+          <div class="field-group">
+            <label>Posición X</label>
+            <input type="number" id="otros-representanteFirma-x" value="498.5" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Posición Y</label>
+            <input type="number" id="otros-representanteFirma-y" value="455" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Ancho</label>
+            <input type="number" id="otros-representanteFirma-width" value="145" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Alto</label>
+            <input type="number" id="otros-representanteFirma-height" value="61" step="0.1" onchange="updatePDF()">
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">✍️ Nombre del Representante</div>
+          <div class="field-group">
+            <label>Posición X (centrado = 565.5)</label>
+            <input type="number" id="otros-representanteNombre-x" value="565.5" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Posición Y</label>
+            <input type="number" id="otros-representanteNombre-y" value="495" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Tamaño de Fuente</label>
+            <input type="number" id="otros-representanteNombre-fontSize" value="9.9" step="0.5" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Negrita</label>
+            <input type="checkbox" id="otros-representanteNombre-bold" checked onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Color RGB</label>
+            <div class="color-input">
+              <input type="color" id="otros-representanteNombre-color-picker" value="#292561"
+                onchange="updateColorFromPicker('otros-representanteNombre')">
+              <input type="number" id="otros-representanteNombre-color-r" value="41" min="0" max="255"
+                onchange="updatePDF()">
+              <input type="number" id="otros-representanteNombre-color-g" value="37" min="0" max="255"
+                onchange="updatePDF()">
+              <input type="number" id="otros-representanteNombre-color-b" value="97" min="0" max="255"
+                onchange="updatePDF()">
+            </div>
           </div>
         </div>
       </div>
@@ -640,6 +853,40 @@
             fontSize: getElementValue('alimentos-fechaEmision-fontSize', 14),
             bold: getElementChecked('alimentos-fechaEmision-bold', false),
           },
+          instructorFirma: {
+            x: getElementValue('alimentos-instructorFirma-x', 178.5),
+            y: getElementValue('alimentos-instructorFirma-y', 450),
+            width: getElementValue('alimentos-instructorFirma-width', 145),
+            height: getElementValue('alimentos-instructorFirma-height', 61),
+          },
+          instructorNombre: {
+            x: getElementValue('alimentos-instructorNombre-x', 235),
+            y: getElementValue('alimentos-instructorNombre-y', 495),
+            fontSize: getElementValue('alimentos-instructorNombre-fontSize', 10),
+            bold: getElementChecked('alimentos-instructorNombre-bold', true),
+            color: [
+              getElementValue('alimentos-instructorNombre-color-r', 41),
+              getElementValue('alimentos-instructorNombre-color-g', 37),
+              getElementValue('alimentos-instructorNombre-color-b', 97),
+            ]
+          },
+          representanteFirma: {
+            x: getElementValue('alimentos-representanteFirma-x', 498.5),
+            y: getElementValue('alimentos-representanteFirma-y', 455),
+            width: getElementValue('alimentos-representanteFirma-width', 145),
+            height: getElementValue('alimentos-representanteFirma-height', 61),
+          },
+          representanteNombre: {
+            x: getElementValue('alimentos-representanteNombre-x', 565.5),
+            y: getElementValue('alimentos-representanteNombre-y', 495),
+            fontSize: getElementValue('alimentos-representanteNombre-fontSize', 9.9),
+            bold: getElementChecked('alimentos-representanteNombre-bold', true),
+            color: [
+              getElementValue('alimentos-representanteNombre-color-r', 41),
+              getElementValue('alimentos-representanteNombre-color-g', 37),
+              getElementValue('alimentos-representanteNombre-color-b', 97),
+            ]
+          },
           footer: {
             x: getElementValue('alimentos-footer-x', 396),
             y: getElementValue('alimentos-footer-y', 590),
@@ -662,6 +909,40 @@
             x: getElementValue('otros-qr-x', 493.8),
             y: getElementValue('otros-qr-y', 377.6),
             size: getElementValue('otros-qr-size', 70),
+          },
+          instructorFirma: {
+            x: getElementValue('otros-instructorFirma-x', 156),
+            y: getElementValue('otros-instructorFirma-y', 450),
+            width: getElementValue('otros-instructorFirma-width', 190),
+            height: getElementValue('otros-instructorFirma-height', 80),
+          },
+          instructorNombre: {
+            x: getElementValue('otros-instructorNombre-x', 235),
+            y: getElementValue('otros-instructorNombre-y', 495),
+            fontSize: getElementValue('otros-instructorNombre-fontSize', 10),
+            bold: getElementChecked('otros-instructorNombre-bold', true),
+            color: [
+              getElementValue('otros-instructorNombre-color-r', 41),
+              getElementValue('otros-instructorNombre-color-g', 37),
+              getElementValue('otros-instructorNombre-color-b', 97),
+            ]
+          },
+          representanteFirma: {
+            x: getElementValue('otros-representanteFirma-x', 498.5),
+            y: getElementValue('otros-representanteFirma-y', 455),
+            width: getElementValue('otros-representanteFirma-width', 145),
+            height: getElementValue('otros-representanteFirma-height', 61),
+          },
+          representanteNombre: {
+            x: getElementValue('otros-representanteNombre-x', 565.5),
+            y: getElementValue('otros-representanteNombre-y', 495),
+            fontSize: getElementValue('otros-representanteNombre-fontSize', 9.9),
+            bold: getElementChecked('otros-representanteNombre-bold', true),
+            color: [
+              getElementValue('otros-representanteNombre-color-r', 41),
+              getElementValue('otros-representanteNombre-color-g', 37),
+              getElementValue('otros-representanteNombre-color-b', 97),
+            ]
           }
         }
       };
