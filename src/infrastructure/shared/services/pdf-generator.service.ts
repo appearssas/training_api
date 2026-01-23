@@ -10,28 +10,20 @@ const PDFDocument = require('pdfkit');
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const sharp = require('sharp');
 
-// Fix: Usar ruta dinámica basada en el directorio de trabajo actual (process.cwd())
-// Esto funciona tanto en Windows (Local) como en Linux (Docker/Render)
-let PUBLIC_ASSETS_PATH = join(process.cwd(), 'public', 'assets');
-
-// Fallback robusto para producción en Docker
-if (!existsSync(PUBLIC_ASSETS_PATH)) {
- 
-  PUBLIC_ASSETS_PATH = '/app/public/assets';
+// Fix: Usar una detección de ruta más robusta que funcione en dev (src) y prod (dist)
+const getAssetsPath = () => {
+  // Intentar primero relativa al directorio de ejecución (Docker/Render)
+  const localPath = join(process.cwd(), 'public', 'assets');
+  if (existsSync(localPath)) return localPath;
   
-  // Second fallback: relative path (if workdir is /app, then ./public/assets might be valid)
-  if (!existsSync(PUBLIC_ASSETS_PATH)) {
-      
-      // Use path.resolve to get absolute path from relative
-      const relativePath = join(process.cwd(), 'public', 'assets');
-       if (existsSync(relativePath)) {
-           PUBLIC_ASSETS_PATH = relativePath;
-       } else {
-           // Last resort: just try 'public/assets' if the CWD is strangely set
-           PUBLIC_ASSETS_PATH = 'public/assets';
-       }
-  }
-}
+  // Fallback para entornos donde el CWD es distinto
+  const distPath = join(__dirname, '..', '..', '..', '..', 'public', 'assets');
+  if (existsSync(distPath)) return distPath;
+
+  return 'public/assets'; // Último recurso
+};
+
+const PUBLIC_ASSETS_PATH = getAssetsPath();
 
 
 

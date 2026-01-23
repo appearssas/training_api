@@ -20,6 +20,9 @@ FROM node:22-alpine
 
 WORKDIR /app
 
+# Instalar dependencias de fuentes para sharp/librsvg
+RUN apk add --no-cache fontconfig
+
 # Crear usuario no-root para seguridad
 RUN addgroup -g 1001 -S nodejs && \
   adduser -S nestjs -u 1001
@@ -33,6 +36,10 @@ COPY package.json yarn.lock ./
 # Instalar solo dependencias de producción
 RUN yarn install --production --frozen-lockfile && \
   yarn cache clean
+
+# Copiar fuentes al directorio del sistema ANTES de cambiar permisos
+COPY public/assets/fonts /usr/share/fonts/montserrat
+RUN fc-cache -f
 
 # Copiar el código construido desde la etapa de builder
 COPY --from=builder /app/dist ./dist
