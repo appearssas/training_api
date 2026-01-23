@@ -51,8 +51,8 @@ export class QrGeneratorService {
                     this.configService.get<string>('APP_URL') || 
                     defaultUrl).replace(/\/+$/, '').replace(/#+$/, '').replace(/\/+$/, '');
                     
-    // Fix: Match the structure reported as real: BASE/certificates/#/verify/TOKEN
-    return `${baseUrl}/certificates/#/verify/${token}`;
+    // Fix: Route confirmated by user on Render: BASE_URL/#/verify/TOKEN
+    return `${baseUrl}/#/verify/${token}`;
   }
 
   /**
