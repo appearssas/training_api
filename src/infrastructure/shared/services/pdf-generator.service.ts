@@ -204,7 +204,7 @@ export class PdfGeneratorService {
         durationXShift = 43;
         durationYOffset = -5.5;
     } else if (isAlimentos) {
-        durationXShift = 51;
+        durationXShift = 49; // 51 - 2px (left)
         durationYOffset = -2.5;
     }
 
@@ -239,9 +239,9 @@ export class PdfGeneratorService {
         expiryXOffset = 169;
         expiryYOffset = -16;
     } else if (isAlimentos) {
-        emissionXOffset = -67;
+        emissionXOffset = -77; // -67 - 4px (left)
         emissionYOffset = -15.5; 
-        expiryXOffset = 173;   
+        expiryXOffset = 164;   
         expiryYOffset = -15;   
     }
 
@@ -490,7 +490,7 @@ export class PdfGeneratorService {
                 (titulo.includes('manipulación') && titulo.includes('alimentos')) ||
                 (titulo.includes('primeros') && titulo.includes('auxilios'))
             ) {
-                backgroundName = 'fondoAlimentos.svg';
+                backgroundName = 'fondoAlimentos.png';
             }
             // Logic: Sustancias / Mercancías Peligrosas -> Fondo Sustancias
             else if (
