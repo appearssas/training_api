@@ -490,7 +490,7 @@ export class PdfGeneratorService {
                 (titulo.includes('manipulación') && titulo.includes('alimentos')) ||
                 (titulo.includes('primeros') && titulo.includes('auxilios'))
             ) {
-                backgroundName = 'fondoAlimentos.png';
+                backgroundName = 'fondoAlimentos.svg';
             }
             // Logic: Sustancias / Mercancías Peligrosas -> Fondo Sustancias
             else if (
@@ -509,17 +509,39 @@ export class PdfGeneratorService {
       if (existsSync(backgroundPath)) {
         let svgBuffer = readFileSync(backgroundPath);
 
-        // SOLUTION: Professional Font Patching for Linux/Docker compatibility
-        // Windows/Illustrator exports fonts as "MontserratRoman-Light/Bold"
-        // Linux fontconfig needs the family name "Montserrat" to match correctly
+        // SOLUTION: Professional Font Embedding for Linux/Docker compatibility
         if (backgroundName.endsWith('.svg')) {
             let svgContent = svgBuffer.toString();
+            
+            // 1. Load Montserrat fonts as base64
+            const lightFontPath = join(PUBLIC_ASSETS_PATH, 'fonts', 'Montserrat-Light.ttf');
+            const boldFontPath = join(PUBLIC_ASSETS_PATH, 'fonts', 'Montserrat-Bold.ttf');
+            
+            let fontStyles = '';
+            if (existsSync(lightFontPath)) {
+                const lightBase64 = readFileSync(lightFontPath).toString('base64');
+                fontStyles += `@font-face { font-family: 'Montserrat'; src: url(data:font/ttf;base64,${lightBase64}); font-weight: 300; font-style: normal; }\n`;
+            }
+            if (existsSync(boldFontPath)) {
+                const boldBase64 = readFileSync(boldFontPath).toString('base64');
+                fontStyles += `@font-face { font-family: 'Montserrat'; src: url(data:font/ttf;base64,${boldBase64}); font-weight: 700; font-style: normal; }\n`;
+            }
+
+            // 2. Inject fonts into a <style> tag at the beginning of <defs>
+            if (fontStyles) {
+                svgContent = svgContent.replace('<defs>', `<defs><style>\n${fontStyles}</style>`);
+            }
+
+            // 3. Canonicalize font names and clean up trailing spaces in text nodes
+            // Removing trailing spaces helps preventing text alignment shifts
             svgContent = svgContent
                 .replace(/MontserratRoman-Light/g, 'Montserrat')
                 .replace(/MontserratRoman-Bold/g, 'Montserrat')
                 .replace(/MontserratRoman-ExtraBold/g, 'Montserrat')
                 .replace(/MontserratRoman-Medium/g, 'Montserrat')
-                .replace(/MontserratRoman-Regular/g, 'Montserrat');
+                .replace(/MontserratRoman-Regular/g, 'Montserrat')
+                .replace(/>\s+<\/tspan>/g, '></tspan>') // Limpia espacios en blanco vacíos
+                .replace(/(\s+)<\/tspan>/g, '</tspan>'); // Limpia espacios finales antes del cierre de tspan
             
             svgBuffer = Buffer.from(svgContent);
         }
