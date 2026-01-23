@@ -46,12 +46,13 @@ export class QrGeneratorService {
     
     const defaultUrl = isProd ? prodFallback : localFallback;
 
-    const baseUrl = this.configService.get<string>('FRONTEND_URL') || 
+    const baseUrl = (this.configService.get<string>('FRONTEND_URL') || 
                     this.configService.get<string>('PUBLIC_VERIFICATION_URL') || 
                     this.configService.get<string>('APP_URL') || 
-                    defaultUrl;
+                    defaultUrl).replace(/\/+$/, '').replace(/#+$/, '').replace(/\/+$/, '');
                     
-    return `${baseUrl}/#/verify/${token}`;
+    // Fix: Match the structure reported as real: BASE/certificates/#/verify/TOKEN
+    return `${baseUrl}/certificates/#/verify/${token}`;
   }
 
   /**

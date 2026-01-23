@@ -5,6 +5,7 @@ import {
   NotFoundException,
   Res,
   BadRequestException,
+  Inject,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -20,7 +21,7 @@ import { RegenerateCertificatesUseCase } from '@/application/certificados/use-ca
 import { StorageService } from '../shared/services/storage.service';
 import { PdfGeneratorService } from '../shared/services/pdf-generator.service';
 import { ICertificadosRepository } from '@/domain/certificados/ports/certificados.repository.port';
-import { Inject } from '@nestjs/common';
+import { Public } from '../shared/auth/decorators/public.decorator';
 
 /**
  * Controlador público de verificación de certificados
@@ -29,6 +30,7 @@ import { Inject } from '@nestjs/common';
  * RF-34: No mostrar información técnica, de usuario, ni datos del administrador
  */
 @ApiTags('public')
+@Public()
 @Controller('public')
 export class PublicCertificadosController {
   constructor(
@@ -186,4 +188,3 @@ export class PublicCertificadosController {
     }
   }
 }
-
