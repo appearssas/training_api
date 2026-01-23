@@ -46,13 +46,18 @@ export class QrGeneratorService {
     
     const defaultUrl = isProd ? prodFallback : localFallback;
 
-    const baseUrl = (this.configService.get<string>('FRONTEND_URL') || 
+    let cleanBaseUrl = (this.configService.get<string>('FRONTEND_URL') || 
                     this.configService.get<string>('PUBLIC_VERIFICATION_URL') || 
                     this.configService.get<string>('APP_URL') || 
-                    defaultUrl).replace(/\/+$/, '').replace(/#+$/, '').replace(/\/+$/, '');
+                    defaultUrl);
+
+    if (cleanBaseUrl.includes('#')) {
+      cleanBaseUrl = cleanBaseUrl.split('#')[0];
+    }
+    cleanBaseUrl = cleanBaseUrl.replace(/\/+$/, '');
                     
     // Fix: Route confirmated by user on Render: BASE_URL/#/verify/TOKEN
-    return `${baseUrl}/#/verify/${token}`;
+    return `${cleanBaseUrl}/#/verify/${token}`;
   }
 
   /**
