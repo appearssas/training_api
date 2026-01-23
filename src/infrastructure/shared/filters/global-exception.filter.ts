@@ -28,6 +28,23 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<Request>();
 
+    // Ignorar silenciosamente peticiones de Chrome DevTools y otros servicios automáticos
+    const ignoredPaths = [
+      '/.well-known/appspecific/com.chrome.devtools.json',
+      '/.well-known/',
+      '/favicon.ico',
+    ];
+    
+    const shouldIgnore = ignoredPaths.some(path => request.url.startsWith(path));
+    
+    if (shouldIgnore) {
+      // Responder 404 sin loguear el error
+      return response.status(HttpStatus.NOT_FOUND).json({
+        statusCode: HttpStatus.NOT_FOUND,
+        message: 'Not Found',
+      });
+    }
+
     this.logger.error('Global exception caught:', exception);
 
     // Capturar errores de validación de class-validator
