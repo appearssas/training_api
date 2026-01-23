@@ -741,20 +741,20 @@ export class PdfGeneratorService {
 
     doc.setFontSize(footerFontSize);
     doc.setTextColor(...footerColor);
-    
+
     const allianceCompany = this.getAllianceCompany(isAlimentos, isCesaroto);
-    
+
     // Construir el texto completo para calcular el ancho y dividir en líneas
     const footerText = `Certificado emitido por FORMAR360 en alianza con ${allianceCompany} La autenticidad de este documento puede verificarse escaneando el código QR.`;
     const footerLines = doc.splitTextToSize(footerText, pageWidth - 40);
-    
+
     // Función helper para renderizar una línea con formato mixto
     const renderMixedLine = (line: string, yPos: number, isCentered: boolean) => {
       // Escapar caracteres especiales de regex en allianceCompany
       const escapedCompany = allianceCompany.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       const regex = new RegExp(`(FORMAR360|${escapedCompany})`, 'g');
       const parts = line.split(regex);
-      
+
       // Calcular el ancho total de la línea para centrado
       let totalWidth = 0;
       doc.setFont('helvetica', 'normal');
@@ -766,10 +766,10 @@ export class PdfGeneratorService {
         }
         totalWidth += doc.getTextWidth(part);
       });
-      
+
       // Calcular posición inicial
       let currentX = isCentered ? footerX - totalWidth / 2 : footerX;
-      
+
       // Renderizar cada parte
       parts.forEach((part: string) => {
         if (part === 'FORMAR360' || part === allianceCompany) {
@@ -777,14 +777,14 @@ export class PdfGeneratorService {
         } else {
           doc.setFont('helvetica', 'normal');
         }
-        
+
         if (part) { // Solo renderizar si la parte no está vacía
           doc.text(part, currentX, yPos);
           currentX += doc.getTextWidth(part);
         }
       });
     };
-    
+
     // Renderizar cada línea
     footerLines.forEach((line: string, index: number) => {
       const yPos = footerY + index * footerLineSpacing;

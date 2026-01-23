@@ -31,6 +31,7 @@ import { Public } from '../shared/auth/decorators/public.decorator';
  * RF-34: No mostrar información técnica, de usuario, ni datos del administrador
  */
 @ApiTags('public')
+@Public()
 @Controller('public')
 export class PublicCertificadosController {
   constructor(
@@ -245,6 +246,7 @@ export class PublicCertificadosController {
           numeroDocumento: estudiante?.numeroDocumento || 'N/A',
           // Información del curso (RF-33)
           nombreCurso: capacitacion?.titulo || 'N/A',
+          idCapacitacion: capacitacion?.id || 'N/A',
           // Estado (RF-33)
           estado: result.isExpired ? 'VENCIDO' : 'VÁLIDO',
         },
@@ -257,4 +259,3 @@ export class PublicCertificadosController {
     }
   }
 }
-
