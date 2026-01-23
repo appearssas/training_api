@@ -490,7 +490,7 @@ export class PdfGeneratorService {
                 (titulo.includes('manipulación') && titulo.includes('alimentos')) ||
                 (titulo.includes('primeros') && titulo.includes('auxilios'))
             ) {
-                backgroundName = 'fondoAlimentos.svg';
+                backgroundName = 'fondoAlimentos.png';
             }
             // Logic: Sustancias / Mercancías Peligrosas -> Fondo Sustancias
             else if (
