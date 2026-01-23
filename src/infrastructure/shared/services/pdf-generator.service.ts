@@ -22,8 +22,27 @@ export interface PdfConfig {
     fechaEmision?: { x?: number; y?: number; fontSize?: number; color?: [number, number, number]; bold?: boolean };
     fechaVencimiento?: { x?: number; y?: number; fontSize?: number; color?: [number, number, number]; bold?: boolean };
     instructorNombre?: { x?: number; y?: number; fontSize?: number; color?: [number, number, number]; bold?: boolean };
+    instructorRol?: { x?: number; y?: number; fontSize?: number; color?: [number, number, number]; bold?: boolean; lineSpacing?: number };
     instructorFirma?: { x?: number; y?: number; width?: number; height?: number };
     representanteNombre?: { x?: number; y?: number; fontSize?: number; color?: [number, number, number]; bold?: boolean };
+    representanteRol?: { x?: number; y?: number; fontSize?: number; color?: [number, number, number]; bold?: boolean };
+    representanteFirma?: { x?: number; y?: number; width?: number; height?: number };
+    qr?: { x?: number; y?: number; size?: number };
+    footer?: { x?: number; y?: number; fontSize?: number; color?: [number, number, number]; bold?: boolean };
+  };
+  // Sustancias peligrosas
+  sustancias?: {
+    cursoNombre?: { x?: number; y?: number; fontSize?: number; color?: [number, number, number]; bold?: boolean };
+    nombreEstudiante?: { x?: number; y?: number; fontSize?: number; color?: [number, number, number]; bold?: boolean };
+    documento?: { x?: number; y?: number; fontSize?: number; color?: [number, number, number]; bold?: boolean };
+    duracion?: { x?: number; y?: number; fontSize?: number; color?: [number, number, number]; bold?: boolean };
+    fechaEmision?: { x?: number; y?: number; fontSize?: number; color?: [number, number, number]; bold?: boolean };
+    fechaVencimiento?: { x?: number; y?: number; fontSize?: number; color?: [number, number, number]; bold?: boolean };
+    instructorNombre?: { x?: number; y?: number; fontSize?: number; color?: [number, number, number]; bold?: boolean };
+    instructorRol?: { x?: number; y?: number; fontSize?: number; color?: [number, number, number]; bold?: boolean; lineSpacing?: number };
+    instructorFirma?: { x?: number; y?: number; width?: number; height?: number };
+    representanteNombre?: { x?: number; y?: number; fontSize?: number; color?: [number, number, number]; bold?: boolean };
+    representanteRol?: { x?: number; y?: number; fontSize?: number; color?: [number, number, number]; bold?: boolean };
     representanteFirma?: { x?: number; y?: number; width?: number; height?: number };
     qr?: { x?: number; y?: number; size?: number };
     footer?: { x?: number; y?: number; fontSize?: number; color?: [number, number, number]; bold?: boolean };
@@ -39,8 +58,10 @@ export interface PdfConfig {
     fechaEmision?: { x?: number; y?: number; fontSize?: number; color?: [number, number, number]; bold?: boolean };
     fechaVencimiento?: { x?: number; y?: number; fontSize?: number; color?: [number, number, number]; bold?: boolean };
     instructorNombre?: { x?: number; y?: number; fontSize?: number; color?: [number, number, number]; bold?: boolean };
+    instructorRol?: { x?: number; y?: number; fontSize?: number; color?: [number, number, number]; bold?: boolean; lineSpacing?: number };
     instructorFirma?: { x?: number; y?: number; width?: number; height?: number };
     representanteNombre?: { x?: number; y?: number; fontSize?: number; color?: [number, number, number]; bold?: boolean };
+    representanteRol?: { x?: number; y?: number; fontSize?: number; color?: [number, number, number]; bold?: boolean };
     representanteFirma?: { x?: number; y?: number; width?: number; height?: number };
     qr?: { x?: number; y?: number; size?: number };
     footer?: { x?: number; y?: number; fontSize?: number; color?: [number, number, number]; bold?: boolean };
@@ -283,7 +304,7 @@ export class PdfGeneratorService {
    * Determina el fondo del certificado basado en el título
    */
   private getCertificateBackground(capacitacion: any): string {
-    let backgroundName = 'fondoGeneral.svg'; // Default
+    let backgroundName = 'fondoGeneral_2.svg'; // Default
 
     if (capacitacion?.titulo) {
       const titulo = capacitacion.titulo.toLowerCase();
@@ -302,7 +323,7 @@ export class PdfGeneratorService {
           (titulo.includes('mercancias') || titulo.includes('mercancías')) &&
           titulo.includes('peligrosas'))
       ) {
-        backgroundName = 'fondoSustanciasP.svg';
+        backgroundName = 'fondoSustanciasP_2.svg';
       }
     }
 
@@ -369,6 +390,124 @@ export class PdfGeneratorService {
     return '20';
   }
 
+  /**
+   * Renderiza duración y fechas en el PDF
+   */
+  private renderDuracionYFechas(
+    doc: jsPDF,
+    pageWidth: number,
+    duration: string,
+    fechaEmision: string,
+    fechaVencimiento: string,
+    config: PdfConfig | undefined,
+    usarConfigAlimentos: boolean,
+    usarConfigSustancias: boolean,
+  ): void {
+    // Determinar qué configuración usar
+    const configType = usarConfigAlimentos
+      ? config?.alimentos
+      : usarConfigSustancias
+        ? config?.sustancias
+        : config?.otros;
+
+    // 4. Duración
+    const duracionConfig = configType?.duracion;
+    const duracionX =
+      duracionConfig?.x !== undefined
+        ? duracionConfig.x
+        : usarConfigAlimentos
+          ? 440
+          : usarConfigSustancias
+            ? 430
+            : pageWidth / 2;
+    const duracionY =
+      duracionConfig?.y !== undefined ? duracionConfig.y : 422;
+    const duracionFontSize =
+      duracionConfig?.fontSize !== undefined ? duracionConfig.fontSize : 14;
+    const duracionColor = duracionConfig?.color ?? [41, 37, 97];
+    const duracionBold =
+      duracionConfig?.bold !== undefined ? duracionConfig.bold : false;
+
+    doc.setFontSize(duracionFontSize);
+    doc.setTextColor(...duracionColor);
+    doc.setFont('helvetica', duracionBold ? 'bold' : 'normal');
+    if (duracionX === pageWidth / 2) {
+      doc.text(duration, duracionX, duracionY, { align: 'center' });
+    } else {
+      doc.text(duration, duracionX, duracionY);
+    }
+
+    // 5. Fechas
+    const fechaEmisionConfig = configType?.fechaEmision;
+    const fechaVencimientoConfig = configType?.fechaVencimiento;
+    const fechaEmisionX =
+      fechaEmisionConfig?.x !== undefined
+        ? fechaEmisionConfig.x
+        : usarConfigAlimentos
+          ? 310
+          : usarConfigSustancias
+            ? 240
+            : 310;
+    const fechaEmisionY =
+      fechaEmisionConfig?.y !== undefined
+        ? fechaEmisionConfig.y
+        : usarConfigAlimentos
+          ? 437
+          : usarConfigSustancias
+            ? 438
+            : 437;
+    const fechaVencimientoX =
+      fechaVencimientoConfig?.x !== undefined
+        ? fechaVencimientoConfig.x
+        : usarConfigAlimentos
+          ? 570
+          : usarConfigSustancias
+            ? 500
+            : 570;
+    const fechaVencimientoY =
+      fechaVencimientoConfig?.y !== undefined
+        ? fechaVencimientoConfig.y
+        : usarConfigAlimentos
+          ? 436
+          : usarConfigSustancias
+            ? 438
+            : 436;
+    const fechaFontSize =
+      fechaEmisionConfig?.fontSize ??
+      fechaVencimientoConfig?.fontSize ??
+      14;
+    const fechaColor =
+      fechaEmisionConfig?.color ??
+      fechaVencimientoConfig?.color ??
+      [41, 37, 97];
+    const fechaBold =
+      fechaEmisionConfig?.bold ?? fechaVencimientoConfig?.bold ?? false;
+
+    doc.setFontSize(fechaFontSize);
+    doc.setTextColor(...fechaColor);
+    doc.setFont('helvetica', fechaBold ? 'bold' : 'normal');
+    // Fecha de emisión
+    if (fechaEmision) {
+      if (fechaEmisionX === pageWidth / 2) {
+        doc.text(fechaEmision, fechaEmisionX, fechaEmisionY, {
+          align: 'center',
+        });
+      } else {
+        doc.text(fechaEmision, fechaEmisionX, fechaEmisionY);
+      }
+    }
+    // Fecha de expiración
+    if (fechaVencimiento) {
+      if (fechaVencimientoX === pageWidth / 2) {
+        doc.text(`${fechaVencimiento}.`, fechaVencimientoX, fechaVencimientoY, {
+          align: 'center',
+        });
+      } else {
+        doc.text(`${fechaVencimiento}.`, fechaVencimientoX, fechaVencimientoY);
+      }
+    }
+  }
+
   async generateCertificate(certificado: Certificado, config?: PdfConfig): Promise<Buffer> {
     if (config) {
       console.log('[PDF Generator] Config recibida:', JSON.stringify(config, null, 2));
@@ -395,6 +534,15 @@ export class PdfGeneratorService {
       tituloLower.includes('transporte') &&
       (tituloLower.includes('mercancias') || tituloLower.includes('mercancías')) &&
       tituloLower.includes('peligrosas');
+    // Los certificados de sustancias peligrosas
+    const isSustanciasPeligrosas =
+      tituloLower.includes('peligrosas') ||
+      (tituloLower.includes('sustancias') && tituloLower.includes('peligrosas')) ||
+      (tituloLower.includes('mercancías') && tituloLower.includes('peligrosas')) ||
+      (tituloLower.includes('mercancias') && tituloLower.includes('peligrosas'));
+    // Determinar qué configuración usar
+    const usarConfigAlimentos = isAlimentos;
+    const usarConfigSustancias = isSustanciasPeligrosas;
 
     // Crear el PDF en formato landscape (792x612 puntos = Letter landscape)
     const doc = new jsPDF({
@@ -432,12 +580,19 @@ export class PdfGeneratorService {
     const documento = estudiante?.numeroDocumento || 'N/A';
     const cursoNombre = (capacitacion?.titulo || 'CURSO SIN NOMBRE').toUpperCase();
 
-    if (isAlimentos) {
-      // DISEÑO SIMPLIFICADO PARA ALIMENTOS
+    // Determinar qué configuración usar
+    const configType = usarConfigAlimentos
+      ? config?.alimentos
+      : usarConfigSustancias
+        ? config?.sustancias
+        : config?.otros;
+
+    if (usarConfigAlimentos || usarConfigSustancias) {
+      // DISEÑO SIMPLIFICADO PARA ALIMENTOS Y SUSTANCIAS PELIGROSAS
       // Solo mostrar: nombre del curso, nombre del alumno, documento, horas, fechas, firmas y QR
 
       // 1. Nombre del curso (sin cuadro azul, solo texto)
-      const cursoNombreConfig = config?.alimentos?.cursoNombre;
+      const cursoNombreConfig = configType?.cursoNombre;
       const cursoX = cursoNombreConfig?.x !== undefined ? cursoNombreConfig.x : pageWidth / 2;
       const cursoY = cursoNombreConfig?.y !== undefined ? cursoNombreConfig.y : 395;
       const cursoFontSize = cursoNombreConfig?.fontSize !== undefined ? cursoNombreConfig.fontSize : 18;
@@ -455,7 +610,7 @@ export class PdfGeneratorService {
       }
 
       // 2. Nombre del estudiante
-      const nombreEstudianteConfig = config?.alimentos?.nombreEstudiante;
+      const nombreEstudianteConfig = configType?.nombreEstudiante;
       const nombreX = nombreEstudianteConfig?.x !== undefined ? nombreEstudianteConfig.x : pageWidth / 2;
       const nombreY = nombreEstudianteConfig?.y !== undefined ? nombreEstudianteConfig.y : 290;
       const nombreFontSize = nombreEstudianteConfig?.fontSize !== undefined ? nombreEstudianteConfig.fontSize : 18;
@@ -472,9 +627,23 @@ export class PdfGeneratorService {
       }
 
       // 3. Documento de identidad
-      const documentoConfig = config?.alimentos?.documento;
-      const docX = documentoConfig?.x !== undefined ? documentoConfig.x : 405;
-      const docY = documentoConfig?.y !== undefined ? documentoConfig.y : 323;
+      const documentoConfig = configType?.documento;
+      const docX =
+        documentoConfig?.x !== undefined
+          ? documentoConfig.x
+          : usarConfigAlimentos
+            ? 405
+            : usarConfigSustancias
+              ? 370
+              : 405;
+      const docY =
+        documentoConfig?.y !== undefined
+          ? documentoConfig.y
+          : usarConfigAlimentos
+            ? 323
+            : usarConfigSustancias
+              ? 320
+              : 323;
       const docFontSize = documentoConfig?.fontSize !== undefined ? documentoConfig.fontSize : 18;
       const docColor = documentoConfig?.color ?? [41, 37, 97];
       const docBold = documentoConfig?.bold !== undefined ? documentoConfig.bold : false;
@@ -489,65 +658,61 @@ export class PdfGeneratorService {
         doc.text(docText, docX, docY);
       }
     } else {
-      // DISEÑO COMPLETO PARA OTROS CERTIFICADOS
-      // 0. Título "CERTIFICADO DE APROBACIÓN" (Y: ~106.25pt)
-      doc.setFontSize(26);
-      doc.setTextColor(41, 37, 97); // #292561
-      doc.setFont('helvetica', 'bold');
-      doc.text('CERTIFICADO DE APROBACIÓN', pageWidth / 2, 106.25, { align: 'center' });
+      // DISEÑO SIMPLIFICADO PARA OTROS CERTIFICADOS
+      // Solo mostrar: nombre del curso, nombre del alumno, documento, horas, fechas, firmas y QR
 
-      // 0.1. "CERTIFICA QUE:" (Y: ~222.4pt)
-      doc.setFontSize(16);
-      doc.setTextColor(41, 37, 97);
-      doc.setFont('helvetica', 'normal');
-      doc.text('CERTIFICA QUE:', pageWidth / 2, 222.4, { align: 'center' });
+      // 1. Nombre del curso (sin cuadro azul, solo texto)
+      const cursoNombreConfig = config?.otros?.cursoNombre;
+      const cursoX = cursoNombreConfig?.x !== undefined ? cursoNombreConfig.x : pageWidth / 2;
+      const cursoY = cursoNombreConfig?.y !== undefined ? cursoNombreConfig.y : 395;
+      const cursoFontSize = cursoNombreConfig?.fontSize !== undefined ? cursoNombreConfig.fontSize : 18;
+      const cursoColor = cursoNombreConfig?.color ?? [41, 37, 97];
+      const cursoBold = cursoNombreConfig?.bold !== undefined ? cursoNombreConfig.bold : true;
 
-      // 1. Nombre del estudiante (Y: ~236.5pt, centrado)
-      doc.setFontSize(18);
-      doc.setTextColor(41, 37, 97);
-      doc.setFont('helvetica', 'bold');
-      doc.text(nombreCompleto, pageWidth / 2, 236.5, { align: 'center' });
-
-      // 2. Documento de identidad (Y: ~257.6pt)
-      doc.setFontSize(14.5);
-      doc.setTextColor(41, 37, 97);
-      doc.setFont('helvetica', 'normal');
-      const docText = `Cedula de Ciudadanía N° ${documento}`;
-      doc.text(docText, pageWidth / 2, 257.6, { align: 'center' });
-
-      // 2.1. Texto "Ha realizado y aprobado satisfactoriamente el curso de" (Y: ~289.4pt)
-      doc.setFontSize(11);
-      doc.setTextColor(41, 37, 97);
-      doc.setFont('helvetica', 'normal');
-      doc.text('Ha realizado y aprobado satisfactoriamente el curso de', pageWidth / 2, 289.4, { align: 'center' });
-
-      // 3. Cápsula azul del curso (Y: ~292.8pt borde superior, texto en Y: ~314.1pt)
-      const capsuleX = 50;
-      const capsuleY = 292.8;
-      const capsuleWidth = 690.8;
-      const capsuleHeight = 42.5;
-      const capsuleRadius = capsuleHeight / 2;
-
-      doc.setFillColor(41, 37, 97); // Azul oscuro
-      doc.roundedRect(capsuleX, capsuleY, capsuleWidth, capsuleHeight, capsuleRadius, capsuleRadius, 'FD');
-
-      // Texto del curso dentro de la cápsula
-      doc.setFontSize(16);
-      doc.setTextColor(255, 255, 255); // Blanco
-      doc.setFont('helvetica', 'bold');
-
-      // Calcular el tamaño de fuente para que quepa
-      let courseFontSize = 16;
-      const maxCourseWidth = 680;
-      let courseTextWidth = doc.getTextWidth(cursoNombre);
-
-      while (courseTextWidth > maxCourseWidth && courseFontSize > 11) {
-        courseFontSize -= 0.5;
-        doc.setFontSize(courseFontSize);
-        courseTextWidth = doc.getTextWidth(cursoNombre);
+      doc.setFontSize(cursoFontSize);
+      doc.setTextColor(...cursoColor);
+      doc.setFont('helvetica', cursoBold ? 'bold' : 'normal');
+      // Si X es diferente del centro, no usar align center
+      if (cursoX === pageWidth / 2) {
+        doc.text(cursoNombre, cursoX, cursoY, { align: 'center' });
+      } else {
+        doc.text(cursoNombre, cursoX, cursoY);
       }
 
-      doc.text(cursoNombre, pageWidth / 2, capsuleY + capsuleHeight / 2 + 2, { align: 'center' });
+      // 2. Nombre del estudiante
+      const nombreEstudianteConfig = configType?.nombreEstudiante;
+      const nombreX = nombreEstudianteConfig?.x !== undefined ? nombreEstudianteConfig.x : pageWidth / 2;
+      const nombreY = nombreEstudianteConfig?.y !== undefined ? nombreEstudianteConfig.y : 290;
+      const nombreFontSize = nombreEstudianteConfig?.fontSize !== undefined ? nombreEstudianteConfig.fontSize : 18;
+      const nombreColor = nombreEstudianteConfig?.color ?? [41, 37, 97];
+      const nombreBold = nombreEstudianteConfig?.bold !== undefined ? nombreEstudianteConfig.bold : true;
+
+      doc.setFontSize(nombreFontSize);
+      doc.setTextColor(...nombreColor);
+      doc.setFont('helvetica', nombreBold ? 'bold' : 'normal');
+      if (nombreX === pageWidth / 2) {
+        doc.text(nombreCompleto, nombreX, nombreY, { align: 'center' });
+      } else {
+        doc.text(nombreCompleto, nombreX, nombreY);
+      }
+
+      // 3. Documento de identidad
+      const documentoConfig = config?.otros?.documento;
+      const docX = documentoConfig?.x !== undefined ? documentoConfig.x : pageWidth / 2;
+      const docY = documentoConfig?.y !== undefined ? documentoConfig.y : 323;
+      const docFontSize = documentoConfig?.fontSize !== undefined ? documentoConfig.fontSize : 18;
+      const docColor = documentoConfig?.color ?? [41, 37, 97];
+      const docBold = documentoConfig?.bold !== undefined ? documentoConfig.bold : false;
+
+      doc.setFontSize(docFontSize);
+      doc.setTextColor(...docColor);
+      doc.setFont('helvetica', docBold ? 'bold' : 'normal');
+      const docText = `${documento}`;
+      if (docX === pageWidth / 2) {
+        doc.text(docText, docX, docY, { align: 'center' });
+      } else {
+        doc.text(docText, docX, docY);
+      }
     }
 
     // 4. Duración y 5. Fechas
@@ -558,84 +723,31 @@ export class PdfGeneratorService {
     const fechaVencimiento = certificado.fechaVencimiento
       ? new Date(certificado.fechaVencimiento).toLocaleDateString('es-ES', localeDateOptions)
       : '';
+    const duration = this.getDuration(isCesaroto, isAlimentos);
 
-    if (isAlimentos) {
-      // Para alimentos: ajustar posiciones más arriba
-      // 4. Duración (Y: ~320pt, centrado)
-      const duracionConfig = config?.alimentos?.duracion;
-      const duracionX = duracionConfig?.x !== undefined ? duracionConfig.x : 440;
-      const duracionY = duracionConfig?.y !== undefined ? duracionConfig.y : 422;
-      const duracionFontSize = duracionConfig?.fontSize !== undefined ? duracionConfig.fontSize : 14;
-      const duracionColor = duracionConfig?.color ?? [41, 37, 97];
-      const duracionBold = duracionConfig?.bold !== undefined ? duracionConfig.bold : false;
-
-      doc.setFontSize(duracionFontSize);
-      doc.setTextColor(...duracionColor);
-      doc.setFont('helvetica', duracionBold ? 'bold' : 'normal');
-      const duration = this.getDuration(isCesaroto, isAlimentos);
-      if (duracionX === pageWidth / 2) {
-        doc.text(duration, duracionX, duracionY, { align: 'center' });
-      } else {
-        doc.text(duration, duracionX, duracionY);
-      }
-
-      // 5. Fechas (Y: ~340pt)
-      const fechaEmisionConfig = config?.alimentos?.fechaEmision;
-      const fechaVencimientoConfig = config?.alimentos?.fechaVencimiento;
-      const fechaEmisionX = fechaEmisionConfig?.x !== undefined ? fechaEmisionConfig.x : 310;
-      const fechaEmisionY = fechaEmisionConfig?.y !== undefined ? fechaEmisionConfig.y : 437;
-      const fechaVencimientoX = fechaVencimientoConfig?.x !== undefined ? fechaVencimientoConfig.x : 570;
-      const fechaVencimientoY = fechaVencimientoConfig?.y !== undefined ? fechaVencimientoConfig.y : 436;
-      const fechaFontSize = fechaEmisionConfig?.fontSize ?? fechaVencimientoConfig?.fontSize ?? 14;
-      const fechaColor = fechaEmisionConfig?.color ?? fechaVencimientoConfig?.color ?? [41, 37, 97];
-      const fechaBold = fechaEmisionConfig?.bold ?? fechaVencimientoConfig?.bold ?? false;
-
-      console.log('[PDF] fechas - Emision X:', fechaEmisionX, 'Y:', fechaEmisionY, 'Vencimiento X:', fechaVencimientoX, 'Y:', fechaVencimientoY, 'fontSize:', fechaFontSize, 'bold:', fechaBold);
-
-      doc.setFontSize(fechaFontSize);
-      doc.setTextColor(...fechaColor);
-      doc.setFont('helvetica', fechaBold ? 'bold' : 'normal');
-      // Fecha de emisión (izquierda, X: ~183.3pt)
-      if (fechaEmision) {
-        doc.text(fechaEmision, fechaEmisionX, fechaEmisionY, { align: 'center' });
-      }
-      // Fecha de expiración (derecha, X: ~422.4pt)
-      if (fechaVencimiento) {
-        doc.text(`${fechaVencimiento}.`, fechaVencimientoX, fechaVencimientoY, { align: 'center' });
-      }
-    } else {
-      // Para otros certificados: posiciones originales
-      // 4. Duración (Y: ~338.4pt, centrado)
-      doc.setFontSize(11);
-      doc.setTextColor(41, 37, 97);
-      doc.setFont('helvetica', 'normal');
-      const duration = this.getDuration(isCesaroto, isAlimentos);
-      doc.text(duration, pageWidth / 2, 338.4, { align: 'center' });
-
-      // 5. Fechas (Y: ~348.9pt)
-      doc.setFontSize(10.5);
-      doc.setTextColor(41, 37, 97);
-      doc.setFont('helvetica', 'normal');
-      // Fecha de emisión (izquierda, X: ~183.3pt)
-      if (fechaEmision) {
-        doc.text(fechaEmision, 183.3, 348.9, { align: 'center' });
-      }
-      // Fecha de expiración (derecha, X: ~422.4pt)
-      if (fechaVencimiento) {
-        doc.text(`${fechaVencimiento}.`, 422.4, 348.9, { align: 'center' });
-      }
-    }
+    this.renderDuracionYFechas(
+      doc,
+      pageWidth,
+      duration,
+      fechaEmision,
+      fechaVencimiento,
+      config,
+      usarConfigAlimentos,
+      usarConfigSustancias,
+    );
 
     // 6. Firmas
     const instructorSig = this.getInstructorDetails(isAlimentos);
 
     // Imagen de firma del instructor (Y: 450pt)
-    const instructorFirmaConfig = isAlimentos
+    const instructorFirmaConfig = usarConfigAlimentos
       ? config?.alimentos?.instructorFirma
-      : config?.otros?.instructorFirma;
-    const defaultSigWidth = isAlimentos ? 145 : 190;
-    const defaultSigHeight = isAlimentos ? 61 : 80;
-    const defaultSigX = isAlimentos ? 160 : 251 - 95;
+      : usarConfigSustancias
+        ? config?.sustancias?.instructorFirma
+        : config?.otros?.instructorFirma;
+    const defaultSigWidth = usarConfigAlimentos ? 145 : 190;
+    const defaultSigHeight = usarConfigAlimentos ? 61 : 80;
+    const defaultSigX = usarConfigAlimentos ? 160 : 251 - 95;
     const defaultSigY = 455;
 
     const instructorFirmaX =
@@ -674,9 +786,11 @@ export class PdfGeneratorService {
     }
 
     // Nombre del instructor (Y: 495pt)
-    const instructorNombreConfig = isAlimentos
+    const instructorNombreConfig = usarConfigAlimentos
       ? config?.alimentos?.instructorNombre
-      : config?.otros?.instructorNombre;
+      : usarConfigSustancias
+        ? config?.sustancias?.instructorNombre
+        : config?.otros?.instructorNombre;
     const instructorNombreX =
       instructorNombreConfig?.x !== undefined ? instructorNombreConfig.x : 160;
     const instructorNombreY =
@@ -702,23 +816,59 @@ export class PdfGeneratorService {
     );
 
     // Rol del instructor (Y: 513pt)
-    doc.setFontSize(9.5);
-    doc.setTextColor(41, 37, 97);
-    doc.setFont('helvetica', 'normal');
+    const instructorRolConfig = usarConfigAlimentos
+      ? config?.alimentos?.instructorRol
+      : usarConfigSustancias
+        ? config?.sustancias?.instructorRol
+        : config?.otros?.instructorRol;
+    const instructorRolX =
+      instructorRolConfig?.x !== undefined
+        ? instructorRolConfig.x
+        : usarConfigAlimentos
+          ? 217
+          : usarConfigSustancias
+            ? 160
+            : 217;
+    const instructorRolY =
+      instructorRolConfig?.y !== undefined ? instructorRolConfig.y : 513;
+    const instructorRolFontSize =
+      instructorRolConfig?.fontSize !== undefined
+        ? instructorRolConfig.fontSize
+        : 9.5;
+    const instructorRolColor = instructorRolConfig?.color ?? [41, 37, 97];
+    const instructorRolBold =
+      instructorRolConfig?.bold !== undefined
+        ? instructorRolConfig.bold
+        : false;
+    const instructorRolLineSpacing =
+      instructorRolConfig?.lineSpacing !== undefined
+        ? instructorRolConfig.lineSpacing
+        : 12;
+
+    doc.setFontSize(instructorRolFontSize);
+    doc.setTextColor(...instructorRolColor);
+    doc.setFont('helvetica', instructorRolBold ? 'bold' : 'normal');
     const roleLines = instructorSig.role.split('\n');
     roleLines.forEach((line, index) => {
-      doc.text(line, 217, 513 + index * 12, { align: 'center' });
+      const yPos = instructorRolY + index * instructorRolLineSpacing;
+      if (instructorRolX === pageWidth / 2) {
+        doc.text(line, instructorRolX, yPos, { align: 'center' });
+      } else {
+        doc.text(line, instructorRolX, yPos);
+      }
     });
 
     // Representante Legal (derecha, X: 571pt)
     const repSig = this.getRepresentativeDetails(isAlimentos);
 
     // Imagen de firma del representante (Y: 455pt)
-    const representanteFirmaConfig = isAlimentos
+    const representanteFirmaConfig = usarConfigAlimentos
       ? config?.alimentos?.representanteFirma
-      : config?.otros?.representanteFirma;
-    const defaultRepSigX = 490;
-    const defaultRepSigY = 505;
+      : usarConfigSustancias
+        ? config?.sustancias?.representanteFirma
+        : config?.otros?.representanteFirma;
+    const defaultRepSigX = 498.5;
+    const defaultRepSigY = usarConfigAlimentos ? 455 : usarConfigSustancias ? 440 : 455;
     const defaultRepSigWidth = 145;
     const defaultRepSigHeight = 61;
 
@@ -756,9 +906,11 @@ export class PdfGeneratorService {
     }
 
     // Nombre del representante (Y: 495pt)
-    const representanteNombreConfig = isAlimentos
+    const representanteNombreConfig = usarConfigAlimentos
       ? config?.alimentos?.representanteNombre
-      : config?.otros?.representanteNombre;
+      : usarConfigSustancias
+        ? config?.sustancias?.representanteNombre
+        : config?.otros?.representanteNombre;
     const representanteNombreX =
       representanteNombreConfig?.x !== undefined
         ? representanteNombreConfig.x
@@ -791,10 +943,45 @@ export class PdfGeneratorService {
     );
 
     // Rol del representante (Y: 513pt)
-    doc.setFontSize(9.5);
-    doc.setTextColor(41, 37, 97);
-    doc.setFont('helvetica', 'normal');
-    doc.text('Representante Legal', 571, 513, { align: 'center' });
+    const representanteRolConfig = usarConfigAlimentos
+      ? config?.alimentos?.representanteRol
+      : usarConfigSustancias
+        ? config?.sustancias?.representanteRol
+        : config?.otros?.representanteRol;
+    const representanteRolX =
+      representanteRolConfig?.x !== undefined
+        ? representanteRolConfig.x
+        : usarConfigAlimentos
+          ? 571
+          : usarConfigSustancias
+            ? 520
+            : 571;
+    const representanteRolY =
+      representanteRolConfig?.y !== undefined
+        ? representanteRolConfig.y
+        : 513;
+    const representanteRolFontSize =
+      representanteRolConfig?.fontSize !== undefined
+        ? representanteRolConfig.fontSize
+        : 9.5;
+    const representanteRolColor =
+      representanteRolConfig?.color ?? [41, 37, 97];
+    const representanteRolBold =
+      representanteRolConfig?.bold !== undefined
+        ? representanteRolConfig.bold
+        : false;
+
+    doc.setFontSize(representanteRolFontSize);
+    doc.setTextColor(...representanteRolColor);
+    doc.setFont('helvetica', representanteRolBold ? 'bold' : 'normal');
+    const representanteRolText = 'Representante Legal';
+    if (representanteRolX === pageWidth / 2) {
+      doc.text(representanteRolText, representanteRolX, representanteRolY, {
+        align: 'center',
+      });
+    } else {
+      doc.text(representanteRolText, representanteRolX, representanteRolY);
+    }
 
     // 7. Código QR y botón de validación (X: ~493.8pt, Y: ~377.6pt borde superior)
     if (certificado.hashVerificacion) {
@@ -803,12 +990,37 @@ export class PdfGeneratorService {
         const qrImage = await this.generateQRCodeImage(urlVerificacion);
 
         if (qrImage) {
-          const qrConfig = isAlimentos ? config?.alimentos?.qr : config?.otros?.qr;
+          const qrConfig = usarConfigAlimentos
+            ? config?.alimentos?.qr
+            : usarConfigSustancias
+              ? config?.sustancias?.qr
+              : config?.otros?.qr;
           const qrSize = qrConfig?.size !== undefined ? qrConfig.size : 70;
-          const qrX = qrConfig?.x !== undefined ? qrConfig.x : (isAlimentos ? 688 : 493.8);
-          const qrY = qrConfig?.y !== undefined ? qrConfig.y : (isAlimentos ? 448.5 : 377.6);
+          const qrX =
+            qrConfig?.x !== undefined
+              ? qrConfig.x
+              : usarConfigAlimentos || usarConfigSustancias
+                ? 688
+                : 493.8;
+          const qrY =
+            qrConfig?.y !== undefined
+              ? qrConfig.y
+              : usarConfigAlimentos || usarConfigSustancias
+                ? 448.5
+                : 377.6;
 
-          console.log('[PDF] QR - X:', qrX, 'Y:', qrY, 'size:', qrSize, 'isAlimentos:', isAlimentos);
+          console.log(
+            '[PDF] QR - X:',
+            qrX,
+            'Y:',
+            qrY,
+            'size:',
+            qrSize,
+            'usarConfigAlimentos:',
+            usarConfigAlimentos,
+            'usarConfigSustancias:',
+            usarConfigSustancias,
+          );
 
           doc.addImage(qrImage, 'PNG', qrX, qrY, qrSize, qrSize);
         }
@@ -851,7 +1063,11 @@ export class PdfGeneratorService {
     // doc.text(buttonText, buttonCenterX, buttonY + buttonHeight / 2 + 1, { align: 'center' });
 
     // 8. Texto del pie de página (Y: ~576pt)
-    const footerConfig = isAlimentos ? config?.alimentos?.footer : config?.otros?.footer;
+    const footerConfig = usarConfigAlimentos
+      ? config?.alimentos?.footer
+      : usarConfigSustancias
+        ? config?.sustancias?.footer
+        : config?.otros?.footer;
     const footerX = footerConfig?.x !== undefined ? footerConfig.x : pageWidth / 2;
     const footerY = footerConfig?.y !== undefined ? footerConfig.y : 590;
     const footerFontSize = footerConfig?.fontSize !== undefined ? footerConfig.fontSize : 7;
