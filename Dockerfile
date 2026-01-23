@@ -33,13 +33,16 @@ ENV NODE_ENV=production
 # Copiar package.json y yarn.lock
 COPY package.json yarn.lock ./
 
+# Instalar dependencias de fuentes para sharp/librsvg
+RUN apk add --no-cache fontconfig ttf-dejavu
+
 # Instalar solo dependencias de producción
 RUN yarn install --production --frozen-lockfile && \
   yarn cache clean
 
-# Copiar fuentes al directorio del sistema ANTES de cambiar permisos
-COPY public/assets/fonts /usr/share/fonts/montserrat
-RUN fc-cache -f
+# Copiar fuentes al directorio del sistema y registrar nombres standar
+COPY public/assets/fonts/*.ttf /usr/share/fonts/
+RUN fc-cache -f -v && fc-list | grep Montserrat
 
 # Copiar el código construido desde la etapa de builder
 COPY --from=builder /app/dist ./dist

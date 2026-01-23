@@ -198,16 +198,18 @@ export class PdfGeneratorService {
     }
 
     // Ajuste específico para Cesaroto en la posición de la hora
-    let durationXShift = 47;
-    let durationYOffset = -3.5;
+    let durationXShift = 50;
+    let durationYOffset = -4.5;
     if (isCesaroto) {
-        durationXShift = 40; // Se mantiene en 40
-        durationYOffset = -5.5; // Subido 3px (era -3.5)
+        durationXShift = 43;
+        durationYOffset = -5.5;
     } else if (isAlimentos) {
-        durationXShift = 47; // Ajustar aquí para Alimentos
-        durationYOffset = -2.5; // Ajustar aquí para Alimentos
+        durationXShift = 51;
+        durationYOffset = -2.5;
     }
 
+    // Fix: Centrado relativo permitiendo ajuste manual vía durationXShift
+    // Si quieres mover a la DERECHA, aumenta durationXShift. Si quieres a la IZQUIERDA, redúcelo.
     doc.text(duration, durationXShift, doc.y + durationYOffset, {
       width: docWidth,
       align: 'center',
@@ -226,29 +228,29 @@ export class PdfGeneratorService {
     doc.fontSize(12.5).font('Montserrat');
     
     // Ajustes específicos para Cesaroto en las fechas
-    let emissionXOffset = -67;
+    let emissionXOffset = -74;
     let emissionYOffset = -14.5;
-    let expiryXOffset = 173;
+    let expiryXOffset = 169;
     let expiryYOffset = -16;
 
     if (isCesaroto) {
-        emissionXOffset = -74; // Movido 6px a la derecha (era -80)
-        emissionYOffset = -14.5; // Subido 3px (era -14.5)
-        expiryXOffset = 169;   // Movido 10px a la izquierda (era 186)
-        expiryYOffset = -16;   // Subido 3px (era -16)
+        emissionXOffset = -74;
+        emissionYOffset = -14.5;
+        expiryXOffset = 169;
+        expiryYOffset = -16;
     } else if (isAlimentos) {
-        emissionXOffset = -67; // Valor para Alimentos
+        emissionXOffset = -67;
         emissionYOffset = -15.5; 
         expiryXOffset = 173;   
         expiryYOffset = -15;   
     }
 
-    // Emission
+    // Fix: Usamos los offsets como punto de inicio (X). 
+    // Positivo -> Mueve a la derecha. Negativo -> Mueve a la izquierda.
     doc.text(`${fechaEmision}`, emissionXOffset, doc.y + emissionYOffset, { width: docWidth, align: 'center' });
     
     if (fechaVencimiento) {
-        // Expiration
-        doc.text(`${fechaVencimiento}.`, expiryXOffset, doc.y + expiryYOffset, { width: docWidth, align: 'center' });
+        doc.text(`${fechaVencimiento}`, expiryXOffset, doc.y + expiryYOffset, { width: docWidth, align: 'center' });
     }
 
  doc.x = 0;
