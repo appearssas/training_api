@@ -480,21 +480,19 @@ export class PdfGeneratorService {
 
   private async addCertificateBackground(doc: any, capacitacion: any): Promise<void> {
     try {
-        let backgroundName = 'fondoGeneral.svg'; // Default value (Por defecto)
+        let backgroundName = 'fondoGeneral.svg'; 
 
         if (capacitacion?.titulo) {
             const titulo = capacitacion.titulo.toLowerCase();
 
             // Logic: Alimentos -> Fondo Alimentos
-            // "debe incluir manipulación y alimentos o primeros auxilios"
             if (
                 (titulo.includes('manipulación') && titulo.includes('alimentos')) ||
                 (titulo.includes('primeros') && titulo.includes('auxilios'))
             ) {
-                backgroundName = 'fondoAlimentos.png';
+                backgroundName = 'fondoAlimentos.svg';
             }
             // Logic: Sustancias / Mercancías Peligrosas -> Fondo Sustancias
-            // "debe incluir transporte, mercancias y peligrosas"
             else if (
                 (titulo.includes('curso') && (titulo.includes('basico') || titulo.includes('básico')) && titulo.includes('transporte') &&
                 (titulo.includes('mercancias') || titulo.includes('mercancías')) &&
@@ -502,18 +500,31 @@ export class PdfGeneratorService {
                 (titulo.includes('mercancias') || titulo.includes('mercancías')) &&
                 titulo.includes('peligrosas'))
             ) {
-                 backgroundName = 'fondoSustanciasP.svg';
+                 backgroundName = 'fondoSustanciasP.svg'; 
             }
-            // Else -> Default is already set to fondoGeneral.svg
         }
         
         const backgroundPath = join(PUBLIC_ASSETS_PATH, backgroundName);
 
       if (existsSync(backgroundPath)) {
-        // REVERT TO RASTER (High-DPI) due to crash with vector background
-        // Render raster at 300 DPI for best print quality
-        const svgBuffer = readFileSync(backgroundPath);
-        // Render at 300 DPI (approx 4x standard 72 DPI) for crisp quality
+        let svgBuffer = readFileSync(backgroundPath);
+
+        // SOLUTION: Professional Font Patching for Linux/Docker compatibility
+        // Windows/Illustrator exports fonts as "MontserratRoman-Light/Bold"
+        // Linux fontconfig needs the family name "Montserrat" to match correctly
+        if (backgroundName.endsWith('.svg')) {
+            let svgContent = svgBuffer.toString();
+            svgContent = svgContent
+                .replace(/MontserratRoman-Light/g, 'Montserrat')
+                .replace(/MontserratRoman-Bold/g, 'Montserrat')
+                .replace(/MontserratRoman-ExtraBold/g, 'Montserrat')
+                .replace(/MontserratRoman-Medium/g, 'Montserrat')
+                .replace(/MontserratRoman-Regular/g, 'Montserrat');
+            
+            svgBuffer = Buffer.from(svgContent);
+        }
+
+        // Render at 300 DPI for high print quality
         const pngBuffer = await sharp(svgBuffer, { density: 300 }).png().toBuffer();
         doc.image(pngBuffer, 0, 0, { width: 792, height: 612 });
       } else {
