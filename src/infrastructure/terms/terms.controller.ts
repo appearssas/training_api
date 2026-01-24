@@ -38,7 +38,7 @@ import { VerificarAceptacionUseCase } from '@/application/aceptaciones/use-cases
 import { ObtenerDocumentosActivosUseCase } from '@/application/aceptaciones/use-cases/obtener-documentos-activos.use-case';
 import { AceptarTerminosDto } from '@/application/aceptaciones/dto/aceptar-terminos.dto';
 import { AceptacionResponseDto } from '@/application/aceptaciones/dto/aceptacion-response.dto';
-import { DocumentoLegalResponseDto } from '@/application/aceptaciones/dto/documento-legal-response.dto';
+import { DocumentoLegalActivoResponseDto } from '@/application/aceptaciones/dto/documento-legal-response.dto';
 
 @ApiTags('Términos y Condiciones')
 @Controller('terms')
@@ -72,13 +72,13 @@ export class TermsController {
   @ApiResponse({
     status: 200,
     description: 'Lista de documentos legales activos',
-    type: [DocumentoLegalResponseDto],
+    type: [DocumentoLegalActivoResponseDto],
   })
   @ApiResponse({
     status: 401,
     description: 'No autorizado',
   })
-  async getActiveDocuments(): Promise<DocumentoLegalResponseDto[]> {
+  async getActiveDocuments(): Promise<DocumentoLegalActivoResponseDto[]> {
     return await this.obtenerDocumentosActivosUseCase.execute();
   }
 
