@@ -6,7 +6,11 @@ import { QrGeneratorService } from './qr-generator.service';
 import { jsPDF } from 'jspdf';
 
 // Types and Interfaces
-import { PdfConfig } from '../types/pdf-config.interface';
+import {
+  PdfConfig,
+  CertificateData,
+  CertificateTypeFlags,
+} from '../types/pdf-config.interface';
 
 // Constants
 import { PDF_CONFIG } from '../constants/pdf.constants';
@@ -78,7 +82,7 @@ export class PdfGeneratorService {
       certificateTypes.usarConfigAlimentos ||
       certificateTypes.usarConfigSustancias
     ) {
-      await this.renderSimplifiedCertificate(
+      this.renderSimplifiedCertificate(
         doc,
         pageWidth,
         certificateData,
@@ -86,7 +90,7 @@ export class PdfGeneratorService {
         certificateTypes,
       );
     } else {
-      await this.renderStandardCertificate(
+      this.renderStandardCertificate(
         doc,
         pageWidth,
         certificateData,
@@ -96,13 +100,25 @@ export class PdfGeneratorService {
     }
 
     // Renderizar duración y fechas
-    this.renderDurationAndDates(doc, pageWidth, certificateData, config, certificateTypes);
+    this.renderDurationAndDates(
+      doc,
+      pageWidth,
+      certificateData,
+      config,
+      certificateTypes,
+    );
 
     // Renderizar firmas
     await renderSignatures(doc, pageWidth, config, certificateTypes);
 
     // Renderizar QR
-    await renderQRCode(doc, certificado, config, certificateTypes, this.qrGeneratorService);
+    await renderQRCode(
+      doc,
+      certificado,
+      config,
+      certificateTypes,
+      this.qrGeneratorService,
+    );
 
     // Renderizar pie de página
     renderFooter(doc, pageWidth, config, certificateTypes);
@@ -150,11 +166,7 @@ export class PdfGeneratorService {
     try {
       const backgroundPath = getCertificateBackground(capacitacion);
       if (existsSync(backgroundPath)) {
-        const bgImage = await svgToImage(
-          backgroundPath,
-          pageWidth,
-          pageHeight,
-        );
+        const bgImage = await svgToImage(backgroundPath, pageWidth, pageHeight);
         doc.addImage(
           bgImage,
           'PNG',
@@ -177,25 +189,32 @@ export class PdfGeneratorService {
     estudiante: any,
     capacitacion: any,
     certificado: Certificado,
-  ) {
-    const nombreCompleto =
+  ): CertificateData {
+    const nombreCompleto: string =
       estudiante?.nombres && estudiante?.apellidos
         ? `${estudiante.nombres} ${estudiante.apellidos}`.toUpperCase()
         : 'ESTUDIANTE';
-    const documento = estudiante?.numeroDocumento || 'N/A';
-    const cursoNombre = (
+    const documento: string = estudiante?.numeroDocumento || 'N/A';
+    const cursoNombre: string = (
       capacitacion?.titulo || 'CURSO SIN NOMBRE'
     ).toUpperCase();
 
-    const { fechaEmision, fechaVencimiento } = formatCertificateDates(
-      certificado.fechaEmision,
-      certificado.fechaVencimiento,
-    );
+    const {
+      fechaEmision,
+      fechaVencimiento,
+    }: { fechaEmision: string; fechaVencimiento: string } =
+      formatCertificateDates(
+        certificado.fechaEmision,
+        certificado.fechaVencimiento,
+      );
 
     const certificateTypes = determineCertificateTypes(capacitacion);
-    const duration = getDuration(certificateTypes.isCesaroto, certificateTypes.isAlimentos);
+    const duration: string = getDuration(
+      certificateTypes.isCesaroto,
+      certificateTypes.isAlimentos,
+    );
 
-    return {
+    const result: CertificateData = {
       nombreCompleto,
       documento,
       cursoNombre,
@@ -203,15 +222,16 @@ export class PdfGeneratorService {
       fechaVencimiento,
       duration,
     };
+    return result;
   }
 
-  private async renderSimplifiedCertificate(
+  private renderSimplifiedCertificate(
     doc: jsPDF,
     pageWidth: number,
-    certificateData: any,
+    certificateData: CertificateData,
     config: PdfConfig | undefined,
-    certificateTypes: any,
-  ): Promise<void> {
+    certificateTypes: CertificateTypeFlags,
+  ): void {
     const configType = certificateTypes.usarConfigAlimentos
       ? config?.alimentos
       : certificateTypes.usarConfigSustancias
@@ -222,7 +242,7 @@ export class PdfGeneratorService {
     renderCourseText(
       doc,
       pageWidth,
-      certificateData.cursoNombre,
+      certificateData.cursoNombre as string,
       configType?.cursoNombre,
       true,
     );
@@ -231,7 +251,7 @@ export class PdfGeneratorService {
     renderStudentName(
       doc,
       pageWidth,
-      certificateData.nombreCompleto,
+      certificateData.nombreCompleto as string,
       configType?.nombreEstudiante,
     );
 
@@ -239,19 +259,19 @@ export class PdfGeneratorService {
     renderDocumentId(
       doc,
       pageWidth,
-      certificateData.documento,
+      certificateData.documento as string,
       configType?.documento,
       certificateTypes,
     );
   }
 
-  private async renderStandardCertificate(
+  private renderStandardCertificate(
     doc: jsPDF,
     pageWidth: number,
-    certificateData: any,
+    certificateData: CertificateData,
     config: PdfConfig | undefined,
-    certificateTypes: any,
-  ): Promise<void> {
+    certificateTypes: CertificateTypeFlags,
+  ): void {
     // Para certificados estándar, usar la configuración de "otros"
     const configType = config?.otros;
 
@@ -259,7 +279,7 @@ export class PdfGeneratorService {
     renderCourseText(
       doc,
       pageWidth,
-      certificateData.cursoNombre,
+      certificateData.cursoNombre as string,
       configType?.cursoNombre,
       false,
     );
@@ -268,7 +288,7 @@ export class PdfGeneratorService {
     renderStudentName(
       doc,
       pageWidth,
-      certificateData.nombreCompleto,
+      certificateData.nombreCompleto as string,
       configType?.nombreEstudiante,
     );
 
@@ -276,7 +296,7 @@ export class PdfGeneratorService {
     renderDocumentId(
       doc,
       pageWidth,
-      certificateData.documento,
+      certificateData.documento as string,
       configType?.documento,
       certificateTypes,
     );
@@ -285,16 +305,16 @@ export class PdfGeneratorService {
   private renderDurationAndDates(
     doc: jsPDF,
     pageWidth: number,
-    certificateData: any,
+    certificateData: CertificateData,
     config: PdfConfig | undefined,
-    certificateTypes: any,
+    certificateTypes: CertificateTypeFlags,
   ): void {
     renderDuracionYFechas(
       doc,
       pageWidth,
-      certificateData.duration,
-      certificateData.fechaEmision,
-      certificateData.fechaVencimiento,
+      certificateData.duration as string,
+      certificateData.fechaEmision as string,
+      certificateData.fechaVencimiento as string,
       config,
       certificateTypes,
     );

@@ -75,3 +75,12 @@ export interface CertificateTypeFlags {
   usarConfigAlimentos: boolean;
   usarConfigSustancias: boolean;
 }
+
+export interface CertificateData {
+  nombreCompleto: string;
+  documento: string;
+  cursoNombre: string;
+  fechaEmision: string;
+  fechaVencimiento: string;
+  duration: string;
+}

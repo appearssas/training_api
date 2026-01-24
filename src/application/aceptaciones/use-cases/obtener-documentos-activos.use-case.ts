@@ -3,7 +3,7 @@ import {
   Inject,
 } from '@nestjs/common';
 import { IAceptacionesRepository } from '@/domain/aceptaciones/ports/aceptaciones.repository.port';
-import { DocumentoLegalResponseDto } from '../dto/documento-legal-response.dto';
+import { DocumentoLegalActivoResponseDto } from '../dto/documento-legal-response.dto';
 
 @Injectable()
 export class ObtenerDocumentosActivosUseCase {
@@ -12,7 +12,7 @@ export class ObtenerDocumentosActivosUseCase {
     private readonly aceptacionesRepository: IAceptacionesRepository,
   ) {}
 
-  async execute(): Promise<DocumentoLegalResponseDto[]> {
+  async execute(): Promise<DocumentoLegalActivoResponseDto[]> {
     const documentos =
       await this.aceptacionesRepository.findDocumentosActivos();
 

@@ -1,20 +1,19 @@
 import { jsPDF } from 'jspdf';
-import { existsSync } from 'fs';
-import {
-  PdfConfig,
-  CertificateConfig,
-  ElementConfig,
-  ImageConfig,
-  CertificateTypeFlags,
-} from '../types/pdf-config.interface';
+import { PdfConfig, CertificateTypeFlags } from '../types/pdf-config.interface';
 import { DEFAULT_VALUES } from '../constants/pdf.constants';
-import { loadImageAsDataUrl, generateQRCodeImage } from './image.utils';
-import {
-  getInstructorDetails,
-  getRepresentativeDetails,
-  getAllianceCompany,
-} from './certificate.utils';
+import { generateQRCodeImage } from './image.utils';
+import { getAllianceCompany } from './certificate.utils';
 import { QrGeneratorService } from '../services/qr-generator.service';
+import {
+  getCertificateConfig,
+  getConditionalConfigValue,
+} from './config-helpers.utils';
+import {
+  renderCourseText,
+  renderStudentName,
+  renderDocumentId,
+} from './text-renderer.utils';
+import { renderSignatures } from './signature-renderer.utils';
 
 /**
  * Renderiza duración y fechas en el PDF
@@ -28,27 +27,23 @@ export function renderDuracionYFechas(
   config: PdfConfig | undefined,
   certificateTypes: CertificateTypeFlags,
 ): void {
-  const { usarConfigAlimentos, usarConfigSustancias } = certificateTypes;
+  const certificateConfig = getCertificateConfig(config, certificateTypes);
 
-  // Determinar qué configuración usar
-  const configType = usarConfigAlimentos
-    ? config?.alimentos
-    : usarConfigSustancias
-      ? config?.sustancias
-      : config?.otros;
-
-  // 4. Duración
-  const duracionConfig = configType?.duracion;
-  const duracionX =
-    duracionConfig?.x !== undefined
-      ? duracionConfig.x
-      : usarConfigAlimentos
-        ? 440
-        : usarConfigSustancias
-          ? 430
-          : pageWidth / 2;
-  const duracionY =
-    duracionConfig?.y !== undefined ? duracionConfig.y : 422;
+  // Configuración de duración
+  const duracionConfig = certificateConfig?.duracion;
+  const duracionX = getConditionalConfigValue(
+    config,
+    certificateTypes,
+    'duracion',
+    'x',
+    pageWidth / 2,
+    {
+      alimentos: 440,
+      sustancias: 430,
+      otros: pageWidth / 2,
+    },
+  );
+  const duracionY = duracionConfig?.y !== undefined ? duracionConfig.y : 422;
   const duracionFontSize =
     duracionConfig?.fontSize !== undefined ? duracionConfig.fontSize : 14;
   const duracionColor =
@@ -65,41 +60,59 @@ export function renderDuracionYFechas(
     doc.text(duration, duracionX, duracionY);
   }
 
-  // 5. Fechas
-  const fechaEmisionConfig = configType?.fechaEmision;
-  const fechaVencimientoConfig = configType?.fechaVencimiento;
-  const fechaEmisionX =
-    fechaEmisionConfig?.x !== undefined
-      ? fechaEmisionConfig.x
-      : usarConfigAlimentos
-        ? 310
-        : usarConfigSustancias
-          ? 240
-          : 310;
-  const fechaEmisionY =
-    fechaEmisionConfig?.y !== undefined
-      ? fechaEmisionConfig.y
-      : usarConfigAlimentos
-        ? 437
-        : usarConfigSustancias
-          ? 438
-          : 437;
-  const fechaVencimientoX =
-    fechaVencimientoConfig?.x !== undefined
-      ? fechaVencimientoConfig.x
-      : usarConfigAlimentos
-        ? 570
-        : usarConfigSustancias
-          ? 500
-          : 570;
-  const fechaVencimientoY =
-    fechaVencimientoConfig?.y !== undefined
-      ? fechaVencimientoConfig.y
-      : usarConfigAlimentos
-        ? 436
-        : usarConfigSustancias
-          ? 438
-          : 436;
+  // Configuración de fechas
+  const fechaEmisionConfig = certificateConfig?.fechaEmision;
+  const fechaVencimientoConfig = certificateConfig?.fechaVencimiento;
+
+  const fechaEmisionX = getConditionalConfigValue(
+    config,
+    certificateTypes,
+    'fechaEmision',
+    'x',
+    310,
+    {
+      alimentos: 310,
+      sustancias: 240,
+      otros: 310,
+    },
+  );
+  const fechaEmisionY = getConditionalConfigValue(
+    config,
+    certificateTypes,
+    'fechaEmision',
+    'y',
+    437,
+    {
+      alimentos: 437,
+      sustancias: 438,
+      otros: 437,
+    },
+  );
+  const fechaVencimientoX = getConditionalConfigValue(
+    config,
+    certificateTypes,
+    'fechaVencimiento',
+    'x',
+    570,
+    {
+      alimentos: 570,
+      sustancias: 500,
+      otros: 570,
+    },
+  );
+  const fechaVencimientoY = getConditionalConfigValue(
+    config,
+    certificateTypes,
+    'fechaVencimiento',
+    'y',
+    436,
+    {
+      alimentos: 436,
+      sustancias: 438,
+      otros: 436,
+    },
+  );
+
   const fechaFontSize =
     fechaEmisionConfig?.fontSize ?? fechaVencimientoConfig?.fontSize ?? 14;
   const fechaColor =
@@ -139,455 +152,22 @@ export function renderDuracionYFechas(
 /**
  * Renderiza el texto del curso en el PDF
  */
-export function renderCourseText(
-  doc: jsPDF,
-  pageWidth: number,
-  cursoNombre: string,
-  config: ElementConfig | undefined,
-  isSimplified: boolean = true,
-): void {
-  const cursoX =
-    config?.x !== undefined ? config.x : pageWidth / 2;
-  const cursoY = config?.y !== undefined ? config.y : 395;
-  const cursoFontSize =
-    config?.fontSize !== undefined
-      ? config.fontSize
-      : DEFAULT_VALUES.FONT_SIZES.LARGE;
-  const cursoColor = config?.color ?? 
-    (isSimplified ? DEFAULT_VALUES.COLORS.WHITE : DEFAULT_VALUES.COLORS.BLUE_DARK);
-  const cursoBold = config?.bold !== undefined ? config.bold : true;
-
-  doc.setFontSize(cursoFontSize);
-  doc.setTextColor(...cursoColor);
-  doc.setFont('helvetica', cursoBold ? 'bold' : 'normal');
-
-  if (cursoX === pageWidth / 2) {
-    doc.text(cursoNombre, cursoX, cursoY, { align: 'center' });
-  } else {
-    doc.text(cursoNombre, cursoX, cursoY);
-  }
-}
+export { renderCourseText };
 
 /**
  * Renderiza el nombre del estudiante en el PDF
  */
-export function renderStudentName(
-  doc: jsPDF,
-  pageWidth: number,
-  nombreCompleto: string,
-  config: ElementConfig | undefined,
-): void {
-  const nombreX =
-    config?.x !== undefined ? config.x : pageWidth / 2;
-  const nombreY = config?.y !== undefined ? config.y : 290;
-  const nombreFontSize =
-    config?.fontSize !== undefined
-      ? config.fontSize
-      : DEFAULT_VALUES.FONT_SIZES.LARGE;
-  const nombreColor = config?.color ?? DEFAULT_VALUES.COLORS.BLUE_DARK;
-  const nombreBold = config?.bold !== undefined ? config.bold : true;
-
-  doc.setFontSize(nombreFontSize);
-  doc.setTextColor(...nombreColor);
-  doc.setFont('helvetica', nombreBold ? 'bold' : 'normal');
-
-  if (nombreX === pageWidth / 2) {
-    doc.text(nombreCompleto, nombreX, nombreY, { align: 'center' });
-  } else {
-    doc.text(nombreCompleto, nombreX, nombreY);
-  }
-}
+export { renderStudentName };
 
 /**
  * Renderiza el documento de identidad en el PDF
  */
-export function renderDocumentId(
-  doc: jsPDF,
-  pageWidth: number,
-  documento: string,
-  config: ElementConfig | undefined,
-  certificateTypes: CertificateTypeFlags,
-): void {
-  const { usarConfigAlimentos, usarConfigSustancias } = certificateTypes;
-
-  const docX =
-    config?.x !== undefined
-      ? config.x
-      : usarConfigAlimentos
-        ? 405
-        : usarConfigSustancias
-          ? 370
-          : pageWidth / 2;
-  const docY =
-    config?.y !== undefined
-      ? config.y
-      : usarConfigAlimentos
-        ? 323
-        : usarConfigSustancias
-          ? 320
-          : 323;
-  const docFontSize =
-    config?.fontSize !== undefined
-      ? config.fontSize
-      : DEFAULT_VALUES.FONT_SIZES.LARGE;
-  const docColor = config?.color ?? DEFAULT_VALUES.COLORS.BLUE_DARK;
-  const docBold = config?.bold !== undefined ? config.bold : false;
-
-  doc.setFontSize(docFontSize);
-  doc.setTextColor(...docColor);
-  doc.setFont('helvetica', docBold ? 'bold' : 'normal');
-
-  const docText = `${documento}`;
-  if (docX === pageWidth / 2) {
-    doc.text(docText, docX, docY, { align: 'center' });
-  } else {
-    doc.text(docText, docX, docY);
-  }
-}
+export { renderDocumentId };
 
 /**
  * Renderiza las firmas en el PDF
  */
-export async function renderSignatures(
-  doc: jsPDF,
-  pageWidth: number,
-  config: PdfConfig | undefined,
-  certificateTypes: CertificateTypeFlags,
-): Promise<void> {
-  const { isAlimentos, usarConfigAlimentos, usarConfigSustancias } =
-    certificateTypes;
-
-  const instructorSig = getInstructorDetails(isAlimentos);
-
-  // Configuración de firma del instructor
-  const instructorFirmaConfig = usarConfigAlimentos
-    ? config?.alimentos?.instructorFirma
-    : usarConfigSustancias
-      ? config?.sustancias?.instructorFirma
-      : config?.otros?.instructorFirma;
-
-  await renderInstructorSignature(
-    doc,
-    pageWidth,
-    instructorSig,
-    instructorFirmaConfig,
-    certificateTypes,
-    config,
-  );
-
-  await renderRepresentativeSignature(
-    doc,
-    pageWidth,
-    certificateTypes,
-    config,
-  );
-}
-
-async function renderInstructorSignature(
-  doc: jsPDF,
-  pageWidth: number,
-  instructorSig: any,
-  firmaConfig: ImageConfig | undefined,
-  certificateTypes: CertificateTypeFlags,
-  config: PdfConfig | undefined,
-): Promise<void> {
-  const { isAlimentos, usarConfigAlimentos, usarConfigSustancias } =
-    certificateTypes;
-
-  const defaultSigWidth = usarConfigAlimentos
-    ? DEFAULT_VALUES.SIGNATURE_DIMENSIONS.ALIMENTOS.width
-    : DEFAULT_VALUES.SIGNATURE_DIMENSIONS.OTROS.width;
-  const defaultSigHeight = usarConfigAlimentos
-    ? DEFAULT_VALUES.SIGNATURE_DIMENSIONS.ALIMENTOS.height
-    : DEFAULT_VALUES.SIGNATURE_DIMENSIONS.OTROS.height;
-  const defaultSigX = usarConfigAlimentos ? 160 : 156;
-  const defaultSigY = DEFAULT_VALUES.POSITIONS.SIGNATURE_Y;
-
-  const instructorFirmaX =
-    firmaConfig?.x !== undefined ? firmaConfig.x : defaultSigX;
-  const instructorFirmaY =
-    firmaConfig?.y !== undefined ? firmaConfig.y : defaultSigY;
-  const instructorFirmaWidth =
-    firmaConfig?.width !== undefined ? firmaConfig.width : defaultSigWidth;
-  const instructorFirmaHeight =
-    firmaConfig?.height !== undefined ? firmaConfig.height : defaultSigHeight;
-
-  // Renderizar firma
-  if (existsSync(instructorSig.signatureImage)) {
-    try {
-      const instructorSigImg = await loadImageAsDataUrl(
-        instructorSig.signatureImage,
-      );
-      doc.addImage(
-        instructorSigImg,
-        'PNG',
-        instructorFirmaX,
-        instructorFirmaY,
-        instructorFirmaWidth,
-        instructorFirmaHeight,
-      );
-    } catch (error) {
-      console.warn('No se pudo cargar la firma del instructor:', error);
-    }
-  }
-
-  // Renderizar nombre del instructor
-  const instructorNombreConfig = usarConfigAlimentos
-    ? config?.alimentos?.instructorNombre
-    : usarConfigSustancias
-      ? config?.sustancias?.instructorNombre
-      : config?.otros?.instructorNombre;
-
-  renderInstructorName(doc, pageWidth, instructorSig, instructorNombreConfig);
-  renderInstructorRole(doc, pageWidth, instructorSig, certificateTypes, config);
-}
-
-function renderInstructorName(
-  doc: jsPDF,
-  pageWidth: number,
-  instructorSig: any,
-  config: ElementConfig | undefined,
-): void {
-  const instructorNombreX =
-    config?.x !== undefined ? config.x : 160;
-  const instructorNombreY =
-    config?.y !== undefined
-      ? config.y
-      : DEFAULT_VALUES.POSITIONS.NAME_Y;
-  const instructorNombreFontSize =
-    config?.fontSize !== undefined
-      ? config.fontSize
-      : DEFAULT_VALUES.FONT_SIZES.SMALL;
-  const instructorNombreColor =
-    config?.color ?? DEFAULT_VALUES.COLORS.BLUE_DARK;
-  const instructorNombreBold =
-    config?.bold !== undefined ? config.bold : true;
-
-  doc.setFontSize(instructorNombreFontSize);
-  doc.setTextColor(...instructorNombreColor);
-  doc.setFont('helvetica', instructorNombreBold ? 'bold' : 'normal');
-  doc.text(
-    instructorSig.name,
-    instructorNombreX,
-    instructorNombreY,
-    instructorNombreX === pageWidth / 2 ? { align: 'center' } : undefined,
-  );
-}
-
-function renderInstructorRole(
-  doc: jsPDF,
-  pageWidth: number,
-  instructorSig: any,
-  certificateTypes: CertificateTypeFlags,
-  config: PdfConfig | undefined,
-): void {
-  const { usarConfigAlimentos, usarConfigSustancias } = certificateTypes;
-
-  const instructorRolConfig = usarConfigAlimentos
-    ? config?.alimentos?.instructorRol
-    : usarConfigSustancias
-      ? config?.sustancias?.instructorRol
-      : config?.otros?.instructorRol;
-
-  const instructorRolX =
-    instructorRolConfig?.x !== undefined
-      ? instructorRolConfig.x
-      : usarConfigAlimentos
-        ? 217
-        : usarConfigSustancias
-          ? 160
-          : 217;
-  const instructorRolY =
-    instructorRolConfig?.y !== undefined
-      ? instructorRolConfig.y
-      : DEFAULT_VALUES.POSITIONS.ROLE_Y;
-  const instructorRolFontSize =
-    instructorRolConfig?.fontSize !== undefined
-      ? instructorRolConfig.fontSize
-      : DEFAULT_VALUES.FONT_SIZES.INSTRUCTOR_ROLE;
-  const instructorRolColor =
-    instructorRolConfig?.color ?? DEFAULT_VALUES.COLORS.BLUE_DARK;
-  const instructorRolBold =
-    instructorRolConfig?.bold !== undefined ? instructorRolConfig.bold : false;
-  const instructorRolLineSpacing =
-    instructorRolConfig?.lineSpacing !== undefined
-      ? instructorRolConfig.lineSpacing
-      : DEFAULT_VALUES.LINE_SPACING.INSTRUCTOR_ROLE;
-
-  doc.setFontSize(instructorRolFontSize);
-  doc.setTextColor(...instructorRolColor);
-  doc.setFont('helvetica', instructorRolBold ? 'bold' : 'normal');
-
-  const roleLines = instructorSig.role.split('\n');
-  roleLines.forEach((line: string, index: number) => {
-    const yPos = instructorRolY + index * instructorRolLineSpacing;
-    if (instructorRolX === pageWidth / 2) {
-      doc.text(line, instructorRolX, yPos, { align: 'center' });
-    } else {
-      doc.text(line, instructorRolX, yPos);
-    }
-  });
-}
-
-async function renderRepresentativeSignature(
-  doc: jsPDF,
-  pageWidth: number,
-  certificateTypes: CertificateTypeFlags,
-  config: PdfConfig | undefined,
-): Promise<void> {
-  const { isAlimentos, usarConfigAlimentos, usarConfigSustancias } =
-    certificateTypes;
-
-  const repSig = getRepresentativeDetails(isAlimentos);
-
-  const representanteFirmaConfig = usarConfigAlimentos
-    ? config?.alimentos?.representanteFirma
-    : usarConfigSustancias
-      ? config?.sustancias?.representanteFirma
-      : config?.otros?.representanteFirma;
-
-  const defaultRepSigX = 498.5;
-  const defaultRepSigY = usarConfigAlimentos
-    ? 455
-    : usarConfigSustancias
-      ? 440
-      : 455;
-  const defaultRepSigWidth = DEFAULT_VALUES.SIGNATURE_DIMENSIONS.ALIMENTOS.width;
-  const defaultRepSigHeight = DEFAULT_VALUES.SIGNATURE_DIMENSIONS.ALIMENTOS.height;
-
-  const representanteFirmaX =
-    representanteFirmaConfig?.x !== undefined
-      ? representanteFirmaConfig.x
-      : defaultRepSigX;
-  const representanteFirmaY =
-    representanteFirmaConfig?.y !== undefined
-      ? representanteFirmaConfig.y
-      : defaultRepSigY;
-  const representanteFirmaWidth =
-    representanteFirmaConfig?.width !== undefined
-      ? representanteFirmaConfig.width
-      : defaultRepSigWidth;
-  const representanteFirmaHeight =
-    representanteFirmaConfig?.height !== undefined
-      ? representanteFirmaConfig.height
-      : defaultRepSigHeight;
-
-  // Renderizar firma
-  if (existsSync(repSig.signatureImage)) {
-    try {
-      const repSigImg = await loadImageAsDataUrl(repSig.signatureImage);
-      doc.addImage(
-        repSigImg,
-        'PNG',
-        representanteFirmaX,
-        representanteFirmaY,
-        representanteFirmaWidth,
-        representanteFirmaHeight,
-      );
-    } catch (error) {
-      console.warn('No se pudo cargar la firma del representante:', error);
-    }
-  }
-
-  renderRepresentativeName(doc, pageWidth, repSig, certificateTypes, config);
-  renderRepresentativeRole(doc, pageWidth, certificateTypes, config);
-}
-
-function renderRepresentativeName(
-  doc: jsPDF,
-  pageWidth: number,
-  repSig: any,
-  certificateTypes: CertificateTypeFlags,
-  config: PdfConfig | undefined,
-): void {
-  const { usarConfigAlimentos, usarConfigSustancias } = certificateTypes;
-
-  const representanteNombreConfig = usarConfigAlimentos
-    ? config?.alimentos?.representanteNombre
-    : usarConfigSustancias
-      ? config?.sustancias?.representanteNombre
-      : config?.otros?.representanteNombre;
-
-  const representanteNombreX =
-    representanteNombreConfig?.x !== undefined
-      ? representanteNombreConfig.x
-      : 490;
-  const representanteNombreY =
-    representanteNombreConfig?.y !== undefined
-      ? representanteNombreConfig.y
-      : 506;
-  const representanteNombreFontSize =
-    representanteNombreConfig?.fontSize !== undefined
-      ? representanteNombreConfig.fontSize
-      : DEFAULT_VALUES.FONT_SIZES.REPRESENTATIVE_NAME;
-  const representanteNombreColor =
-    representanteNombreConfig?.color ?? DEFAULT_VALUES.COLORS.BLUE_DARK;
-  const representanteNombreBold =
-    representanteNombreConfig?.bold !== undefined
-      ? representanteNombreConfig.bold
-      : true;
-
-  doc.setFontSize(representanteNombreFontSize);
-  doc.setTextColor(...representanteNombreColor);
-  doc.setFont('helvetica', representanteNombreBold ? 'bold' : 'normal');
-  doc.text(
-    repSig.name,
-    representanteNombreX,
-    representanteNombreY,
-    representanteNombreX === pageWidth / 2 ? { align: 'center' } : undefined,
-  );
-}
-
-function renderRepresentativeRole(
-  doc: jsPDF,
-  pageWidth: number,
-  certificateTypes: CertificateTypeFlags,
-  config: PdfConfig | undefined,
-): void {
-  const { usarConfigAlimentos, usarConfigSustancias } = certificateTypes;
-
-  const representanteRolConfig = usarConfigAlimentos
-    ? config?.alimentos?.representanteRol
-    : usarConfigSustancias
-      ? config?.sustancias?.representanteRol
-      : config?.otros?.representanteRol;
-
-  const representanteRolX =
-    representanteRolConfig?.x !== undefined
-      ? representanteRolConfig.x
-      : usarConfigAlimentos
-        ? 571
-        : usarConfigSustancias
-          ? 520
-          : 571;
-  const representanteRolY =
-    representanteRolConfig?.y !== undefined
-      ? representanteRolConfig.y
-      : DEFAULT_VALUES.POSITIONS.ROLE_Y;
-  const representanteRolFontSize =
-    representanteRolConfig?.fontSize !== undefined
-      ? representanteRolConfig.fontSize
-      : DEFAULT_VALUES.FONT_SIZES.INSTRUCTOR_ROLE;
-  const representanteRolColor =
-    representanteRolConfig?.color ?? DEFAULT_VALUES.COLORS.BLUE_DARK;
-  const representanteRolBold =
-    representanteRolConfig?.bold !== undefined
-      ? representanteRolConfig.bold
-      : false;
-
-  doc.setFontSize(representanteRolFontSize);
-  doc.setTextColor(...representanteRolColor);
-  doc.setFont('helvetica', representanteRolBold ? 'bold' : 'normal');
-
-  const representanteRolText = 'Representante Legal';
-  if (representanteRolX === pageWidth / 2) {
-    doc.text(representanteRolText, representanteRolX, representanteRolY, {
-      align: 'center',
-    });
-  } else {
-    doc.text(representanteRolText, representanteRolX, representanteRolY);
-  }
-}
+export { renderSignatures };
 
 /**
  * Renderiza el código QR en el PDF
@@ -604,19 +184,20 @@ export async function renderQRCode(
   if (!certificado.hashVerificacion) return;
 
   try {
-    const urlVerificacion =
-      qrGeneratorService.generateVerificationUrlForQR(
-        certificado.hashVerificacion,
-      );
-    const qrImage = await generateQRCodeImage(urlVerificacion, qrGeneratorService);
+    const urlVerificacion = qrGeneratorService.generateVerificationUrlForQR(
+      certificado.hashVerificacion as string,
+    );
+    const qrImage = await generateQRCodeImage(
+      urlVerificacion,
+      qrGeneratorService,
+    );
 
     if (qrImage) {
-      const qrConfig = usarConfigAlimentos
-        ? config?.alimentos?.qr
-        : usarConfigSustancias
-          ? config?.sustancias?.qr
-          : config?.otros?.qr;
-      const qrSize = qrConfig?.size !== undefined ? qrConfig.size : DEFAULT_VALUES.QR.SIZE;
+      const certificateConfig = getCertificateConfig(config, certificateTypes);
+      const qrConfig = certificateConfig?.qr;
+
+      const qrSize =
+        qrConfig?.size !== undefined ? qrConfig.size : DEFAULT_VALUES.QR.SIZE;
       const qrX =
         qrConfig?.x !== undefined
           ? qrConfig.x
@@ -657,7 +238,7 @@ export async function renderQRCode(
         const qrSize = DEFAULT_VALUES.QR.SIZE;
         const qrX = 400;
         const qrY = 350;
-        doc.addImage(qrImageData, 'PNG', qrX, qrY, qrSize, qrSize);
+        doc.addImage(qrImageData as string, 'PNG', qrX, qrY, qrSize, qrSize);
       } catch (ex) {
         console.error('Error usando QR fallback:', ex);
       }
@@ -674,14 +255,10 @@ export function renderFooter(
   config: PdfConfig | undefined,
   certificateTypes: CertificateTypeFlags,
 ): void {
-  const { isAlimentos, isCesaroto, usarConfigAlimentos, usarConfigSustancias } =
-    certificateTypes;
+  const { isAlimentos, isCesaroto } = certificateTypes;
 
-  const footerConfig = usarConfigAlimentos
-    ? config?.alimentos?.footer
-    : usarConfigSustancias
-      ? config?.sustancias?.footer
-      : config?.otros?.footer;
+  const certificateConfig = getCertificateConfig(config, certificateTypes);
+  const footerConfig = certificateConfig?.footer;
 
   const footerX =
     footerConfig?.x !== undefined ? footerConfig.x : pageWidth / 2;
@@ -714,11 +291,7 @@ export function renderFooter(
   const footerLines = doc.splitTextToSize(footerText, pageWidth - 40);
 
   // Función helper para renderizar una línea con formato mixto
-  const renderMixedLine = (
-    line: string,
-    yPos: number,
-    isCentered: boolean,
-  ) => {
+  const renderMixedLine = (line: string, yPos: number, isCentered: boolean) => {
     // Escapar caracteres especiales de regex en allianceCompany
     const escapedCompany = allianceCompany.replace(
       /[.*+?^${}()|[\]\\]/g,

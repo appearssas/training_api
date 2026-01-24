@@ -145,7 +145,7 @@ export function determineCertificateTypes(
 export function formatCertificateDates(
   fechaEmision: Date | null,
   fechaVencimiento: Date | null,
-) {
+): { fechaEmision: string; fechaVencimiento: string } {
   const localeDateOptions: Intl.DateTimeFormatOptions = {
     year: 'numeric',
     month: 'long',

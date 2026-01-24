@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 
-export class DocumentoLegalResponseDto {
+export class DocumentoLegalActivoResponseDto {
   @ApiProperty({
     description: 'ID único del documento legal. Este ID debe ser usado al aceptar términos.',
     example: 1,

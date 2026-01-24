@@ -1,5 +1,5 @@
 import { join } from 'path';
-import { existsSync } from 'fs';
+import { existsSync, readdirSync } from 'fs';
 
 // Fix: Usar ruta dinámica basada en el directorio de trabajo actual (process.cwd())
 // Esto funciona tanto en Windows (Local) como en Linux (Docker/Render)
@@ -23,7 +23,6 @@ if (!existsSync(PUBLIC_ASSETS_PATH)) {
 }
 
 try {
-  const { readdirSync } = require('fs');
   const files = readdirSync(PUBLIC_ASSETS_PATH);
   console.log('Files in ASSETS directory:', files);
 } catch (error) {
@@ -77,7 +76,8 @@ export const DEFAULT_VALUES = {
   },
   POSITIONS: {
     FOOTER_Y: 590,
-    SIGNATURE_Y: 455,
+    // SIGNATURE_Y: 455,
+    SIGNATURE_Y: 447,
     NAME_Y: 505,
     ROLE_Y: 513,
   },
