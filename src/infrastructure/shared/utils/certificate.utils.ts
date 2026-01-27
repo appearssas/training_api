@@ -10,7 +10,7 @@ import {
  * Determina el fondo del certificado basado en el título
  */
 export function getCertificateBackground(capacitacion: any): string {
-  let backgroundName = 'fondoGeneral_2.svg'; // Default
+  let backgroundName = 'fondoGeneral.png'; // Default
 
   if (capacitacion?.titulo) {
     const titulo = capacitacion.titulo.toLowerCase();
@@ -21,7 +21,7 @@ export function getCertificateBackground(capacitacion: any): string {
       (titulo.includes('manipulacion') && titulo.includes('alimentos')) ||
       (titulo.includes('primeros') && titulo.includes('auxilios'))
     ) {
-      backgroundName = 'fondoAlimentos_2.svg';
+      backgroundName = 'fondoAlimentos.png';
     }
     // Logic: Sustancias / Mercancías Peligrosas -> Fondo Sustancias
     else if (
@@ -29,7 +29,7 @@ export function getCertificateBackground(capacitacion: any): string {
       (titulo.includes('mercancias') || titulo.includes('mercancías')) &&
       titulo.includes('peligrosas')
     ) {
-      backgroundName = 'fondoSustanciasP_2.svg';
+      backgroundName = 'fondoSustanciasP.png';
     }
   }
 
@@ -127,8 +127,7 @@ export function determineCertificateTypes(
       tituloLower.includes('peligrosas')) ||
     (tituloLower.includes('mercancías') &&
       tituloLower.includes('peligrosas')) ||
-    (tituloLower.includes('mercancias') &&
-      tituloLower.includes('peligrosas'));
+    (tituloLower.includes('mercancias') && tituloLower.includes('peligrosas'));
 
   return {
     isAlimentos,

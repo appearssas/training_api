@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { CertificadosController } from './certificados.controller';
 import { PublicCertificadosController } from './public-certificados.controller';
@@ -16,6 +16,7 @@ import { RegenerateCertificatesUseCase } from '@/application/certificados/use-ca
 import { PdfGeneratorService } from '../shared/services/pdf-generator.service';
 import { QrGeneratorService } from '../shared/services/qr-generator.service';
 import { StorageModule } from '../shared/storage/storage.module';
+import { CertificateFormatsModule } from '../certificate-formats/certificate-formats.module';
 
 /**
  * Módulo de Certificados
@@ -25,6 +26,7 @@ import { StorageModule } from '../shared/storage/storage.module';
   controllers: [CertificadosController, PublicCertificadosController],
   imports: [
     StorageModule,
+    forwardRef(() => CertificateFormatsModule),
     TypeOrmModule.forFeature([
       Certificado,
       Inscripcion,
@@ -32,6 +34,7 @@ import { StorageModule } from '../shared/storage/storage.module';
     ]),
   ],
   providers: [
+    CertificadosRepositoryAdapter,
     CreateCertificadoUseCase,
     FindAllCertificadosUseCase,
     FindOneCertificadoUseCase,

@@ -3,6 +3,7 @@ export { MaterialesModule } from '@/infrastructure/materiales/materiales.module'
 export { EvaluacionesModule } from '@/infrastructure/evaluaciones/evaluaciones.module';
 export { InscripcionesModule } from '@/infrastructure/inscripciones/inscripciones.module';
 export { CertificadosModule } from '@/infrastructure/certificados/certificados.module';
+export { CertificateFormatsModule } from '@/infrastructure/certificate-formats/certificate-formats.module';
 export { GlobalExceptionFilter } from '@/infrastructure/shared/filters/global-exception.filter';
 export { DbRetryInterceptor } from '@/infrastructure/shared/interceptors/db-retry.interceptor';
 export { AuthModule } from '@/infrastructure/auth/auth.module';

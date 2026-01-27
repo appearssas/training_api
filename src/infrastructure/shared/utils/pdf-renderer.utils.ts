@@ -196,6 +196,15 @@ export async function renderQRCode(
       const certificateConfig = getCertificateConfig(config, certificateTypes);
       const qrConfig = certificateConfig?.qr;
 
+      console.log('[PDF] QR Config Debug:', {
+        hasConfig: !!config,
+        hasCertificateConfig: !!certificateConfig,
+        hasQrConfig: !!qrConfig,
+        qrConfigValue: qrConfig,
+        usarConfigAlimentos,
+        usarConfigSustancias,
+      });
+
       const qrSize =
         qrConfig?.size !== undefined ? qrConfig.size : DEFAULT_VALUES.QR.SIZE;
       const qrX =
@@ -222,6 +231,12 @@ export async function renderQRCode(
         usarConfigAlimentos,
         'usarConfigSustancias:',
         usarConfigSustancias,
+        'qrConfig.x:',
+        qrConfig?.x,
+        'qrConfig.y:',
+        qrConfig?.y,
+        'qrConfig.size:',
+        qrConfig?.size,
       );
 
       doc.addImage(qrImage, 'PNG', qrX, qrY, qrSize, qrSize);

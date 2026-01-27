@@ -7,12 +7,7 @@ import {
   BadRequestException,
   Query,
 } from '@nestjs/common';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
-  ApiParam,
-} from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
 import { Response } from 'express';
 import { createReadStream } from 'fs';
 import * as fs from 'fs/promises';
@@ -41,16 +36,18 @@ export class PublicCertificadosController {
     private readonly pdfGenerator: PdfGeneratorService,
     @Inject('ICertificadosRepository')
     private readonly certificadosRepository: ICertificadosRepository,
-  ) { }
+  ) {}
 
   @Public()
   @Get('certificates/download/:hash')
   @ApiOperation({
     summary: 'Descargar certificado PDF (On-Demand)',
-    description: 'Genera el PDF en tiempo real y lo descarga sin guardar en disco.',
+    description:
+      'Genera el PDF en tiempo real y lo descarga sin guardar en disco.',
   })
   async downloadCertificate(@Param('hash') hash: string, @Res() res: Response) {
-    const certificate = await this.certificadosRepository.findByHashVerificacion(hash);
+    const certificate =
+      await this.certificadosRepository.findByHashVerificacion(hash);
 
     if (!certificate) {
       throw new NotFoundException('Certificado no encontrado');
@@ -58,6 +55,16 @@ export class PublicCertificadosController {
 
     // Validar si la inscripción/capacitacion está cargada
     // El repositorio ya debería traer todo con findByHashVerificacion (según vi en el adapter)
+    console.log('[Controller] Certificado encontrado:', {
+      id: certificate.id,
+      hash: certificate.hashVerificacion,
+      tieneInscripcion: !!certificate.inscripcion,
+      tieneCapacitacion: !!certificate.inscripcion?.capacitacion,
+      tieneEstudiante: !!certificate.inscripcion?.estudiante,
+      inscripcionId: certificate.inscripcion?.id,
+      capacitacionId: certificate.inscripcion?.capacitacion?.id,
+      estudianteId: certificate.inscripcion?.estudiante?.id,
+    });
 
     try {
       // Generar PDF en memoria (Buffer)
@@ -70,8 +77,8 @@ export class PublicCertificadosController {
         'Content-Length': buffer.length.toString(),
         // Headers para evitar caché y ver cambios en tiempo real
         'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0',
+        Pragma: 'no-cache',
+        Expires: '0',
         // Headers adicionales para desarrollo
         'X-Content-Type-Options': 'nosniff',
         'X-Frame-Options': 'SAMEORIGIN',
@@ -80,7 +87,11 @@ export class PublicCertificadosController {
       res.send(buffer);
     } catch (error) {
       console.error('Error generando PDF on-demand:', error);
-      throw new BadRequestException('Error al generar el documento PDF');
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : 'Error al generar el documento PDF';
+      throw new BadRequestException(errorMessage);
     }
   }
 
@@ -88,14 +99,16 @@ export class PublicCertificadosController {
   @Get('certificates/view/:hash')
   @ApiOperation({
     summary: 'Visualizar certificado PDF en navegador (On-Demand)',
-    description: 'Genera el PDF en tiempo real y lo muestra inline en el navegador para desarrollo. Acepta parámetros de configuración opcionales.',
+    description:
+      'Genera el PDF en tiempo real y lo muestra inline en el navegador para desarrollo. Acepta parámetros de configuración opcionales.',
   })
   async viewCertificate(
     @Param('hash') hash: string,
     @Res() res: Response,
     @Query('config') configJson?: string,
   ) {
-    const certificate = await this.certificadosRepository.findByHashVerificacion(hash);
+    const certificate =
+      await this.certificadosRepository.findByHashVerificacion(hash);
 
     if (!certificate) {
       throw new NotFoundException('Certificado no encontrado');
@@ -107,17 +120,25 @@ export class PublicCertificadosController {
       if (configJson) {
         try {
           config = JSON.parse(decodeURIComponent(configJson));
-          console.log('[PDF Editor] Config recibida:', JSON.stringify(config, null, 2));
+          console.log(
+            '[PDF Editor] Config recibida:',
+            JSON.stringify(config, null, 2),
+          );
         } catch (e) {
           console.warn('Error parsing config JSON:', e);
           console.warn('Config JSON recibido:', configJson);
         }
       } else {
-        console.log('[PDF Editor] No se recibió configuración, usando valores por defecto');
+        console.log(
+          '[PDF Editor] No se recibió configuración, usando valores por defecto',
+        );
       }
 
       // Generar PDF en memoria (Buffer) con configuración opcional
-      const buffer = await this.pdfGenerator.generateCertificate(certificate, config);
+      const buffer = await this.pdfGenerator.generateCertificate(
+        certificate,
+        config,
+      );
 
       // Headers para visualización inline (no descarga)
       res.set({
@@ -126,10 +147,10 @@ export class PublicCertificadosController {
         'Content-Length': buffer.length.toString(),
         // Headers agresivos para evitar caché y ver cambios en tiempo real
         'Cache-Control': 'no-cache, no-store, must-revalidate, private',
-        'Pragma': 'no-cache',
-        'Expires': '0',
+        Pragma: 'no-cache',
+        Expires: '0',
         'Last-Modified': new Date().toUTCString(),
-        'ETag': `"${Date.now()}"`,
+        ETag: `"${Date.now()}"`,
         // Permitir iframe para visualizador
         'X-Frame-Options': 'ALLOWALL',
       });
@@ -137,7 +158,11 @@ export class PublicCertificadosController {
       res.send(buffer);
     } catch (error) {
       console.error('Error generando PDF on-demand:', error);
-      throw new BadRequestException('Error al generar el documento PDF');
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : 'Error al generar el documento PDF';
+      throw new BadRequestException(errorMessage);
     }
   }
 
@@ -145,7 +170,8 @@ export class PublicCertificadosController {
   @Get('files/:filename')
   @ApiOperation({
     summary: 'Descargar archivo PDF público',
-    description: 'Permite la descarga pública de certificados si se conoce el nombre exacto del archivo.',
+    description:
+      'Permite la descarga pública de certificados si se conoce el nombre exacto del archivo.',
   })
   async servePdf(@Param('filename') filename: string, @Res() res: Response) {
     if (!filename.endsWith('.pdf')) {
@@ -194,7 +220,8 @@ export class PublicCertificadosController {
   @Get('verify/:token')
   @ApiOperation({
     summary: 'Verificar un certificado por token público',
-    description: 'RF-32, RF-33, RF-34: Verificación pública de certificados sin autenticación',
+    description:
+      'RF-32, RF-33, RF-34: Verificación pública de certificados sin autenticación',
   })
   @ApiParam({
     name: 'token',
@@ -211,7 +238,11 @@ export class PublicCertificadosController {
         isValid: { type: 'boolean', example: true },
         isExpired: { type: 'boolean', example: false },
         fechaEmision: { type: 'string', format: 'date-time' },
-        fechaVencimiento: { type: 'string', format: 'date-time', nullable: true },
+        fechaVencimiento: {
+          type: 'string',
+          format: 'date-time',
+          nullable: true,
+        },
         certificado: {
           type: 'object',
           properties: {
@@ -222,7 +253,10 @@ export class PublicCertificadosController {
       },
     },
   })
-  @ApiResponse({ status: 404, description: 'Certificado no encontrado o inválido' })
+  @ApiResponse({
+    status: 404,
+    description: 'Certificado no encontrado o inválido',
+  })
   async verify(@Param('token') token: string) {
     try {
       const result = await this.verifyCertificadoUseCase.execute(token);

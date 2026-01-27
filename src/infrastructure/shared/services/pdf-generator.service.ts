@@ -1,9 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject, forwardRef } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Certificado } from '@/entities/certificados/certificado.entity';
-import { existsSync } from 'fs';
+import { existsSync, readFileSync } from 'fs';
 import { QrGeneratorService } from './qr-generator.service';
 import { jsPDF } from 'jspdf';
+import { CertificateFormatsService } from '../../certificate-formats/certificate-formats.service';
 
 // Types and Interfaces
 import {
@@ -16,13 +17,15 @@ import {
 import { PDF_CONFIG } from '../constants/pdf.constants';
 
 // Utilities
-import { svgToImage } from '../utils/svg.utils';
+// @deprecated svgToImage - Ya no se usa porque los fondos ahora son PNG directamente
+// import { svgToImage } from '../utils/svg.utils';
 import {
   getCertificateBackground,
   determineCertificateTypes,
   formatCertificateDates,
   getDuration,
 } from '../utils/certificate.utils';
+import { getConfigWithDefaults } from '../utils/config-helpers.utils';
 import {
   renderDuracionYFechas,
   renderCourseText,
@@ -38,26 +41,85 @@ export class PdfGeneratorService {
   constructor(
     private readonly configService: ConfigService,
     private readonly qrGeneratorService: QrGeneratorService,
+    @Inject(forwardRef(() => CertificateFormatsService))
+    private readonly certificateFormatsService?: CertificateFormatsService,
   ) {}
 
   async generateCertificate(
     certificado: Certificado,
     config?: PdfConfig,
   ): Promise<Buffer> {
-    // Log de configuración
-    this.logConfiguration(config);
-
-    // Validación de datos
+    // Determinar tipos de certificado primero para aplicar valores por defecto correctos
     const inscripcion = certificado.inscripcion;
     if (!inscripcion || !inscripcion.capacitacion || !inscripcion.estudiante) {
-      throw new Error('Datos incompletos.');
+      // Validación básica antes de determinar tipos
+      if (!inscripcion) {
+        console.error(
+          '[PDF Generator] Error: certificado.inscripcion es null/undefined',
+        );
+        console.error('[PDF Generator] Certificado ID:', certificado.id);
+        throw new Error(
+          'Datos incompletos: falta la inscripción asociada al certificado.',
+        );
+      }
+      if (!inscripcion.capacitacion) {
+        console.error(
+          '[PDF Generator] Error: inscripcion.capacitacion es null/undefined',
+        );
+        console.error('[PDF Generator] Inscripción ID:', inscripcion.id);
+        throw new Error(
+          'Datos incompletos: falta la capacitación asociada a la inscripción.',
+        );
+      }
+      if (!inscripcion.estudiante) {
+        console.error(
+          '[PDF Generator] Error: inscripcion.estudiante es null/undefined',
+        );
+        console.error('[PDF Generator] Inscripción ID:', inscripcion.id);
+        throw new Error(
+          'Datos incompletos: falta el estudiante asociado a la inscripción.',
+        );
+      }
     }
 
-    const estudiante = inscripcion.estudiante as any;
     const capacitacion = inscripcion.capacitacion as any;
-
-    // Determinar tipos de certificado
     const certificateTypes = determineCertificateTypes(capacitacion);
+
+    // Si no se proporciona config, intentar obtenerla desde la base de datos
+    let configToUse = config;
+    if (!configToUse && this.certificateFormatsService) {
+      try {
+        const dbConfig = await this.certificateFormatsService.getActiveConfig();
+        if (dbConfig) {
+          console.log(
+            '[PDF Generator] Configuración obtenida desde BD:',
+            dbConfig,
+          );
+          configToUse = dbConfig;
+        } else {
+          console.log(
+            '[PDF Generator] No hay configuración activa en BD, usando valores por defecto',
+          );
+        }
+      } catch (error) {
+        console.warn(
+          '[PDF Generator] Error al obtener configuración desde BD:',
+          error,
+        );
+        console.log('[PDF Generator] Continuando con valores por defecto');
+      }
+    }
+
+    // Aplicar valores por defecto para la categoría "otros" si es necesario
+    const configWithDefaults = getConfigWithDefaults(
+      configToUse,
+      certificateTypes,
+    );
+
+    // Log de configuración
+    this.logConfiguration(configWithDefaults);
+
+    const estudiante = inscripcion.estudiante as any;
 
     // Crear el PDF
     const doc = this.createPdfDocument();
@@ -65,7 +127,7 @@ export class PdfGeneratorService {
     const pageHeight = doc.internal.pageSize.getHeight();
 
     // Cargar fondo
-    await this.loadBackground(doc, capacitacion, pageWidth, pageHeight);
+    this.loadBackground(doc, capacitacion, pageWidth, pageHeight);
 
     // Configurar fuente
     doc.setFont('helvetica');
@@ -86,7 +148,7 @@ export class PdfGeneratorService {
         doc,
         pageWidth,
         certificateData,
-        config,
+        configWithDefaults,
         certificateTypes,
       );
     } else {
@@ -94,7 +156,7 @@ export class PdfGeneratorService {
         doc,
         pageWidth,
         certificateData,
-        config,
+        configWithDefaults,
         certificateTypes,
       );
     }
@@ -104,24 +166,29 @@ export class PdfGeneratorService {
       doc,
       pageWidth,
       certificateData,
-      config,
+      configWithDefaults,
       certificateTypes,
     );
 
     // Renderizar firmas
-    await renderSignatures(doc, pageWidth, config, certificateTypes);
+    await renderSignatures(
+      doc,
+      pageWidth,
+      configWithDefaults,
+      certificateTypes,
+    );
 
     // Renderizar QR
     await renderQRCode(
       doc,
       certificado,
-      config,
+      configWithDefaults,
       certificateTypes,
       this.qrGeneratorService,
     );
 
     // Renderizar pie de página
-    renderFooter(doc, pageWidth, config, certificateTypes);
+    renderFooter(doc, pageWidth, configWithDefaults, certificateTypes);
 
     // Retornar PDF como Buffer
     return this.outputPdfAsBuffer(doc);
@@ -157,16 +224,23 @@ export class PdfGeneratorService {
     });
   }
 
-  private async loadBackground(
+  private loadBackground(
     doc: jsPDF,
     capacitacion: any,
     pageWidth: number,
     pageHeight: number,
-  ): Promise<void> {
+  ): void {
     try {
       const backgroundPath = getCertificateBackground(capacitacion);
+      console.log('[PDF Generator] Background path:', backgroundPath);
       if (existsSync(backgroundPath)) {
-        const bgImage = await svgToImage(backgroundPath, pageWidth, pageHeight);
+        // Cargar PNG directamente (los fondos ahora son PNG, no SVG)
+        const pngBuffer = readFileSync(backgroundPath);
+        const bgImage = `data:image/png;base64,${pngBuffer.toString('base64')}`;
+
+        // @deprecated - La conversión SVG a PNG ya no es necesaria
+        // const bgImage = await svgToImage(backgroundPath, pageWidth, pageHeight);
+
         doc.addImage(
           bgImage,
           'PNG',
@@ -242,7 +316,7 @@ export class PdfGeneratorService {
     renderCourseText(
       doc,
       pageWidth,
-      certificateData.cursoNombre as string,
+      certificateData.cursoNombre,
       configType?.cursoNombre,
       true,
     );
@@ -251,7 +325,7 @@ export class PdfGeneratorService {
     renderStudentName(
       doc,
       pageWidth,
-      certificateData.nombreCompleto as string,
+      certificateData.nombreCompleto,
       configType?.nombreEstudiante,
     );
 
@@ -259,7 +333,7 @@ export class PdfGeneratorService {
     renderDocumentId(
       doc,
       pageWidth,
-      certificateData.documento as string,
+      certificateData.documento,
       configType?.documento,
       certificateTypes,
     );
@@ -279,7 +353,7 @@ export class PdfGeneratorService {
     renderCourseText(
       doc,
       pageWidth,
-      certificateData.cursoNombre as string,
+      certificateData.cursoNombre,
       configType?.cursoNombre,
       false,
     );
@@ -288,7 +362,7 @@ export class PdfGeneratorService {
     renderStudentName(
       doc,
       pageWidth,
-      certificateData.nombreCompleto as string,
+      certificateData.nombreCompleto,
       configType?.nombreEstudiante,
     );
 
@@ -296,7 +370,7 @@ export class PdfGeneratorService {
     renderDocumentId(
       doc,
       pageWidth,
-      certificateData.documento as string,
+      certificateData.documento,
       configType?.documento,
       certificateTypes,
     );
@@ -312,9 +386,9 @@ export class PdfGeneratorService {
     renderDuracionYFechas(
       doc,
       pageWidth,
-      certificateData.duration as string,
-      certificateData.fechaEmision as string,
-      certificateData.fechaVencimiento as string,
+      certificateData.duration,
+      certificateData.fechaEmision,
+      certificateData.fechaVencimiento,
       config,
       certificateTypes,
     );
