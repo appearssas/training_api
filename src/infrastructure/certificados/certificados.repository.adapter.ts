@@ -329,6 +329,59 @@ export class CertificadosRepositoryAdapter implements ICertificadosRepository {
     }
   }
 
+  async searchForEditor(
+    search: string,
+    limit: number = 20,
+  ): Promise<
+    Array<{
+      id: number;
+      hashVerificacion: string;
+      numeroCertificado: string;
+      estudianteNombre: string;
+      cursoNombre: string;
+      fechaEmision: Date;
+    }>
+  > {
+    try {
+      const queryBuilder = this.certificadoRepository
+        .createQueryBuilder('certificado')
+        .leftJoinAndSelect('certificado.inscripcion', 'inscripcion')
+        .leftJoinAndSelect('inscripcion.estudiante', 'estudiante')
+        .leftJoinAndSelect('inscripcion.capacitacion', 'capacitacion')
+        .where('certificado.activo = :activo', { activo: true })
+        .andWhere('certificado.hashVerificacion IS NOT NULL');
+
+      if (search) {
+        queryBuilder.andWhere(
+          '(certificado.hashVerificacion LIKE :search OR certificado.numeroCertificado LIKE :search OR estudiante.nombres LIKE :search OR estudiante.apellidos LIKE :search OR capacitacion.titulo LIKE :search)',
+          { search: `%${search}%` },
+        );
+      }
+
+      queryBuilder
+        .orderBy('certificado.fechaEmision', 'DESC')
+        .take(limit);
+
+      const certificados = await queryBuilder.getMany();
+
+      return certificados.map((cert) => ({
+        id: cert.id,
+        hashVerificacion: cert.hashVerificacion || '',
+        numeroCertificado: cert.numeroCertificado,
+        estudianteNombre: cert.inscripcion?.estudiante
+          ? `${cert.inscripcion.estudiante.nombres || ''} ${cert.inscripcion.estudiante.apellidos || ''}`.trim()
+          : 'N/A',
+        cursoNombre: cert.inscripcion?.capacitacion?.titulo || 'N/A',
+        fechaEmision: cert.fechaEmision,
+      }));
+    } catch (error: unknown) {
+      console.error('❌ Error en searchForEditor:', error);
+      throw new InternalServerErrorException(
+        'Error al buscar certificados para el editor',
+      );
+    }
+  }
+
   async findByEstudiante(estudianteId: number, pagination?: PaginationDto): Promise<any> {
     try {
       const { page = 1, limit = 10, search, sortField, sortOrder } = pagination || {};
@@ -376,8 +429,10 @@ export class CertificadosRepositoryAdapter implements ICertificadosRepository {
 
   async findByHashVerificacion(hash: string): Promise<Certificado | null> {
     try {
-      // IMPORTANTE: Usar QueryBuilder para evitar problemas de caché de TypeORM
-      return await this.certificadoRepository
+      console.log('[Repository] Buscando certificado con hash:', hash);
+
+      // Estrategia 1: Intentar con QueryBuilder primero
+      let certificado = await this.certificadoRepository
         .createQueryBuilder('certificado')
         .leftJoinAndSelect('certificado.inscripcion', 'inscripcion')
         .leftJoinAndSelect('inscripcion.estudiante', 'estudiante')
@@ -386,8 +441,89 @@ export class CertificadosRepositoryAdapter implements ICertificadosRepository {
         .leftJoinAndSelect('capacitacion.tipoCapacitacion', 'tipoCapacitacion')
         .where('certificado.hashVerificacion = :hash', { hash })
         .getOne();
+
+      // Logging para diagnóstico
+      if (certificado) {
+        console.log('[Repository] Certificado encontrado (QueryBuilder):', {
+          id: certificado.id,
+          hash: certificado.hashVerificacion,
+          tieneInscripcion: !!certificado.inscripcion,
+          inscripcionId: certificado.inscripcion?.id,
+          tieneCapacitacion: !!certificado.inscripcion?.capacitacion,
+          capacitacionId: certificado.inscripcion?.capacitacion?.id,
+          tieneEstudiante: !!certificado.inscripcion?.estudiante,
+          estudianteId: certificado.inscripcion?.estudiante?.id,
+        });
+
+        // Si la inscripción existe pero no tiene capacitación cargada, intentar recargarla
+        if (
+          certificado.inscripcion &&
+          !certificado.inscripcion.capacitacion &&
+          certificado.inscripcion.id
+        ) {
+          console.log(
+            '[Repository] Recargando inscripción con relaciones...',
+            certificado.inscripcion.id,
+          );
+          const inscripcionCompleta = await this.inscripcionRepository
+            .createQueryBuilder('inscripcion')
+            .leftJoinAndSelect('inscripcion.capacitacion', 'capacitacion')
+            .leftJoinAndSelect('inscripcion.estudiante', 'estudiante')
+            .leftJoinAndSelect('capacitacion.instructor', 'instructor')
+            .leftJoinAndSelect('capacitacion.tipoCapacitacion', 'tipoCapacitacion')
+            .where('inscripcion.id = :id', { id: certificado.inscripcion.id })
+            .getOne();
+
+          if (inscripcionCompleta) {
+            certificado.inscripcion = inscripcionCompleta;
+            console.log('[Repository] Inscripción recargada:', {
+              tieneCapacitacion: !!inscripcionCompleta.capacitacion,
+              capacitacionId: inscripcionCompleta.capacitacion?.id,
+            });
+          } else {
+            console.error(
+              '[Repository] No se pudo recargar la inscripción con ID:',
+              certificado.inscripcion.id,
+            );
+          }
+        }
+
+        // Si aún no tiene capacitación después del recargo, intentar con findOne
+        if (
+          certificado.inscripcion &&
+          !certificado.inscripcion.capacitacion &&
+          certificado.inscripcion.id
+        ) {
+          console.log(
+            '[Repository] Intentando estrategia alternativa con findOne...',
+          );
+          const certificadoAlternativo = await this.certificadoRepository.findOne(
+            {
+              where: { hashVerificacion: hash },
+              relations: [
+                'inscripcion',
+                'inscripcion.estudiante',
+                'inscripcion.capacitacion',
+                'inscripcion.capacitacion.instructor',
+                'inscripcion.capacitacion.tipoCapacitacion',
+              ],
+            },
+          );
+
+          if (
+            certificadoAlternativo?.inscripcion?.capacitacion
+          ) {
+            console.log(
+              '[Repository] Estrategia alternativa exitosa, usando certificado alternativo',
+            );
+            certificado = certificadoAlternativo;
+          }
+        }
+      }
+
+      return certificado;
     } catch (error) {
-      console.error(error);
+      console.error('[Repository] Error en findByHashVerificacion:', error);
       throw new InternalServerErrorException('Error al verificar el certificado');
     }
   }

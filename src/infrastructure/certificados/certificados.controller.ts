@@ -6,6 +6,7 @@ import {
   Delete,
   Param,
   Body,
+  Query,
   ParseIntPipe,
   Res,
   UseGuards,
@@ -37,11 +38,11 @@ import { RegenerateCertificatesUseCase } from '@/application/certificados/use-ca
 import { PaginationDto } from '@/application/shared/dto/pagination.dto';
 import * as fs from 'fs/promises';
 import { createReadStream } from 'fs';
-import * as path from 'path';
 import { ConfigService } from '@nestjs/config';
 
 import { PdfGeneratorService } from '@/infrastructure/shared/services/pdf-generator.service';
 import { StorageService } from '@/infrastructure/shared/services/storage.service';
+import { CertificadosRepositoryAdapter } from './certificados.repository.adapter';
 
 /**
  * Controlador de Certificados
@@ -63,6 +64,7 @@ export class CertificadosController {
     private readonly pdfGeneratorService: PdfGeneratorService,
     private readonly regenerateCertificatesUseCase: RegenerateCertificatesUseCase,
     private readonly storageService: StorageService,
+    private readonly certificadosRepository: CertificadosRepositoryAdapter,
   ) {}
 
   @Post('generate')
@@ -141,7 +143,10 @@ export class CertificadosController {
       },
     },
   })
-  @ApiResponse({ status: 401, description: 'No autorizado. Usar Authorize con JWT.' })
+  @ApiResponse({
+    status: 401,
+    description: 'No autorizado. Usar Authorize con JWT.',
+  })
   findAll(@Body() pagination: PaginationDto, @GetUser() user: any) {
     const userContext = {
       rol: user?.rolPrincipal?.codigo ?? '',
@@ -189,6 +194,41 @@ export class CertificadosController {
       estudianteId,
       pagination,
     );
+  }
+
+  @Get('search/hashes')
+  @Roles('ADMIN', 'INSTRUCTOR')
+  @ApiOperation({
+    summary: 'Buscar certificados por hash o texto (para editor de PDF)',
+    description:
+      'Devuelve una lista simplificada de certificados con hash, nombre del estudiante, curso y fecha. Útil para el editor de PDF.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de certificados con información básica',
+    schema: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          id: { type: 'number' },
+          hashVerificacion: { type: 'string' },
+          numeroCertificado: { type: 'string' },
+          estudianteNombre: { type: 'string' },
+          cursoNombre: { type: 'string' },
+          fechaEmision: { type: 'string' },
+        },
+      },
+    },
+  })
+  async searchHashes(
+    @Query('search') search?: string,
+    @Query('limit') limit?: string,
+  ) {
+    const searchTerm = search || '';
+    const limitNum = limit ? parseInt(limit, 10) : 20;
+
+    return this.certificadosRepository.searchForEditor(searchTerm, limitNum);
   }
 
   @Get(':idOrFilename')
@@ -338,15 +378,23 @@ export class CertificadosController {
     if (certificado.urlCertificado) {
       // FIX PROD: Ignorar URLs locales antiguas que apuntan a storage (ej: http://localhost:3000/storage/...)
       // Estas URLs son inaccesibles en producción o desde el cliente si apuntan al contenedor.
-      const isLegacyLocalStorageUrl = certificado.urlCertificado.includes('/storage/certificates/');
+      const isLegacyLocalStorageUrl = certificado.urlCertificado.includes(
+        '/storage/certificates/',
+      );
 
       // Caso 1: URL absoluta (S3, CDN) pero NO local storage
-      if ((certificado.urlCertificado.startsWith('http://') || certificado.urlCertificado.startsWith('https://')) && !isLegacyLocalStorageUrl) {
+      if (
+        (certificado.urlCertificado.startsWith('http://') ||
+          certificado.urlCertificado.startsWith('https://')) &&
+        !isLegacyLocalStorageUrl
+      ) {
         return res.redirect(certificado.urlCertificado);
       }
-      
+
       // Caso 2: Ruta dinámica On-Demand (nueva arquitectura)
-      if (certificado.urlCertificado.includes('/public/certificates/download/')) {
+      if (
+        certificado.urlCertificado.includes('/public/certificates/download/')
+      ) {
         // Redirigir al controlador público que genera en memoria
         return res.redirect(certificado.urlCertificado);
       }
@@ -359,7 +407,7 @@ export class CertificadosController {
       );
       // Validar que intenta leer un archivo real y no una ruta de API malinterpretada
       if (!filePath.endsWith('.pdf')) {
-         throw { code: 'ENOENT' }; // forzar regeneración/redirección si no parece archivo
+        throw new Error('ENOENT'); // forzar regeneración/redirección si no parece archivo
       }
 
       const fileBuffer = await fs.readFile(filePath);

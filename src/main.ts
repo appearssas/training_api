@@ -7,7 +7,9 @@ import { join } from 'path';
 
 async function bootstrap() {
   console.log('--------------------------------------------------');
-  console.log('🚀 BACKEND DEPLOYMENT: 2026-01-03 17:25 (Image/QR Fixes Proven)');
+  console.log(
+    '🚀 BACKEND DEPLOYMENT: 2026-01-03 17:25 (Image/QR Fixes Proven)',
+  );
   console.log('--------------------------------------------------');
 
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
@@ -16,29 +18,36 @@ async function bootstrap() {
   app.useStaticAssets(join(process.cwd(), 'public'));
   // Servir archivos de materiales desde storage
   // En Render, el disco se monta en /app/data, configurar STORAGE_PATH=/app/data
-  const storagePath = process.env.STORAGE_PATH || join(process.cwd(), 'storage');
-  
+  const storagePath =
+    process.env.STORAGE_PATH || join(process.cwd(), 'storage');
+
   // Verificar tipo de almacenamiento al iniciar
   const bucketName = process.env.AWS_S3_BUCKET_NAME;
   const accessKeyId = process.env.AWS_ACCESS_KEY_ID;
   const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
   const useS3 = !!(bucketName && accessKeyId && secretAccessKey);
-  
+
   console.log('\n🔍 Verificación de almacenamiento:');
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  
+
   if (useS3) {
     const cloudFrontUrl = process.env.AWS_CLOUDFRONT_URL;
     const region = process.env.AWS_REGION || 'us-east-1';
     console.log('✅ Tipo: AWS S3');
     console.log(`   Bucket: ${bucketName}`);
     console.log(`   Región: ${region}`);
-    console.log(`   Access Key ID: ${accessKeyId ? '✅ Configurado' : '❌ No configurado'}`);
-    console.log(`   Secret Access Key: ${secretAccessKey ? '✅ Configurado' : '❌ No configurado'}`);
+    console.log(
+      `   Access Key ID: ${accessKeyId ? '✅ Configurado' : '❌ No configurado'}`,
+    );
+    console.log(
+      `   Secret Access Key: ${secretAccessKey ? '✅ Configurado' : '❌ No configurado'}`,
+    );
     if (cloudFrontUrl) {
       console.log(`   CloudFront: ${cloudFrontUrl}`);
     } else {
-      console.log(`   CloudFront: ❌ No configurado (usando URL directa de S3)`);
+      console.log(
+        `   CloudFront: ❌ No configurado (usando URL directa de S3)`,
+      );
     }
   } else {
     const isRender = !!process.env.RENDER || storagePath.startsWith('/app/');
@@ -46,17 +55,27 @@ async function bootstrap() {
     console.log(`✅ Tipo: ${storageType}`);
     console.log(`   Ruta: ${storagePath}`);
     if (isRender) {
-      console.log(`   Variable RENDER: ${process.env.RENDER ? '✅ Detectada' : '❌ No detectada'}`);
-      console.log(`   Ruta detectada como Render: ${storagePath.startsWith('/app/') ? '✅ Sí' : '❌ No'}`);
+      console.log(
+        `   Variable RENDER: ${process.env.RENDER ? '✅ Detectada' : '❌ No detectada'}`,
+      );
+      console.log(
+        `   Ruta detectada como Render: ${storagePath.startsWith('/app/') ? '✅ Sí' : '❌ No'}`,
+      );
     }
     console.log(`   Variables S3:`);
-    console.log(`     AWS_S3_BUCKET_NAME: ${bucketName ? '✅ Configurado' : '❌ No configurado'}`);
-    console.log(`     AWS_ACCESS_KEY_ID: ${accessKeyId ? '✅ Configurado' : '❌ No configurado'}`);
-    console.log(`     AWS_SECRET_ACCESS_KEY: ${secretAccessKey ? '✅ Configurado' : '❌ No configurado'}`);
+    console.log(
+      `     AWS_S3_BUCKET_NAME: ${bucketName ? '✅ Configurado' : '❌ No configurado'}`,
+    );
+    console.log(
+      `     AWS_ACCESS_KEY_ID: ${accessKeyId ? '✅ Configurado' : '❌ No configurado'}`,
+    );
+    console.log(
+      `     AWS_SECRET_ACCESS_KEY: ${secretAccessKey ? '✅ Configurado' : '❌ No configurado'}`,
+    );
   }
-  
+
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
-  
+
   app.useStaticAssets(storagePath, {
     prefix: '/storage',
   });
@@ -141,22 +160,27 @@ async function bootstrap() {
         scheme: 'bearer',
         bearerFormat: 'JWT',
         name: 'Authorization',
-        description: 'Pegar solo el token JWT (sin "Bearer "). Obtenerlo desde POST /auth/login.',
+        description:
+          'Pegar solo el token JWT (sin "Bearer "). Obtenerlo desde POST /auth/login.',
         in: 'header',
       },
       'JWT-auth',
     )
     .addTag('auth', 'Endpoints de autenticación y registro de usuarios')
-    .addTag('users', 'Endpoints de gestión de usuarios (listar, editar, eliminar) - Solo ADMIN')
+    .addTag(
+      'users',
+      'Endpoints de gestión de usuarios (listar, editar, eliminar) - Solo ADMIN',
+    )
     .addTag('people', 'Endpoints de gestión de personas y conductores externos')
-    .addTag('payments', 'Endpoints de gestión de pagos y habilitación de conductores')
-    .addTag('terms', 'Endpoints de aceptación de términos y políticas')
+    .addTag(
+      'payments',
+      'Endpoints de gestión de pagos y habilitación de conductores',
+    )
     .addTag('capacitaciones', 'Endpoints de gestión de capacitaciones')
     .addTag('inscripciones', 'Endpoints de gestión de inscripciones')
     .addTag('evaluaciones', 'Endpoints de gestión de evaluaciones')
     .addTag('materiales', 'Endpoints de gestión de materiales')
     .addTag('certificados', 'Endpoints de gestión de certificados')
-    .addTag('certificates', 'Endpoints de reportes y alertas de certificados')
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
