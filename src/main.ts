@@ -91,6 +91,7 @@ async function bootstrap() {
     'http://localhost:9000',
     'https://training-dev.onrender.com',
     'https://plataforma.formar360.com',
+    'https://www.formar360.com',
     process.env.FRONTEND_URL,
   ].filter((origin): origin is string => Boolean(origin)); // Filtra valores nulos/undefined y asegura tipo string
 
