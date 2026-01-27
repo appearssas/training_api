@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Like, Between, MoreThan, LessThan } from 'typeorm';
+import { Repository, Between, MoreThan, LessThan } from 'typeorm';
 import { Certificado } from '@/entities/certificados/certificado.entity';
 import {
   GetExpiringCertificatesDto,
@@ -13,7 +13,7 @@ export interface CertificadoConDias extends Certificado {
 }
 
 export interface ExpiringCertificatesReport {
-  certificados: Certificado Dias[];
+  certificados: CertificadoConDias[];
   total: number;
   pagina: number;
   totalPaginas: number;
@@ -55,8 +55,7 @@ export class GetExpiringCertificatesReportUseCase {
     let query = this.certificadoRepository
       .createQueryBuilder('certificado')
       .leftJoinAndSelect('certificado.inscripcion', 'inscripcion')
-      .leftJoinAndSelect('inscripcion.alumno', 'alumno')
-      .leftJoinAndSelect('alumno.persona', 'persona')
+      .leftJoinAndSelect('inscripcion.estudiante', 'estudiante')
       .leftJoinAndSelect('inscripcion.capacitacion', 'capacitacion')
       .where('certificado.activo = :activo', { activo: true })
       .andWhere('certificado.fechaVencimiento IS NOT NULL');
@@ -64,7 +63,7 @@ export class GetExpiringCertificatesReportUseCase {
     // Aplicar filtros de búsqueda
     if (busqueda) {
       query = query.andWhere(
-        '(persona.nombres LIKE :busqueda OR persona.apellidos LIKE :busqueda OR capacitacion.titulo LIKE :busqueda OR certificado.numeroCertificado LIKE :busqueda)',
+        '(estudiante.nombres LIKE :busqueda OR estudiante.apellidos LIKE :busqueda OR capacitacion.titulo LIKE :busqueda OR certificado.numeroCertificado LIKE :busqueda)',
         { busqueda: `%${busqueda}%` },
       );
     }

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
@@ -13,9 +13,16 @@ import {
   comparePassword,
   hashPassword,
 } from '@/infrastructure/shared/helpers/bcrypt.helper';
+import {
+  generarCodigoEstudiante,
+  extraerNumeroSecuencial,
+} from '@/infrastructure/shared/helpers/codigo-estudiante.helper';
+import { sanitizePersonaData } from '@/infrastructure/shared/helpers/persona-sanitizer.helper';
 
 @Injectable()
 export class AuthRepositoryAdapter implements IAuthRepository {
+  private readonly logger = new Logger(AuthRepositoryAdapter.name);
+
   constructor(
     @InjectRepository(Usuario)
     private readonly userRepository: Repository<Usuario>,
@@ -34,6 +41,10 @@ export class AuthRepositoryAdapter implements IAuthRepository {
   ) {}
 
   async findByUsername(usernameOrEmail: string): Promise<Usuario | null> {
+    this.logger.log(
+      `[findByUsername] Buscando usuario con username/email: ${usernameOrEmail}`,
+    );
+
     let whereCondition: any = {
       username: usernameOrEmail,
       // activo: true, // REMOVED: Allow inactive users to be found for proper error handling
@@ -46,6 +57,9 @@ export class AuthRepositoryAdapter implements IAuthRepository {
       });
 
       if (!persona) {
+        this.logger.log(
+          `[findByUsername] Persona no encontrada para email: ${usernameOrEmail}`,
+        );
         return null; // Persona not found logic remains
       }
 
@@ -78,6 +92,16 @@ export class AuthRepositoryAdapter implements IAuthRepository {
         },
       },
     });
+
+    if (user) {
+      this.logger.log(
+        `[findByUsername] Usuario encontrado: ID ${user.id}, activo: ${user.activo}, habilitado: ${user.habilitado}`,
+      );
+    } else {
+      this.logger.log(
+        `[findByUsername] Usuario no encontrado para: ${usernameOrEmail}`,
+      );
+    }
 
     // We return the user even if inactive/disabled so the UseCase can throw specific exceptions
     return user ?? null;
@@ -146,16 +170,20 @@ export class AuthRepositoryAdapter implements IAuthRepository {
     personaData: Partial<Persona>,
     usuarioData: { username: string; passwordHash: string },
     rolCodigo: string,
+    habilitado: boolean = false,
+    empresaId?: number,
   ): Promise<Usuario> {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
     try {
-      // 1. Crear persona
+      // 1. Crear persona (sanitizar datos personales)
+      const sanitizedPersonaData = sanitizePersonaData(personaData);
       const persona = this.personaRepository.create({
-        ...personaData,
+        ...sanitizedPersonaData,
         activo: true,
+        empresaId: empresaId, // Asociar a empresa si se proporciona
       });
       const savedPersona = await queryRunner.manager.save(persona);
 
@@ -170,11 +198,12 @@ export class AuthRepositoryAdapter implements IAuthRepository {
 
       // 3. Crear usuario
       const usuario = this.userRepository.create({
-        ...usuarioData,
+        username: savedPersona.numeroDocumento, // El username siempre es el número de documento
+        passwordHash: usuarioData.passwordHash,
         persona: savedPersona,
         rolPrincipal: rol,
         activo: true,
-        habilitado: false, // Por defecto inhabilitado hasta aprobación
+        habilitado: habilitado, // Usar el valor proporcionado o false por defecto
       });
       const savedUsuario = await queryRunner.manager.save(usuario);
 
@@ -212,11 +241,58 @@ export class AuthRepositoryAdapter implements IAuthRepository {
   }
 
   async updatePersona(id: number, data: Partial<Persona>): Promise<Persona> {
-    await this.personaRepository.update(id, data);
+    // Sanitizar datos personales antes de actualizar
+    const sanitizedData = sanitizePersonaData(data);
+    await this.personaRepository.update(id, sanitizedData);
     return await this.personaRepository.findOneOrFail({ where: { id } });
   }
 
   async saveUser(user: Usuario): Promise<Usuario> {
     return await this.userRepository.save(user);
+  }
+
+  async updatePassword(
+    usuarioId: number,
+    nuevaPassword: string,
+  ): Promise<void> {
+    const passwordHash = this.hashPassword(nuevaPassword);
+    await this.userRepository.update(usuarioId, {
+      passwordHash,
+      debeCambiarPassword: false, // Ya no debe cambiar la contraseña
+    });
+  }
+
+  /**
+   * Genera un código de estudiante único para el año actual
+   * Busca el último código del año y genera el siguiente número secuencial
+   */
+  private async generarCodigoEstudianteUnico(
+    alumnoRepository: Repository<Alumno>,
+  ): Promise<string> {
+    const año = new Date().getFullYear();
+    const prefijo = `EST${año}`;
+
+    // Buscar el último código de estudiante del año actual
+    const ultimoAlumno = await alumnoRepository
+      .createQueryBuilder('alumno')
+      .where('alumno.codigoEstudiante LIKE :prefijo', {
+        prefijo: `${prefijo}%`,
+      })
+      .andWhere('alumno.codigoEstudiante IS NOT NULL')
+      .orderBy('alumno.codigoEstudiante', 'DESC')
+      .getOne();
+
+    let siguienteNumero = 1;
+
+    if (ultimoAlumno && ultimoAlumno.codigoEstudiante) {
+      const numeroExtraido = extraerNumeroSecuencial(
+        ultimoAlumno.codigoEstudiante,
+      );
+      if (numeroExtraido !== null) {
+        siguienteNumero = numeroExtraido + 1;
+      }
+    }
+
+    return generarCodigoEstudiante(siguienteNumero - 1);
   }
 }

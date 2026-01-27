@@ -39,7 +39,7 @@ export class Pregunta {
     nullable: true,
     name: 'imagen_url',
   })
-  imagenUrl: string;
+  imagenUrl: string | null;
 
   @Column({ type: 'decimal', precision: 10, scale: 2, default: 1.0 })
   puntaje: number;

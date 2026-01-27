@@ -1,14 +1,36 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
-import { APP_FILTER } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
+import { JwtAuthGuard } from './infrastructure/shared/guards/jwt-auth.guard';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { CapacitacionesModule } from './infrastructure/capacitaciones/capacitaciones.module';
-import { GlobalExceptionFilter } from '@/infrastructure/shared/filters/global-exception.filter';
-import { AuthModule } from './infrastructure/auth/auth.module';
-import { DatabaseModule } from './infrastructure/shared/database/database.module';
-import { CertificatesModule } from './infrastructure/certificates/certificates.module';
+import {
+  AuthModule,
+  CapacitacionesModule,
+  PersonasModule,
+  InscripcionesModule,
+  DatabaseModule,
+  MaterialesModule,
+  StorageModule,
+  IntentosModule,
+  EvaluacionesModule,
+  CertificadosModule,
+  CertificateFormatsModule,
+  UsuariosModule,
+  TermsModule,
+  DashboardModule,
+  ReportsModule,
+  RolesModule,
+  EmpresasModule,
+  ResenasModule,
+  DocumentosLegalesModule,
+  ConfiguracionSesionModule,
+  GlobalExceptionFilter,
+  CertificatesModule,
+  PagosModule,
+  DbRetryInterceptor,
+} from '@/infrastructure';
 
 @Module({
   imports: [
@@ -18,16 +40,42 @@ import { CertificatesModule } from './infrastructure/certificates/certificates.m
     }),
     ScheduleModule.forRoot(),
     DatabaseModule,
+    StorageModule,
     AuthModule,
     CapacitacionesModule,
+    MaterialesModule,
+    InscripcionesModule,
+    IntentosModule,
+    EvaluacionesModule,
+    CertificadosModule,
+    CertificateFormatsModule,
+    PersonasModule,
     CertificatesModule,
+    PagosModule,
+    UsuariosModule,
+    TermsModule,
+    DashboardModule,
+    ReportsModule,
+    RolesModule,
+    EmpresasModule,
+    ResenasModule,
+    DocumentosLegalesModule,
+    ConfiguracionSesionModule,
   ],
   controllers: [AppController],
   providers: [
     AppService,
     {
+      provide: APP_INTERCEPTOR,
+      useClass: DbRetryInterceptor,
+    },
+    {
       provide: APP_FILTER,
       useClass: GlobalExceptionFilter,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
     },
   ],
 })

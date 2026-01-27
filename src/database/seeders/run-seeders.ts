@@ -7,7 +7,10 @@ import { TiposCapacitacionSeeder } from './tipos-capacitacion.seeder';
 import { ModalidadesSeeder } from './modalidades.seeder';
 import { TiposPreguntaSeeder } from './tipos-pregunta.seeder';
 import { TiposMaterialSeeder } from './tipos-material.seeder';
+import { DocumentosLegalesSeeder } from './documentos-legales.seeder';
+import { AdminSeeder } from './admin.seeder';
 import { AdminUserSeeder } from './admin-user.seeder';
+import { AceptarTerminosAdminSeeder } from './aceptar-terminos-admin.seeder';
 import { AppDataSource } from './data-source';
 
 /**
@@ -31,7 +34,10 @@ async function runSeeders() {
       new ModalidadesSeeder(AppDataSource),
       new TiposPreguntaSeeder(AppDataSource),
       new TiposMaterialSeeder(AppDataSource),
+      new AdminSeeder(AppDataSource), // Crear administrador inicial
       new AdminUserSeeder(AppDataSource),
+      new DocumentosLegalesSeeder(AppDataSource), // Crear documentos legales iniciales
+      new AceptarTerminosAdminSeeder(AppDataSource), // Aceptar términos para el admin
     ];
 
     for (const seeder of seeders) {

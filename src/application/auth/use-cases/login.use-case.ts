@@ -3,8 +3,10 @@ import {
   Inject,
   NotFoundException,
   UnauthorizedException,
+  BadRequestException,
 } from '@nestjs/common';
 import { IAuthRepository } from '@/domain/auth/ports/auth.repository.port';
+import { VerificarAceptacionUseCase } from '@/application/aceptaciones/use-cases/verificar-aceptacion.use-case';
 import { LoginDto } from '@/application/auth/dto/login.dto';
 
 @Injectable()
@@ -12,12 +14,14 @@ export class LoginUseCase {
   constructor(
     @Inject('IAuthRepository')
     private readonly authRepository: IAuthRepository,
+    private readonly verificarAceptacionUseCase: VerificarAceptacionUseCase,
   ) {}
 
   async execute(loginDto: LoginDto): Promise<{
     access_token: string;
     token_type: string;
     expires_in: number;
+    debeCambiarPassword?: boolean;
   }> {
     const user = await this.authRepository.findByUsername(loginDto.username);
 
@@ -53,6 +57,39 @@ export class LoginUseCase {
 
     if (!isPasswordMatch) {
       throw new UnauthorizedException('Credenciales inválidas');
+    }
+
+    // Verificar si debe cambiar la contraseña
+    const debeCambiarPassword =
+      user.debeCambiarPassword === true ||
+      Number(user.debeCambiarPassword) === 1;
+
+    if (debeCambiarPassword) {
+      // Lanzar excepción especial que indica que debe cambiar la contraseña
+      // El frontend debe capturar este error y redirigir al cambio de contraseña
+      throw new BadRequestException({
+        message: 'Debe cambiar su contraseña antes de continuar',
+        error: 'PASSWORD_CHANGE_REQUIRED',
+        statusCode: 400,
+        debeCambiarPassword: true,
+        username: user.username,
+      });
+    }
+
+    // Verificar que el usuario haya aceptado los términos y condiciones
+    try {
+      await this.verificarAceptacionUseCase.execute(user);
+    } catch (error) {
+      // Si no ha aceptado los términos, lanzar excepción especial
+      if (error instanceof UnauthorizedException) {
+        throw new UnauthorizedException({
+          message: error.message,
+          error: 'TERMS_NOT_ACCEPTED',
+          statusCode: 401,
+          requiereAceptacionTerminos: true,
+        });
+      }
+      throw error;
     }
 
     const tokenResult = this.authRepository.generateTokenWithMetadata(user);

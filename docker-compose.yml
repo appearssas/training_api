@@ -39,12 +39,16 @@ services:
       - DATABASE_PASSWORD=${DATABASE_PASSWORD:-root}
       - DATABASE_NAME=${DATABASE_NAME:-trainings_db}
       - PORT=${PORT:-3000}
+      # Variables para hot-reload
+      - CHOKIDAR_USEPOLLING=true
+      - WATCHPACK_POLLING=true
       # Las variables del archivo .env se cargan automáticamente con env_file
       # Si necesitas una variable específica, agrégala aquí también:
       # - JWT_SECRET=${JWT_SECRET}
     volumes:
-      # Montar el código fuente para hot-reload
-      - ./src:/app/src
+      # Montar el código fuente para hot-reload (usar bind mount para mejor rendimiento)
+      - ./src:/app/src:cached
+      - ./public:/app/public:cached
       - ./package.json:/app/package.json
       - ./yarn.lock:/app/yarn.lock
       - ./tsconfig.json:/app/tsconfig.json
@@ -52,8 +56,11 @@ services:
       - ./nest-cli.json:/app/nest-cli.json
       - ./typeorm.config.ts:/app/typeorm.config.ts
       - ./scripts:/app/scripts
+      - ./test:/app/test
       # Excluir node_modules del volumen (usar los del contenedor)
       - /app/node_modules
+      # Excluir dist para evitar conflictos
+      - /app/dist
     depends_on:
       db:
         condition: service_healthy

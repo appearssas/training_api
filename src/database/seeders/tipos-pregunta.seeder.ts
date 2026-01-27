@@ -36,6 +36,13 @@ export class TiposPreguntaSeeder extends BaseSeeder {
         activo: true,
       },
       {
+        nombre: 'Sí/No',
+        codigo: 'YES_NO',
+        permiteMultipleRespuesta: false,
+        requiereTextoLibre: false,
+        activo: true,
+      },
+      {
         nombre: 'Completar espacios',
         codigo: 'FILL_BLANKS',
         permiteMultipleRespuesta: false,

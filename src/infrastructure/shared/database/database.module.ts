@@ -34,10 +34,21 @@ const entityClasses = Object.values(entities).filter((entity) => {
       useFactory: (configService: ConfigService) => {
         const stage = configService.get<string>('STAGE', 'dev');
 
+        const extraPool = {
+          connectionLimit: 10,
+          waitForConnections: true,
+          queueLimit: 0,
+          maxIdle: 5,
+          idleTimeout: 60_000,
+          enableKeepAlive: true,
+          keepAliveInitialDelay: 10_000,
+        };
+
         if (stage === 'dev') {
           return {
             ssl: false,
-            extra: undefined,
+            extra: extraPool,
+            connectTimeout: 10_000,
             type: 'mysql' as const,
             host: configService.get<string>('DATABASE_HOST', 'localhost'),
             port: configService.get<number>('DATABASE_PORT', 3306),
@@ -56,6 +67,8 @@ const entityClasses = Object.values(entities).filter((entity) => {
             url: configService.get<string>('DATABASE_URL'),
             entities: entityClasses,
             synchronize: false,
+            connectTimeout: 10_000,
+            extra: extraPool,
           };
         }
       },

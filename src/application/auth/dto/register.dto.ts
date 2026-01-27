@@ -4,16 +4,18 @@ import {
   IsString,
   MinLength,
   IsOptional,
-  IsEnum,
   IsDateString,
+  IsBoolean,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { Genero } from '@/entities/persona/types';
+import { Genero, TipoDocumento } from '@/entities/persona/types';
+import { IsStrictEnum } from '@/infrastructure/shared/decorators/strict-enum.decorator';
 
 export enum TipoRegistro {
   ALUMNO = 'ALUMNO',
   INSTRUCTOR = 'INSTRUCTOR',
   OPERADOR = 'OPERADOR',
+  CLIENTE = 'CLIENTE',
 }
 
 export class RegisterDto {
@@ -27,12 +29,16 @@ export class RegisterDto {
 
   @ApiPropertyOptional({
     description: 'Tipo de documento',
-    example: 'CC',
-    default: 'CC',
+    enum: TipoDocumento,
+    example: TipoDocumento.CC,
+    default: TipoDocumento.CC,
   })
-  @IsString()
+  @IsStrictEnum(TipoDocumento, {
+    message:
+      'tipoDocumento debe ser uno de los valores permitidos: CC, TI, CE, PA, RC, NIT',
+  })
   @IsOptional()
-  tipoDocumento?: string;
+  tipoDocumento?: TipoDocumento;
 
   @ApiProperty({
     description: 'Nombres de la persona',
@@ -50,8 +56,23 @@ export class RegisterDto {
   @IsOptional()
   apellidos?: string;
 
+  @ApiProperty({
+    description:
+      'Tipo de persona: NATURAL o JURIDICA. Si no se especifica, se determina automáticamente: JURIDICA si tiene razón social, NATURAL en caso contrario.',
+    enum: ['NATURAL', 'JURIDICA'],
+    example: 'NATURAL',
+    default: 'NATURAL',
+    required: false,
+  })
+  @IsStrictEnum(['NATURAL', 'JURIDICA'], {
+    message: 'tipoPersona debe ser NATURAL o JURIDICA',
+  })
+  @IsOptional()
+  tipoPersona?: 'NATURAL' | 'JURIDICA';
+
   @ApiPropertyOptional({
-    description: 'Razón Social (solo jurídicas)',
+    description:
+      'Razón Social (obligatorio para personas jurídicas). Si se proporciona razón social, el tipoPersona se establecerá automáticamente como JURIDICA.',
     example: 'Empresa SAS',
   })
   @IsString()
@@ -87,7 +108,10 @@ export class RegisterDto {
     enum: Genero,
     example: Genero.MASCULINO,
   })
-  @IsEnum(Genero)
+  @IsStrictEnum(Genero, {
+    message:
+      'genero debe ser uno de los valores permitidos: M (MASCULINO), F (FEMENINO), O (OTRO)',
+  })
   @IsOptional()
   genero?: Genero;
 
@@ -132,18 +156,15 @@ export class RegisterDto {
     enum: TipoRegistro,
     example: TipoRegistro.OPERADOR,
   })
-  @IsEnum(TipoRegistro)
+  @IsStrictEnum(TipoRegistro, {
+    message: 'tipoRegistro debe ser ALUMNO, INSTRUCTOR, OPERADOR o CLIENTE',
+  })
   @IsNotEmpty()
   tipoRegistro: TipoRegistro;
 
   // Campos específicos para ALUMNO
-  @ApiPropertyOptional({
-    description: 'Código de estudiante (solo para ALUMNO)',
-    example: 'EST001',
-  })
-  @IsString()
-  @IsOptional()
-  codigoEstudiante?: string;
+  // NOTA: El código de estudiante se genera automáticamente en formato EST{YYYY}{NNNNN}
+  // Ejemplo: EST20250001, EST20250002, etc.
 
   // Campos específicos para INSTRUCTOR
   @ApiPropertyOptional({
@@ -161,4 +182,42 @@ export class RegisterDto {
   @IsString()
   @IsOptional()
   biografia?: string;
+
+  @ApiPropertyOptional({
+    description:
+      'Indica si el usuario debe ser habilitado inmediatamente. Por defecto es false.',
+    example: false,
+    default: false,
+  })
+  @IsOptional()
+  habilitado?: boolean;
+
+  @ApiPropertyOptional({
+    description:
+      'Indica si el usuario acepta los términos y condiciones. Si es true, se aceptarán automáticamente todos los documentos legales activos después del registro.',
+    example: true,
+    default: false,
+  })
+  @IsBoolean()
+  @IsOptional()
+  aceptaTerminos?: boolean;
+
+  @ApiPropertyOptional({
+    description:
+      'Indica si el usuario acepta la política de tratamiento de datos personales. Si es true junto con aceptaTerminos, se aceptarán automáticamente todos los documentos legales activos después del registro.',
+    example: true,
+    default: false,
+  })
+  @IsBoolean()
+  @IsOptional()
+  aceptaPoliticaDatos?: boolean;
+
+  @ApiPropertyOptional({
+    description:
+      'ID de la empresa a la que pertenece el usuario. Si no se proporciona y el usuario que crea es CLIENTE, se usará automáticamente su empresa.',
+    example: 1,
+    type: Number,
+  })
+  @IsOptional()
+  empresaId?: number;
 }

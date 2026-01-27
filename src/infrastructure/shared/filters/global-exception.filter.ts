@@ -7,6 +7,10 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
+import { isTransientDbError } from '../utils/db-retry.util';
+
+const RETRY_MESSAGE =
+  'Conexión con la base de datos interrumpida. Por favor, intente de nuevo en unos segundos.';
 
 interface ExceptionWithMessage {
   message?: string;
@@ -23,6 +27,23 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<Request>();
+
+    // Ignorar silenciosamente peticiones de Chrome DevTools y otros servicios automáticos
+    const ignoredPaths = [
+      '/.well-known/appspecific/com.chrome.devtools.json',
+      '/.well-known/',
+      '/favicon.ico',
+    ];
+    
+    const shouldIgnore = ignoredPaths.some(path => request.url.startsWith(path));
+    
+    if (shouldIgnore) {
+      // Responder 404 sin loguear el error
+      return response.status(HttpStatus.NOT_FOUND).json({
+        statusCode: HttpStatus.NOT_FOUND,
+        message: 'Not Found',
+      });
+    }
 
     this.logger.error('Global exception caught:', exception);
 
@@ -41,6 +62,30 @@ export class GlobalExceptionFilter implements ExceptionFilter {
           path: request.url,
         });
       }
+
+      const message = typeof errorResponse.message === 'string'
+        ? errorResponse.message
+        : 'Bad Request';
+
+      if (isTransientDbError({ message })) {
+        this.logger.warn('Transient DB error (e.g. ECONNRESET) rethrown as BadRequest:', message);
+        return response.status(HttpStatus.SERVICE_UNAVAILABLE).json({
+          statusCode: HttpStatus.SERVICE_UNAVAILABLE,
+          message: RETRY_MESSAGE,
+          error: 'Service Unavailable',
+          timestamp: new Date().toISOString(),
+          path: request.url,
+        });
+      }
+
+      this.logger.error('BadRequestException:', message);
+      return response.status(HttpStatus.BAD_REQUEST).json({
+        statusCode: HttpStatus.BAD_REQUEST,
+        message,
+        error: 'Bad Request',
+        timestamp: new Date().toISOString(),
+        path: request.url,
+      });
     }
 
     const exceptionWithMessage = exception as ExceptionWithMessage;
@@ -72,6 +117,15 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     // Capturar errores de base de datos
     if (exceptionWithMessage.name === 'QueryFailedError') {
       this.logger.error('Database error:', exception);
+      if (isTransientDbError(exception)) {
+        return response.status(HttpStatus.SERVICE_UNAVAILABLE).json({
+          statusCode: HttpStatus.SERVICE_UNAVAILABLE,
+          message: RETRY_MESSAGE,
+          error: 'Service Unavailable',
+          timestamp: new Date().toISOString(),
+          path: request.url,
+        });
+      }
       return response.status(HttpStatus.BAD_REQUEST).json({
         statusCode: HttpStatus.BAD_REQUEST,
         message: 'Database operation failed',

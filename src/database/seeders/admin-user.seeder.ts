@@ -2,7 +2,8 @@ import { BaseSeeder } from './base.seeder';
 import { Usuario } from '@/entities/usuarios/usuario.entity';
 import { Persona } from '@/entities/persona/persona.entity';
 import { Rol } from '@/entities/roles/rol.entity';
-import * as bcrypt from 'bcrypt';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const bcrypt = require('bcryptjs');
 
 export class AdminUserSeeder extends BaseSeeder {
   async run(): Promise<void> {
@@ -19,8 +20,6 @@ export class AdminUserSeeder extends BaseSeeder {
       console.error('❌ Rol ADMIN no encontrado. Ejecuta RolesSeeder primero.');
       return;
     }
-    
-    const passwordHash = await bcrypt.hash('admin123', 10);
 
     // 2. Buscar si ya existe el usuario admin
     let user = await usuarioRepository.findOne({
@@ -29,11 +28,13 @@ export class AdminUserSeeder extends BaseSeeder {
     });
 
     if (user) {
-      // Si el usuario existe, actualiza su contraseña
-      user.passwordHash = passwordHash;
-      await usuarioRepository.save(user);
-      console.log('✓ Contraseña del usuario admin actualizada.');
+      // Si el usuario existe, NO sobrescribir la contraseña (ya fue creada por AdminSeeder)
+      console.log('✓ Usuario admin ya existe. No se modifica la contraseña.');
+      console.log('   Usa la contraseña configurada en AdminSeeder: Admin123*.');
+      return;
     } else {
+      // Solo crear si no existe
+      const passwordHash = await bcrypt.hash('admin123', 10);
       // Si no existe, lo crea
       const persona = personaRepository.create({
         nombres: 'Administrador',

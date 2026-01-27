@@ -8,6 +8,7 @@ import {
   IsObject,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsStrictEnum } from '@/infrastructure/shared/decorators/strict-enum.decorator';
 
 export enum SortOrder {
   ASC = 'ASC',
@@ -70,6 +71,6 @@ export class PaginationDto {
     default: SortOrder.ASC,
   })
   @IsOptional()
-  @IsEnum(SortOrder, { message: 'Sort order must be either ASC or DESC' })
+  @IsStrictEnum(SortOrder, { message: 'Sort order must be either ASC or DESC' })
   sortOrder?: SortOrder = SortOrder.ASC;
 }

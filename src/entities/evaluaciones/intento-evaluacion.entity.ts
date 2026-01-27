@@ -44,10 +44,11 @@ export class IntentoEvaluacion {
     type: 'decimal',
     precision: 10,
     scale: 2,
+    nullable: true,
     default: 0.0,
     name: 'puntaje_obtenido',
   })
-  puntajeObtenido: number;
+  puntajeObtenido: number | null;
 
   @Column({
     type: 'decimal',
@@ -59,10 +60,10 @@ export class IntentoEvaluacion {
   puntajeTotal: number;
 
   @Column({ type: 'decimal', precision: 5, scale: 2, nullable: true })
-  porcentaje: number;
+  porcentaje: number | null;
 
   @Column({ type: 'tinyint', nullable: true })
-  aprobado: boolean;
+  aprobado: boolean | null;
 
   @Column({ type: 'int', nullable: true, name: 'tiempo_utilizado_minutos' })
   tiempoUtilizadoMinutos: number;

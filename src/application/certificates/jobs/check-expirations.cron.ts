@@ -90,8 +90,7 @@ export class CheckExpirationsCron {
       },
       relations: [
         'inscripcion',
-        'inscripcion.alumno',
-        'inscripcion.alumno.persona',
+        'inscripcion.estudiante',
         'inscripcion.capacitacion',
       ],
     });

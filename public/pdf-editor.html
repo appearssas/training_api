@@ -1,0 +1,2255 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Editor de Certificados PDF - Tiempo Real</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: #f5f5f5;
+      display: flex;
+      height: 100vh;
+      width: 100vw;
+      overflow: hidden;
+      margin: 0;
+      padding: 0;
+    }
+
+    .sidebar {
+      width: 400px;
+      min-width: 350px;
+      max-width: 500px;
+      background: white;
+      border-right: 1px solid #e0e0e0;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      flex-shrink: 0;
+    }
+
+    .sidebar-header {
+      padding: 20px;
+      background: linear-gradient(135deg, #292561 0%, #3d3a7d 100%);
+      color: white;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .sidebar-header h1 {
+      font-size: 20px;
+      margin-bottom: 15px;
+    }
+
+    .hash-input-group {
+      display: flex;
+      gap: 10px;
+    }
+
+    .hash-input-group input {
+      flex: 1;
+      padding: 10px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.1);
+      color: white;
+      font-size: 14px;
+    }
+
+    .hash-input-group input::placeholder {
+      color: rgba(255, 255, 255, 0.6);
+    }
+
+    .hash-input-group button {
+      padding: 10px 20px;
+      background: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    .editor-content {
+      padding: 20px;
+      flex: 1;
+    }
+
+    .section {
+      margin-bottom: 25px;
+      background: #f9f9f9;
+      border-radius: 8px;
+      padding: 15px;
+      border: 1px solid #e0e0e0;
+    }
+
+    .section-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #292561;
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .field-group {
+      margin-bottom: 15px;
+    }
+
+    .field-group label {
+      display: block;
+      font-size: 12px;
+      color: #666;
+      margin-bottom: 5px;
+      font-weight: 500;
+    }
+
+    .field-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .field-row.three-cols {
+      grid-template-columns: 1fr 1fr 1fr;
+    }
+
+    .field-row input {
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 13px;
+    }
+
+    .field-row input:focus {
+      outline: none;
+      border-color: #292561;
+    }
+
+    .color-input {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .color-picker {
+      width: 50px;
+      height: 35px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .color-input input[type="number"] {
+      flex: 1;
+    }
+
+    .viewer-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: #e0e0e0;
+      min-width: 0;
+      /* Permite que el flex funcione correctamente */
+      overflow: hidden;
+    }
+
+    .viewer-header {
+      padding: 15px 20px;
+      background: white;
+      border-bottom: 1px solid #e0e0e0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-shrink: 0;
+      /* No se encoge */
+    }
+
+    .viewer-header h2 {
+      font-size: 18px;
+      color: #292561;
+    }
+
+    .viewer-controls {
+      display: flex;
+      gap: 10px;
+    }
+
+    .viewer-controls button {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .btn-reload {
+      background: #2196F3;
+      color: white;
+    }
+
+    .btn-reload:hover {
+      background: #0b7dda;
+    }
+
+    .btn-reset {
+      background: #f44336;
+      color: white;
+    }
+
+    .btn-reset:hover {
+      background: #da190b;
+    }
+
+    .btn-save {
+      background: #4CAF50;
+      color: white;
+    }
+
+    .btn-save:hover {
+      background: #45a049;
+    }
+
+    .btn-save:disabled {
+      background: #cccccc;
+      cursor: not-allowed;
+    }
+
+    .token-input-group {
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .token-input-group input {
+      width: 100%;
+      padding: 8px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.1);
+      color: white;
+      font-size: 12px;
+      margin-top: 5px;
+    }
+
+    .token-input-group input::placeholder {
+      color: rgba(255, 255, 255, 0.6);
+    }
+
+    .token-input-group label {
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.9);
+    }
+
+    .auto-refresh-toggle {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .auto-refresh-toggle input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+    }
+
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      background: white;
+      min-height: 600px;
+    }
+
+    .loading-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(255, 255, 255, 0.9);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+    }
+
+    .loading-overlay.active {
+      display: flex;
+    }
+
+    .loading {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      color: #666;
+    }
+
+    .loading-spinner {
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #292561;
+      border-radius: 50%;
+      width: 50px;
+      height: 50px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 20px;
+    }
+
+    @keyframes spin {
+      0% {
+        transform: rotate(0deg);
+      }
+
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+
+    .tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 15px;
+      border-bottom: 2px solid #e0e0e0;
+    }
+
+    .tab {
+      padding: 10px 20px;
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      color: #666;
+      margin-bottom: -2px;
+    }
+
+    .tab.active {
+      color: #292561;
+      border-bottom-color: #292561;
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <h1>📝 Editor de Certificados PDF</h1>
+      <div class="hash-input-group">
+        <input type="text" id="hashInput" placeholder="Hash del certificado (UUID)" value="" />
+        <button onclick="loadPDF()">Cargar</button>
+      </div>
+      <div class="token-input-group">
+        <label>Token JWT (requerido para guardar):</label>
+        <input type="password" id="jwtToken" placeholder="Pega tu token JWT aquí" />
+      </div>
+    </div>
+    <div class="editor-content">
+      <div class="tabs">
+        <button class="tab active" onclick="switchTab('alimentos')">Alimentos</button>
+        <button class="tab" onclick="switchTab('sustancias')">Sustancias</button>
+        <button class="tab" onclick="switchTab('otros')">Otros</button>
+      </div>
+
+      <!-- Tab Alimentos -->
+      <div id="tab-alimentos" class="tab-content active">
+        <div class="section">
+          <div class="section-title">📋 Nombre del Curso</div>
+          <div class="field-group">
+            <label>Posición X (centrado = 396)</label>
+            <input type="number" id="alimentos-curso-x" value="396" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Posición Y</label>
+            <input type="number" id="alimentos-curso-y" value="395" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Tamaño de Fuente</label>
+            <input type="number" id="alimentos-curso-fontSize" value="18" step="0.5" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Negrita</label>
+            <input type="checkbox" id="alimentos-curso-bold" checked onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Color RGB</label>
+            <div class="color-input">
+              <input type="color" id="alimentos-curso-color-picker" value="#ffffff"
+                onchange="updateColorFromPicker('alimentos-curso')">
+              <input type="number" id="alimentos-curso-color-r" value="255" min="0" max="255" onchange="updatePDF()">
+              <input type="number" id="alimentos-curso-color-g" value="255" min="0" max="255" onchange="updatePDF()">
+              <input type="number" id="alimentos-curso-color-b" value="255" min="0" max="255" onchange="updatePDF()">
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">👤 Nombre del Estudiante</div>
+          <div class="field-group">
+            <label>Posición X (centrado = 396)</label>
+            <input type="number" id="alimentos-nombre-x" value="396" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Posición Y</label>
+            <input type="number" id="alimentos-nombre-y" value="290" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Tamaño de Fuente</label>
+            <input type="number" id="alimentos-nombre-fontSize" value="18" step="0.5" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Color RGB</label>
+            <div class="color-input">
+              <input type="color" id="alimentos-nombre-color-picker" value="#292561"
+                onchange="updateColorFromPicker('alimentos-nombre')">
+              <input type="number" id="alimentos-nombre-color-r" value="41" min="0" max="255" onchange="updatePDF()">
+              <input type="number" id="alimentos-nombre-color-g" value="37" min="0" max="255" onchange="updatePDF()">
+              <input type="number" id="alimentos-nombre-color-b" value="97" min="0" max="255" onchange="updatePDF()">
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">🆔 Documento</div>
+          <div class="field-group">
+            <label>Posición X</label>
+            <input type="number" id="alimentos-documento-x" value="405" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Posición Y</label>
+            <input type="number" id="alimentos-documento-y" value="323" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Tamaño de Fuente</label>
+            <input type="number" id="alimentos-documento-fontSize" value="18" step="0.5" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Negrita</label>
+            <input type="checkbox" id="alimentos-documento-bold" onchange="updatePDF()">
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">⏱️ Duración</div>
+          <div class="field-group">
+            <label>Posición X</label>
+            <input type="number" id="alimentos-duracion-x" value="440" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Posición Y</label>
+            <input type="number" id="alimentos-duracion-y" value="422" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Tamaño de Fuente</label>
+            <input type="number" id="alimentos-duracion-fontSize" value="14" step="0.5" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Negrita</label>
+            <input type="checkbox" id="alimentos-duracion-bold" onchange="updatePDF()">
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">📅 Fechas</div>
+          <div class="field-group">
+            <label>Fecha Emisión X</label>
+            <input type="number" id="alimentos-fechaEmision-x" value="310" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Fecha Emisión Y</label>
+            <input type="number" id="alimentos-fechaEmision-y" value="437" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Fecha Vencimiento X</label>
+            <input type="number" id="alimentos-fechaVencimiento-x" value="570" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Fecha Vencimiento Y</label>
+            <input type="number" id="alimentos-fechaVencimiento-y" value="436" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Tamaño de Fuente</label>
+            <input type="number" id="alimentos-fechaEmision-fontSize" value="14" step="0.5" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Negrita</label>
+            <input type="checkbox" id="alimentos-fechaEmision-bold" onchange="updatePDF()">
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">📱 Código QR</div>
+          <div class="field-group">
+            <label>Posición X</label>
+            <input type="number" id="alimentos-qr-x" value="688" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Posición Y</label>
+            <input type="number" id="alimentos-qr-y" value="448.5" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Tamaño</label>
+            <input type="number" id="alimentos-qr-size" value="70" step="1" onchange="updatePDF()">
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">✍️ Firma del Instructor</div>
+          <div class="field-group">
+            <label>Posición X</label>
+            <input type="number" id="alimentos-instructorFirma-x" value="160" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Posición Y</label>
+            <input type="number" id="alimentos-instructorFirma-y" value="455" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Ancho</label>
+            <input type="number" id="alimentos-instructorFirma-width" value="145" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Alto</label>
+            <input type="number" id="alimentos-instructorFirma-height" value="61" step="0.1" onchange="updatePDF()">
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">✍️ Nombre del Instructor</div>
+          <div class="field-group">
+            <label>Posición X (centrado = 235)</label>
+            <input type="number" id="alimentos-instructorNombre-x" value="160" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Posición Y</label>
+            <input type="number" id="alimentos-instructorNombre-y" value="505" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Tamaño de Fuente</label>
+            <input type="number" id="alimentos-instructorNombre-fontSize" value="10" step="0.5" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Negrita</label>
+            <input type="checkbox" id="alimentos-instructorNombre-bold" checked onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Color RGB</label>
+            <div class="color-input">
+              <input type="color" id="alimentos-instructorNombre-color-picker" value="#292561"
+                onchange="updateColorFromPicker('alimentos-instructorNombre')">
+              <input type="number" id="alimentos-instructorNombre-color-r" value="41" min="0" max="255"
+                onchange="updatePDF()">
+              <input type="number" id="alimentos-instructorNombre-color-g" value="37" min="0" max="255"
+                onchange="updatePDF()">
+              <input type="number" id="alimentos-instructorNombre-color-b" value="97" min="0" max="255"
+                onchange="updatePDF()">
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">👔 Rol del Instructor</div>
+          <div class="field-group">
+            <label>Posición X (centrado = 217)</label>
+            <input type="number" id="alimentos-instructorRol-x" value="217" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Posición Y</label>
+            <input type="number" id="alimentos-instructorRol-y" value="513" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Tamaño de Fuente</label>
+            <input type="number" id="alimentos-instructorRol-fontSize" value="9.5" step="0.5" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Espaciado entre Líneas</label>
+            <input type="number" id="alimentos-instructorRol-lineSpacing" value="12" step="0.5" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Negrita</label>
+            <input type="checkbox" id="alimentos-instructorRol-bold" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Color RGB</label>
+            <div class="color-input">
+              <input type="color" id="alimentos-instructorRol-color-picker" value="#292561"
+                onchange="updateColorFromPicker('alimentos-instructorRol')">
+              <input type="number" id="alimentos-instructorRol-color-r" value="41" min="0" max="255" onchange="updatePDF()">
+              <input type="number" id="alimentos-instructorRol-color-g" value="37" min="0" max="255" onchange="updatePDF()">
+              <input type="number" id="alimentos-instructorRol-color-b" value="97" min="0" max="255" onchange="updatePDF()">
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">✍️ Firma del Representante</div>
+          <div class="field-group">
+            <label>Posición X</label>
+            <input type="number" id="alimentos-representanteFirma-x" value="498.5" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Posición Y</label>
+            <input type="number" id="alimentos-representanteFirma-y" value="455" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Ancho</label>
+            <input type="number" id="alimentos-representanteFirma-width" value="145" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Alto</label>
+            <input type="number" id="alimentos-representanteFirma-height" value="61" step="0.1" onchange="updatePDF()">
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">✍️ Nombre del Representante</div>
+          <div class="field-group">
+            <label>Posición X (centrado = 565.5)</label>
+            <input type="number" id="alimentos-representanteNombre-x" value="490" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Posición Y</label>
+            <input type="number" id="alimentos-representanteNombre-y" value="505" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Tamaño de Fuente</label>
+            <input type="number" id="alimentos-representanteNombre-fontSize" value="9.9" step="0.5"
+              onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Negrita</label>
+            <input type="checkbox" id="alimentos-representanteNombre-bold" checked onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Color RGB</label>
+            <div class="color-input">
+              <input type="color" id="alimentos-representanteNombre-color-picker" value="#292561"
+                onchange="updateColorFromPicker('alimentos-representanteNombre')">
+              <input type="number" id="alimentos-representanteNombre-color-r" value="41" min="0" max="255"
+                onchange="updatePDF()">
+              <input type="number" id="alimentos-representanteNombre-color-g" value="37" min="0" max="255"
+                onchange="updatePDF()">
+              <input type="number" id="alimentos-representanteNombre-color-b" value="97" min="0" max="255"
+                onchange="updatePDF()">
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">👔 Rol del Representante</div>
+          <div class="field-group">
+            <label>Posición X (centrado = 571)</label>
+            <input type="number" id="alimentos-representanteRol-x" value="571" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Posición Y</label>
+            <input type="number" id="alimentos-representanteRol-y" value="513" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Tamaño de Fuente</label>
+            <input type="number" id="alimentos-representanteRol-fontSize" value="9.5" step="0.5" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Negrita</label>
+            <input type="checkbox" id="alimentos-representanteRol-bold" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Color RGB</label>
+            <div class="color-input">
+              <input type="color" id="alimentos-representanteRol-color-picker" value="#292561"
+                onchange="updateColorFromPicker('alimentos-representanteRol')">
+              <input type="number" id="alimentos-representanteRol-color-r" value="41" min="0" max="255" onchange="updatePDF()">
+              <input type="number" id="alimentos-representanteRol-color-g" value="37" min="0" max="255" onchange="updatePDF()">
+              <input type="number" id="alimentos-representanteRol-color-b" value="97" min="0" max="255" onchange="updatePDF()">
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">📄 Pie de Página</div>
+          <div class="field-group">
+            <label>Posición X (centrado = 396)</label>
+            <input type="number" id="alimentos-footer-x" value="396" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Posición Y</label>
+            <input type="number" id="alimentos-footer-y" value="590" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Tamaño de Fuente</label>
+            <input type="number" id="alimentos-footer-fontSize" value="7" step="0.5" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Negrita</label>
+            <input type="checkbox" id="alimentos-footer-bold" checked onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Color RGB</label>
+            <div class="color-input">
+              <input type="color" id="alimentos-footer-color-picker" value="#292561"
+                onchange="updateColorFromPicker('alimentos-footer')">
+              <input type="number" id="alimentos-footer-color-r" value="41" min="0" max="255" onchange="updatePDF()">
+              <input type="number" id="alimentos-footer-color-g" value="37" min="0" max="255" onchange="updatePDF()">
+              <input type="number" id="alimentos-footer-color-b" value="97" min="0" max="255" onchange="updatePDF()">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab Sustancias -->
+      <div id="tab-sustancias" class="tab-content">
+        <div class="section">
+          <div class="section-title">📋 Nombre del Curso</div>
+          <div class="field-group">
+            <label>Posición X (centrado = 396)</label>
+            <input type="number" id="sustancias-curso-x" value="396" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Posición Y</label>
+            <input type="number" id="sustancias-curso-y" value="395" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Tamaño de Fuente</label>
+            <input type="number" id="sustancias-curso-fontSize" value="18" step="0.5" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Negrita</label>
+            <input type="checkbox" id="sustancias-curso-bold" checked onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Color RGB</label>
+            <div class="color-input">
+              <input type="color" id="sustancias-curso-color-picker" value="#ffffff"
+                onchange="updateColorFromPicker('sustancias-curso')">
+              <input type="number" id="sustancias-curso-color-r" value="255" min="0" max="255" onchange="updatePDF()">
+              <input type="number" id="sustancias-curso-color-g" value="255" min="0" max="255" onchange="updatePDF()">
+              <input type="number" id="sustancias-curso-color-b" value="255" min="0" max="255" onchange="updatePDF()">
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">👤 Nombre del Estudiante</div>
+          <div class="field-group">
+            <label>Posición X (centrado = 396)</label>
+            <input type="number" id="sustancias-nombre-x" value="396" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Posición Y</label>
+            <input type="number" id="sustancias-nombre-y" value="290" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Tamaño de Fuente</label>
+            <input type="number" id="sustancias-nombre-fontSize" value="18" step="0.5" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Negrita</label>
+            <input type="checkbox" id="sustancias-nombre-bold" checked onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Color RGB</label>
+            <div class="color-input">
+              <input type="color" id="sustancias-nombre-color-picker" value="#292561"
+                onchange="updateColorFromPicker('sustancias-nombre')">
+              <input type="number" id="sustancias-nombre-color-r" value="41" min="0" max="255" onchange="updatePDF()">
+              <input type="number" id="sustancias-nombre-color-g" value="37" min="0" max="255" onchange="updatePDF()">
+              <input type="number" id="sustancias-nombre-color-b" value="97" min="0" max="255" onchange="updatePDF()">
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">🆔 Documento</div>
+          <div class="field-group">
+            <label>Posición X</label>
+            <input type="number" id="sustancias-documento-x" value="370" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Posición Y</label>
+            <input type="number" id="sustancias-documento-y" value="320" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Tamaño de Fuente</label>
+            <input type="number" id="sustancias-documento-fontSize" value="18" step="0.5" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Negrita</label>
+            <input type="checkbox" id="sustancias-documento-bold" onchange="updatePDF()">
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">⏱️ Duración</div>
+          <div class="field-group">
+            <label>Posición X</label>
+            <input type="number" id="sustancias-duracion-x" value="430" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Posición Y</label>
+            <input type="number" id="sustancias-duracion-y" value="422" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Tamaño de Fuente</label>
+            <input type="number" id="sustancias-duracion-fontSize" value="14" step="0.5" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Negrita</label>
+            <input type="checkbox" id="sustancias-duracion-bold" onchange="updatePDF()">
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">📅 Fechas</div>
+          <div class="field-group">
+            <label>Fecha Emisión X</label>
+            <input type="number" id="sustancias-fechaEmision-x" value="240" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Fecha Emisión Y</label>
+            <input type="number" id="sustancias-fechaEmision-y" value="438" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Fecha Vencimiento X</label>
+            <input type="number" id="sustancias-fechaVencimiento-x" value="500" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Fecha Vencimiento Y</label>
+            <input type="number" id="sustancias-fechaVencimiento-y" value="438" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Tamaño de Fuente</label>
+            <input type="number" id="sustancias-fechaEmision-fontSize" value="14" step="0.5" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Negrita</label>
+            <input type="checkbox" id="sustancias-fechaEmision-bold" onchange="updatePDF()">
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">📱 Código QR</div>
+          <div class="field-group">
+            <label>Posición X</label>
+            <input type="number" id="sustancias-qr-x" value="688" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Posición Y</label>
+            <input type="number" id="sustancias-qr-y" value="448.5" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Tamaño</label>
+            <input type="number" id="sustancias-qr-size" value="70" step="1" onchange="updatePDF()">
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">✍️ Firma del Instructor</div>
+          <div class="field-group">
+            <label>Posición X</label>
+            <input type="number" id="sustancias-instructorFirma-x" value="160" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Posición Y</label>
+            <input type="number" id="sustancias-instructorFirma-y" value="455" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Ancho</label>
+            <input type="number" id="sustancias-instructorFirma-width" value="145" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Alto</label>
+            <input type="number" id="sustancias-instructorFirma-height" value="61" step="0.1" onchange="updatePDF()">
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">✍️ Nombre del Instructor</div>
+          <div class="field-group">
+            <label>Posición X (centrado = 235)</label>
+            <input type="number" id="sustancias-instructorNombre-x" value="160" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Posición Y</label>
+            <input type="number" id="sustancias-instructorNombre-y" value="505" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Tamaño de Fuente</label>
+            <input type="number" id="sustancias-instructorNombre-fontSize" value="10" step="0.5" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Negrita</label>
+            <input type="checkbox" id="sustancias-instructorNombre-bold" checked onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Color RGB</label>
+            <div class="color-input">
+              <input type="color" id="sustancias-instructorNombre-color-picker" value="#292561"
+                onchange="updateColorFromPicker('sustancias-instructorNombre')">
+              <input type="number" id="sustancias-instructorNombre-color-r" value="41" min="0" max="255"
+                onchange="updatePDF()">
+              <input type="number" id="sustancias-instructorNombre-color-g" value="37" min="0" max="255"
+                onchange="updatePDF()">
+              <input type="number" id="sustancias-instructorNombre-color-b" value="97" min="0" max="255"
+                onchange="updatePDF()">
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">👔 Rol del Instructor</div>
+          <div class="field-group">
+            <label>Posición X (centrado = 217)</label>
+            <input type="number" id="sustancias-instructorRol-x" value="160" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Posición Y</label>
+            <input type="number" id="sustancias-instructorRol-y" value="513" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Tamaño de Fuente</label>
+            <input type="number" id="sustancias-instructorRol-fontSize" value="9.5" step="0.5" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Espaciado entre Líneas</label>
+            <input type="number" id="sustancias-instructorRol-lineSpacing" value="12" step="0.5" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Negrita</label>
+            <input type="checkbox" id="sustancias-instructorRol-bold" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Color RGB</label>
+            <div class="color-input">
+              <input type="color" id="sustancias-instructorRol-color-picker" value="#292561"
+                onchange="updateColorFromPicker('sustancias-instructorRol')">
+              <input type="number" id="sustancias-instructorRol-color-r" value="41" min="0" max="255" onchange="updatePDF()">
+              <input type="number" id="sustancias-instructorRol-color-g" value="37" min="0" max="255" onchange="updatePDF()">
+              <input type="number" id="sustancias-instructorRol-color-b" value="97" min="0" max="255" onchange="updatePDF()">
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">✍️ Firma del Representante</div>
+          <div class="field-group">
+            <label>Posición X</label>
+            <input type="number" id="sustancias-representanteFirma-x" value="498.5" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Posición Y</label>
+            <input type="number" id="sustancias-representanteFirma-y" value="440" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Ancho</label>
+            <input type="number" id="sustancias-representanteFirma-width" value="145" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Alto</label>
+            <input type="number" id="sustancias-representanteFirma-height" value="61" step="0.1" onchange="updatePDF()">
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">✍️ Nombre del Representante</div>
+          <div class="field-group">
+            <label>Posición X (centrado = 565.5)</label>
+            <input type="number" id="sustancias-representanteNombre-x" value="490" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Posición Y</label>
+            <input type="number" id="sustancias-representanteNombre-y" value="505" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Tamaño de Fuente</label>
+            <input type="number" id="sustancias-representanteNombre-fontSize" value="9.9" step="0.5"
+              onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Negrita</label>
+            <input type="checkbox" id="sustancias-representanteNombre-bold" checked onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Color RGB</label>
+            <div class="color-input">
+              <input type="color" id="sustancias-representanteNombre-color-picker" value="#292561"
+                onchange="updateColorFromPicker('sustancias-representanteNombre')">
+              <input type="number" id="sustancias-representanteNombre-color-r" value="41" min="0" max="255"
+                onchange="updatePDF()">
+              <input type="number" id="sustancias-representanteNombre-color-g" value="37" min="0" max="255"
+                onchange="updatePDF()">
+              <input type="number" id="sustancias-representanteNombre-color-b" value="97" min="0" max="255"
+                onchange="updatePDF()">
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">👔 Rol del Representante</div>
+          <div class="field-group">
+            <label>Posición X (centrado = 571)</label>
+            <input type="number" id="sustancias-representanteRol-x" value="520" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Posición Y</label>
+            <input type="number" id="sustancias-representanteRol-y" value="513" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Tamaño de Fuente</label>
+            <input type="number" id="sustancias-representanteRol-fontSize" value="9.5" step="0.5" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Negrita</label>
+            <input type="checkbox" id="sustancias-representanteRol-bold" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Color RGB</label>
+            <div class="color-input">
+              <input type="color" id="sustancias-representanteRol-color-picker" value="#292561"
+                onchange="updateColorFromPicker('sustancias-representanteRol')">
+              <input type="number" id="sustancias-representanteRol-color-r" value="41" min="0" max="255" onchange="updatePDF()">
+              <input type="number" id="sustancias-representanteRol-color-g" value="37" min="0" max="255" onchange="updatePDF()">
+              <input type="number" id="sustancias-representanteRol-color-b" value="97" min="0" max="255" onchange="updatePDF()">
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">📄 Pie de Página</div>
+          <div class="field-group">
+            <label>Posición X (centrado = 396)</label>
+            <input type="number" id="sustancias-footer-x" value="396" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Posición Y</label>
+            <input type="number" id="sustancias-footer-y" value="590" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Tamaño de Fuente</label>
+            <input type="number" id="sustancias-footer-fontSize" value="7" step="0.5" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Negrita</label>
+            <input type="checkbox" id="sustancias-footer-bold" checked onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Color RGB</label>
+            <div class="color-input">
+              <input type="color" id="sustancias-footer-color-picker" value="#292561"
+                onchange="updateColorFromPicker('sustancias-footer')">
+              <input type="number" id="sustancias-footer-color-r" value="41" min="0" max="255" onchange="updatePDF()">
+              <input type="number" id="sustancias-footer-color-g" value="37" min="0" max="255" onchange="updatePDF()">
+              <input type="number" id="sustancias-footer-color-b" value="97" min="0" max="255" onchange="updatePDF()">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab Otros -->
+      <div id="tab-otros" class="tab-content">
+        <div class="section">
+          <div class="section-title">📚 Nombre del Curso</div>
+          <div class="field-group">
+            <label>Posición X (centrado = 396)</label>
+            <input type="number" id="otros-curso-x" value="396" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Posición Y</label>
+            <input type="number" id="otros-curso-y" value="395" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Tamaño de Fuente</label>
+            <input type="number" id="otros-curso-fontSize" value="18" step="0.5" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Negrita</label>
+            <input type="checkbox" id="otros-curso-bold" checked onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Color RGB</label>
+            <div class="color-input">
+              <input type="color" id="otros-curso-color-picker" value="#ffffff"
+                onchange="updateColorFromPicker('otros-curso')">
+              <input type="number" id="otros-curso-color-r" value="255" min="0" max="255" onchange="updatePDF()">
+              <input type="number" id="otros-curso-color-g" value="255" min="0" max="255" onchange="updatePDF()">
+              <input type="number" id="otros-curso-color-b" value="255" min="0" max="255" onchange="updatePDF()">
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">👤 Nombre del Estudiante</div>
+          <div class="field-group">
+            <label>Posición X (centrado = 396)</label>
+            <input type="number" id="otros-nombre-x" value="396" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Posición Y</label>
+            <input type="number" id="otros-nombre-y" value="290" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Tamaño de Fuente</label>
+            <input type="number" id="otros-nombre-fontSize" value="18" step="0.5" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Negrita</label>
+            <input type="checkbox" id="otros-nombre-bold" checked onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Color RGB</label>
+            <div class="color-input">
+              <input type="color" id="otros-nombre-color-picker" value="#292561"
+                onchange="updateColorFromPicker('otros-nombre')">
+              <input type="number" id="otros-nombre-color-r" value="41" min="0" max="255" onchange="updatePDF()">
+              <input type="number" id="otros-nombre-color-g" value="37" min="0" max="255" onchange="updatePDF()">
+              <input type="number" id="otros-nombre-color-b" value="97" min="0" max="255" onchange="updatePDF()">
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">🆔 Documento</div>
+          <div class="field-group">
+            <label>Posición X (centrado = 396)</label>
+            <input type="number" id="otros-documento-x" value="450" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Posición Y</label>
+            <input type="number" id="otros-documento-y" value="320" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Tamaño de Fuente</label>
+            <input type="number" id="otros-documento-fontSize" value="18" step="0.5" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Negrita</label>
+            <input type="checkbox" id="otros-documento-bold" onchange="updatePDF()">
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">⏱️ Duración</div>
+          <div class="field-group">
+            <label>Posición X (centrado = 396)</label>
+            <input type="number" id="otros-duracion-x" value="445" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Posición Y</label>
+            <input type="number" id="otros-duracion-y" value="422" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Tamaño de Fuente</label>
+            <input type="number" id="otros-duracion-fontSize" value="14" step="0.5" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Negrita</label>
+            <input type="checkbox" id="otros-duracion-bold" onchange="updatePDF()">
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">📅 Fechas</div>
+          <div class="field-group">
+            <label>Fecha Emisión X</label>
+            <input type="number" id="otros-fechaEmision-x" value="250" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Fecha Emisión Y</label>
+            <input type="number" id="otros-fechaEmision-y" value="437" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Fecha Vencimiento X</label>
+            <input type="number" id="otros-fechaVencimiento-x" value="520" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Fecha Vencimiento Y</label>
+            <input type="number" id="otros-fechaVencimiento-y" value="438" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Tamaño de Fuente</label>
+            <input type="number" id="otros-fechaEmision-fontSize" value="14" step="0.5" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Negrita</label>
+            <input type="checkbox" id="otros-fechaEmision-bold" onchange="updatePDF()">
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">📱 Código QR</div>
+          <div class="field-group">
+            <label>Posición X</label>
+            <input type="number" id="otros-qr-x" value="689" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Posición Y</label>
+            <input type="number" id="otros-qr-y" value="449" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Tamaño</label>
+            <input type="number" id="otros-qr-size" value="70" step="1" onchange="updatePDF()">
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">✍️ Firma del Instructor</div>
+          <div class="field-group">
+            <label>Posición X</label>
+            <input type="number" id="otros-instructorFirma-x" value="130" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Posición Y</label>
+            <input type="number" id="otros-instructorFirma-y" value="450" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Ancho</label>
+            <input type="number" id="otros-instructorFirma-width" value="190" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Alto</label>
+            <input type="number" id="otros-instructorFirma-height" value="80" step="0.1" onchange="updatePDF()">
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">✍️ Nombre del Instructor</div>
+          <div class="field-group">
+            <label>Posición X (centrado = 235)</label>
+            <input type="number" id="otros-instructorNombre-x" value="150" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Posición Y</label>
+            <input type="number" id="otros-instructorNombre-y" value="505" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Tamaño de Fuente</label>
+            <input type="number" id="otros-instructorNombre-fontSize" value="10" step="0.5" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Negrita</label>
+            <input type="checkbox" id="otros-instructorNombre-bold" checked onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Color RGB</label>
+            <div class="color-input">
+              <input type="color" id="otros-instructorNombre-color-picker" value="#292561"
+                onchange="updateColorFromPicker('otros-instructorNombre')">
+              <input type="number" id="otros-instructorNombre-color-r" value="41" min="0" max="255"
+                onchange="updatePDF()">
+              <input type="number" id="otros-instructorNombre-color-g" value="37" min="0" max="255"
+                onchange="updatePDF()">
+              <input type="number" id="otros-instructorNombre-color-b" value="97" min="0" max="255"
+                onchange="updatePDF()">
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">👔 Rol del Instructor</div>
+          <div class="field-group">
+            <label>Posición X (centrado = 217)</label>
+            <input type="number" id="otros-instructorRol-x" value="150" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Posición Y</label>
+            <input type="number" id="otros-instructorRol-y" value="513" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Tamaño de Fuente</label>
+            <input type="number" id="otros-instructorRol-fontSize" value="9.5" step="0.5" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Espaciado entre Líneas</label>
+            <input type="number" id="otros-instructorRol-lineSpacing" value="12" step="0.5" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Negrita</label>
+            <input type="checkbox" id="otros-instructorRol-bold" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Color RGB</label>
+            <div class="color-input">
+              <input type="color" id="otros-instructorRol-color-picker" value="#292561"
+                onchange="updateColorFromPicker('otros-instructorRol')">
+              <input type="number" id="otros-instructorRol-color-r" value="41" min="0" max="255" onchange="updatePDF()">
+              <input type="number" id="otros-instructorRol-color-g" value="37" min="0" max="255" onchange="updatePDF()">
+              <input type="number" id="otros-instructorRol-color-b" value="97" min="0" max="255" onchange="updatePDF()">
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">✍️ Firma del Representante</div>
+          <div class="field-group">
+            <label>Posición X</label>
+            <input type="number" id="otros-representanteFirma-x" value="495" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Posición Y</label>
+            <input type="number" id="otros-representanteFirma-y" value="445" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Ancho</label>
+            <input type="number" id="otros-representanteFirma-width" value="145" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Alto</label>
+            <input type="number" id="otros-representanteFirma-height" value="61" step="0.1" onchange="updatePDF()">
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">✍️ Nombre del Representante</div>
+          <div class="field-group">
+            <label>Posición X (centrado = 565.5)</label>
+            <input type="number" id="otros-representanteNombre-x" value="485" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Posición Y</label>
+            <input type="number" id="otros-representanteNombre-y" value="495" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Tamaño de Fuente</label>
+            <input type="number" id="otros-representanteNombre-fontSize" value="9.9" step="0.5" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Negrita</label>
+            <input type="checkbox" id="otros-representanteNombre-bold" checked onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Color RGB</label>
+            <div class="color-input">
+              <input type="color" id="otros-representanteNombre-color-picker" value="#292561"
+                onchange="updateColorFromPicker('otros-representanteNombre')">
+              <input type="number" id="otros-representanteNombre-color-r" value="41" min="0" max="255"
+                onchange="updatePDF()">
+              <input type="number" id="otros-representanteNombre-color-g" value="37" min="0" max="255"
+                onchange="updatePDF()">
+              <input type="number" id="otros-representanteNombre-color-b" value="97" min="0" max="255"
+                onchange="updatePDF()">
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">👔 Rol del Representante</div>
+          <div class="field-group">
+            <label>Posición X (centrado = 571)</label>
+            <input type="number" id="otros-representanteRol-x" value="515" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Posición Y</label>
+            <input type="number" id="otros-representanteRol-y" value="513" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Tamaño de Fuente</label>
+            <input type="number" id="otros-representanteRol-fontSize" value="9.5" step="0.5" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Negrita</label>
+            <input type="checkbox" id="otros-representanteRol-bold" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Color RGB</label>
+            <div class="color-input">
+              <input type="color" id="otros-representanteRol-color-picker" value="#292561"
+                onchange="updateColorFromPicker('otros-representanteRol')">
+              <input type="number" id="otros-representanteRol-color-r" value="41" min="0" max="255" onchange="updatePDF()">
+              <input type="number" id="otros-representanteRol-color-g" value="37" min="0" max="255" onchange="updatePDF()">
+              <input type="number" id="otros-representanteRol-color-b" value="97" min="0" max="255" onchange="updatePDF()">
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">📄 Pie de Página</div>
+          <div class="field-group">
+            <label>Posición X (centrado = 396)</label>
+            <input type="number" id="otros-footer-x" value="396" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Posición Y</label>
+            <input type="number" id="otros-footer-y" value="590" step="0.1" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Tamaño de Fuente</label>
+            <input type="number" id="otros-footer-fontSize" value="7" step="0.5" onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Negrita</label>
+            <input type="checkbox" id="otros-footer-bold" checked onchange="updatePDF()">
+          </div>
+          <div class="field-group">
+            <label>Color RGB</label>
+            <div class="color-input">
+              <input type="color" id="otros-footer-color-picker" value="#292561"
+                onchange="updateColorFromPicker('otros-footer')">
+              <input type="number" id="otros-footer-color-r" value="41" min="0" max="255" onchange="updatePDF()">
+              <input type="number" id="otros-footer-color-g" value="37" min="0" max="255" onchange="updatePDF()">
+              <input type="number" id="otros-footer-color-b" value="97" min="0" max="255" onchange="updatePDF()">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="viewer-container">
+    <div class="viewer-header">
+      <h2>Vista Previa</h2>
+      <div class="viewer-controls">
+        <div class="auto-refresh-toggle">
+          <input type="checkbox" id="autoRefresh" onchange="toggleAutoRefresh()">
+          <label for="autoRefresh">Auto-refresh (3s)</label>
+        </div>
+        <button class="btn-reload" onclick="reloadPDF()">🔄 Recargar</button>
+        <button class="btn-reset" onclick="resetValues()">↺ Reset</button>
+        <button class="btn-reload" onclick="reloadConfigFromDatabase()" style="background: #2196F3; color: white; padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; margin-left: 5px;">📥 Cargar desde BD</button>
+        <button class="btn-save" onclick="saveToDatabase()" style="background: #4CAF50; color: white; padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; margin-left: 5px;">💾 Guardar en BD</button>
+      </div>
+    </div>
+    <div style="position: relative; flex: 1; min-height: 0; overflow: auto;">
+      <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner"></div>
+      </div>
+      <iframe id="pdfViewer" style="width: 100%; height: 100%; min-height: 800px;"></iframe>
+    </div>
+  </div>
+
+  <script>
+    const baseUrl = window.location.origin;
+    let autoRefreshInterval = null;
+    let currentHash = '';
+    let activeTab = 'alimentos'; // Track active tab
+
+    // Cargar configuración desde BD al iniciar
+    window.addEventListener('DOMContentLoaded', () => {
+      // Intentar cargar desde localStorage si hay token guardado
+      const savedToken = localStorage.getItem('pdfEditorJwtToken');
+      if (savedToken) {
+        document.getElementById('jwtToken').value = savedToken;
+      }
+      
+      // Cargar configuración desde BD
+      loadConfigFromDatabase();
+    });
+
+    // Guardar token en localStorage cuando cambie
+    document.getElementById('jwtToken').addEventListener('change', (e) => {
+      if (e.target.value.trim()) {
+        localStorage.setItem('pdfEditorJwtToken', e.target.value.trim());
+      } else {
+        localStorage.removeItem('pdfEditorJwtToken');
+      }
+    });
+
+    // Botón para recargar configuración desde BD
+    function reloadConfigFromDatabase() {
+      loadConfigFromDatabase().then(() => {
+        alert('✅ Configuración recargada desde la base de datos');
+      }).catch(() => {
+        alert('❌ Error al recargar configuración. Verifica tu token JWT.');
+      });
+    }
+
+    // Cargar hash desde URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const hashFromUrl = urlParams.get('hash');
+    if (hashFromUrl) {
+      document.getElementById('hashInput').value = hashFromUrl;
+      loadPDF();
+    }
+
+    document.getElementById('hashInput').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        loadPDF();
+      }
+    });
+
+    function switchTab(tab) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+      event.target.classList.add('active');
+      document.getElementById(`tab-${tab}`).classList.add('active');
+      activeTab = tab; // Update active tab
+    }
+
+    function updateColorFromPicker(prefix) {
+      const picker = document.getElementById(`${prefix}-color-picker`);
+      const color = picker.value;
+      const r = parseInt(color.substr(1, 2), 16);
+      const g = parseInt(color.substr(3, 2), 16);
+      const b = parseInt(color.substr(5, 2), 16);
+
+      document.getElementById(`${prefix}-color-r`).value = r;
+      document.getElementById(`${prefix}-color-g`).value = g;
+      document.getElementById(`${prefix}-color-b`).value = b;
+
+      updatePDF();
+    }
+
+    function getElementValue(id, defaultValue = 0) {
+      const el = document.getElementById(id);
+      return el ? parseFloat(el.value) || defaultValue : defaultValue;
+    }
+
+    function getElementChecked(id, defaultValue = false) {
+      const el = document.getElementById(id);
+      return el ? el.checked : defaultValue;
+    }
+
+    function setElementValue(id, value) {
+      const el = document.getElementById(id);
+      if (el) {
+        el.value = value;
+      }
+    }
+
+    function setElementChecked(id, checked) {
+      const el = document.getElementById(id);
+      if (el) {
+        el.checked = checked;
+      }
+    }
+
+    function setElementColor(prefix, colorArray) {
+      if (!colorArray || colorArray.length !== 3) return;
+      const [r, g, b] = colorArray;
+      setElementValue(`${prefix}-color-r`, r);
+      setElementValue(`${prefix}-color-g`, g);
+      setElementValue(`${prefix}-color-b`, b);
+      
+      // Actualizar color picker
+      const picker = document.getElementById(`${prefix}-color-picker`);
+      if (picker) {
+        const hexColor = `#${[r, g, b].map(x => {
+          const hex = x.toString(16);
+          return hex.length === 1 ? '0' + hex : hex;
+        }).join('')}`;
+        picker.value = hexColor;
+      }
+    }
+
+    function applyConfigToInputs(config, category) {
+      if (!config) return;
+
+      // Helper para aplicar configuración de un elemento
+      function applyElementConfig(elementKey, prefix) {
+        const elementConfig = config[elementKey];
+        if (!elementConfig) return;
+
+        if (elementConfig.x !== undefined) setElementValue(`${prefix}-x`, elementConfig.x);
+        if (elementConfig.y !== undefined) setElementValue(`${prefix}-y`, elementConfig.y);
+        if (elementConfig.fontSize !== undefined) setElementValue(`${prefix}-fontSize`, elementConfig.fontSize);
+        if (elementConfig.bold !== undefined) setElementChecked(`${prefix}-bold`, elementConfig.bold);
+        if (elementConfig.color) setElementColor(prefix, elementConfig.color);
+        if (elementConfig.width !== undefined) setElementValue(`${prefix}-width`, elementConfig.width);
+        if (elementConfig.height !== undefined) setElementValue(`${prefix}-height`, elementConfig.height);
+        if (elementConfig.size !== undefined) setElementValue(`${prefix}-size`, elementConfig.size);
+        if (elementConfig.lineSpacing !== undefined) setElementValue(`${prefix}-lineSpacing`, elementConfig.lineSpacing);
+      }
+
+      // Aplicar configuración según la categoría
+      if (category === 'alimentos') {
+        applyElementConfig('cursoNombre', 'alimentos-curso');
+        applyElementConfig('nombreEstudiante', 'alimentos-nombre');
+        applyElementConfig('documento', 'alimentos-documento');
+        applyElementConfig('duracion', 'alimentos-duracion');
+        applyElementConfig('fechaEmision', 'alimentos-fechaEmision');
+        applyElementConfig('fechaVencimiento', 'alimentos-fechaVencimiento');
+        applyElementConfig('qr', 'alimentos-qr');
+        applyElementConfig('instructorFirma', 'alimentos-instructorFirma');
+        applyElementConfig('instructorNombre', 'alimentos-instructorNombre');
+        applyElementConfig('instructorRol', 'alimentos-instructorRol');
+        applyElementConfig('representanteFirma', 'alimentos-representanteFirma');
+        applyElementConfig('representanteNombre', 'alimentos-representanteNombre');
+        applyElementConfig('representanteRol', 'alimentos-representanteRol');
+        applyElementConfig('footer', 'alimentos-footer');
+      } else if (category === 'sustancias') {
+        applyElementConfig('cursoNombre', 'sustancias-curso');
+        applyElementConfig('nombreEstudiante', 'sustancias-nombre');
+        applyElementConfig('documento', 'sustancias-documento');
+        applyElementConfig('duracion', 'sustancias-duracion');
+        applyElementConfig('fechaEmision', 'sustancias-fechaEmision');
+        applyElementConfig('fechaVencimiento', 'sustancias-fechaVencimiento');
+        applyElementConfig('qr', 'sustancias-qr');
+        applyElementConfig('instructorFirma', 'sustancias-instructorFirma');
+        applyElementConfig('instructorNombre', 'sustancias-instructorNombre');
+        applyElementConfig('instructorRol', 'sustancias-instructorRol');
+        applyElementConfig('representanteFirma', 'sustancias-representanteFirma');
+        applyElementConfig('representanteNombre', 'sustancias-representanteNombre');
+        applyElementConfig('representanteRol', 'sustancias-representanteRol');
+        applyElementConfig('footer', 'sustancias-footer');
+      } else if (category === 'otros') {
+        applyElementConfig('cursoNombre', 'otros-curso');
+        applyElementConfig('nombreEstudiante', 'otros-nombre');
+        applyElementConfig('documento', 'otros-documento');
+        applyElementConfig('duracion', 'otros-duracion');
+        applyElementConfig('fechaEmision', 'otros-fechaEmision');
+        applyElementConfig('fechaVencimiento', 'otros-fechaVencimiento');
+        applyElementConfig('qr', 'otros-qr');
+        applyElementConfig('instructorFirma', 'otros-instructorFirma');
+        applyElementConfig('instructorNombre', 'otros-instructorNombre');
+        applyElementConfig('instructorRol', 'otros-instructorRol');
+        applyElementConfig('representanteFirma', 'otros-representanteFirma');
+        applyElementConfig('representanteNombre', 'otros-representanteNombre');
+        applyElementConfig('representanteRol', 'otros-representanteRol');
+        applyElementConfig('footer', 'otros-footer');
+      }
+    }
+
+    async function loadConfigFromDatabase() {
+      const token = document.getElementById('jwtToken').value.trim();
+      
+      try {
+        console.log('[PDF Editor] Cargando configuración desde BD...');
+        
+        // Intentar primero con endpoint público (sin autenticación)
+        let response;
+        let usePublicEndpoint = !token;
+        
+        if (token) {
+          // Intentar con autenticación primero
+          response = await fetch(`${baseUrl}/certificate-formats/config`, {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+          });
+          
+          // Si falla por autenticación, intentar endpoint público
+          if (response.status === 401) {
+            console.log('[PDF Editor] Token inválido, intentando endpoint público...');
+            usePublicEndpoint = true;
+          }
+        }
+        
+        if (usePublicEndpoint) {
+          response = await fetch(`${baseUrl}/certificate-formats/config/public`, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          });
+        }
+
+        if (!response.ok) {
+          console.warn('[PDF Editor] Error al cargar configuración:', response.status, response.statusText);
+          return;
+        }
+
+        const config = await response.json();
+        console.log('[PDF Editor] Configuración cargada desde BD:', config);
+
+        // Aplicar configuración a cada categoría
+        if (config.alimentos) {
+          applyConfigToInputs(config.alimentos, 'alimentos');
+          console.log('[PDF Editor] Configuración de "alimentos" aplicada');
+        }
+        if (config.sustancias) {
+          applyConfigToInputs(config.sustancias, 'sustancias');
+          console.log('[PDF Editor] Configuración de "sustancias" aplicada');
+        }
+        if (config.otros) {
+          applyConfigToInputs(config.otros, 'otros');
+          console.log('[PDF Editor] Configuración de "otros" aplicada');
+        }
+
+        // Actualizar PDF si hay un hash cargado
+        if (currentHash) {
+          updatePDF();
+        }
+      } catch (error) {
+        console.error('[PDF Editor] Error al cargar configuración desde BD:', error);
+        // Continuar con valores por defecto en caso de error
+      }
+    }
+
+    function getConfig() {
+      return {
+        alimentos: {
+          cursoNombre: {
+            x: getElementValue('alimentos-curso-x', 396),
+            y: getElementValue('alimentos-curso-y', 395),
+            fontSize: getElementValue('alimentos-curso-fontSize', 18),
+            bold: getElementChecked('alimentos-curso-bold', true),
+            color: [
+              getElementValue('alimentos-curso-color-r', 255),
+              getElementValue('alimentos-curso-color-g', 255),
+              getElementValue('alimentos-curso-color-b', 255),
+            ]
+          },
+          nombreEstudiante: {
+            x: getElementValue('alimentos-nombre-x', 396),
+            y: getElementValue('alimentos-nombre-y', 290),
+            fontSize: getElementValue('alimentos-nombre-fontSize', 18),
+            bold: getElementChecked('alimentos-nombre-bold', true),
+            color: [
+              getElementValue('alimentos-nombre-color-r', 41),
+              getElementValue('alimentos-nombre-color-g', 37),
+              getElementValue('alimentos-nombre-color-b', 97),
+            ]
+          },
+          documento: {
+            x: getElementValue('alimentos-documento-x', 405),
+            y: getElementValue('alimentos-documento-y', 323),
+            fontSize: getElementValue('alimentos-documento-fontSize', 18),
+            bold: getElementChecked('alimentos-documento-bold', false),
+          },
+          duracion: {
+            x: getElementValue('alimentos-duracion-x', 440),
+            y: getElementValue('alimentos-duracion-y', 422),
+            fontSize: getElementValue('alimentos-duracion-fontSize', 14),
+            bold: getElementChecked('alimentos-duracion-bold', false),
+          },
+          fechaEmision: {
+            x: getElementValue('alimentos-fechaEmision-x', 300),
+            y: getElementValue('alimentos-fechaEmision-y', 437),
+            fontSize: getElementValue('alimentos-fechaEmision-fontSize', 14),
+            bold: getElementChecked('alimentos-fechaEmision-bold', false),
+          },
+          fechaVencimiento: {
+            x: getElementValue('alimentos-fechaVencimiento-x', 570),
+            y: getElementValue('alimentos-fechaVencimiento-y', 436),
+            fontSize: getElementValue('alimentos-fechaEmision-fontSize', 14),
+            bold: getElementChecked('alimentos-fechaEmision-bold', false),
+          },
+          instructorFirma: {
+            x: getElementValue('alimentos-instructorFirma-x', 178.5),
+            y: getElementValue('alimentos-instructorFirma-y', 450),
+            width: getElementValue('alimentos-instructorFirma-width', 145),
+            height: getElementValue('alimentos-instructorFirma-height', 61),
+          },
+          instructorNombre: {
+            x: getElementValue('alimentos-instructorNombre-x', 235),
+            y: getElementValue('alimentos-instructorNombre-y', 495),
+            fontSize: getElementValue('alimentos-instructorNombre-fontSize', 10),
+            bold: getElementChecked('alimentos-instructorNombre-bold', true),
+            color: [
+              getElementValue('alimentos-instructorNombre-color-r', 41),
+              getElementValue('alimentos-instructorNombre-color-g', 37),
+              getElementValue('alimentos-instructorNombre-color-b', 97),
+            ]
+          },
+          instructorRol: {
+            x: getElementValue('alimentos-instructorRol-x', 217),
+            y: getElementValue('alimentos-instructorRol-y', 513),
+            fontSize: getElementValue('alimentos-instructorRol-fontSize', 9.5),
+            bold: getElementChecked('alimentos-instructorRol-bold', false),
+            lineSpacing: getElementValue('alimentos-instructorRol-lineSpacing', 12),
+            color: [
+              getElementValue('alimentos-instructorRol-color-r', 41),
+              getElementValue('alimentos-instructorRol-color-g', 37),
+              getElementValue('alimentos-instructorRol-color-b', 97),
+            ]
+          },
+          representanteFirma: {
+            x: getElementValue('alimentos-representanteFirma-x', 498.5),
+            y: getElementValue('alimentos-representanteFirma-y', 455),
+            width: getElementValue('alimentos-representanteFirma-width', 145),
+            height: getElementValue('alimentos-representanteFirma-height', 61),
+          },
+          representanteNombre: {
+            x: getElementValue('alimentos-representanteNombre-x', 565.5),
+            y: getElementValue('alimentos-representanteNombre-y', 495),
+            fontSize: getElementValue('alimentos-representanteNombre-fontSize', 9.9),
+            bold: getElementChecked('alimentos-representanteNombre-bold', true),
+            color: [
+              getElementValue('alimentos-representanteNombre-color-r', 41),
+              getElementValue('alimentos-representanteNombre-color-g', 37),
+              getElementValue('alimentos-representanteNombre-color-b', 97),
+            ]
+          },
+          representanteRol: {
+            x: getElementValue('alimentos-representanteRol-x', 571),
+            y: getElementValue('alimentos-representanteRol-y', 513),
+            fontSize: getElementValue('alimentos-representanteRol-fontSize', 9.5),
+            bold: getElementChecked('alimentos-representanteRol-bold', false),
+            color: [
+              getElementValue('alimentos-representanteRol-color-r', 41),
+              getElementValue('alimentos-representanteRol-color-g', 37),
+              getElementValue('alimentos-representanteRol-color-b', 97),
+            ]
+          },
+          footer: {
+            x: getElementValue('alimentos-footer-x', 396),
+            y: getElementValue('alimentos-footer-y', 590),
+            fontSize: getElementValue('alimentos-footer-fontSize', 7),
+            bold: getElementChecked('alimentos-footer-bold', true),
+            color: [
+              getElementValue('alimentos-footer-color-r', 41),
+              getElementValue('alimentos-footer-color-g', 37),
+              getElementValue('alimentos-footer-color-b', 97),
+            ]
+          },
+          qr: {
+            x: getElementValue('alimentos-qr-x', 688),
+            y: getElementValue('alimentos-qr-y', 448.5),
+            size: getElementValue('alimentos-qr-size', 70),
+          }
+        },
+        sustancias: {
+          cursoNombre: {
+            x: getElementValue('sustancias-curso-x', 396),
+            y: getElementValue('sustancias-curso-y', 395),
+            fontSize: getElementValue('sustancias-curso-fontSize', 18),
+            bold: getElementChecked('sustancias-curso-bold', true),
+            color: [
+              getElementValue('sustancias-curso-color-r', 255),
+              getElementValue('sustancias-curso-color-g', 255),
+              getElementValue('sustancias-curso-color-b', 255),
+            ]
+          },
+          nombreEstudiante: {
+            x: getElementValue('sustancias-nombre-x', 396),
+            y: getElementValue('sustancias-nombre-y', 290),
+            fontSize: getElementValue('sustancias-nombre-fontSize', 18),
+            bold: getElementChecked('sustancias-nombre-bold', true),
+            color: [
+              getElementValue('sustancias-nombre-color-r', 41),
+              getElementValue('sustancias-nombre-color-g', 37),
+              getElementValue('sustancias-nombre-color-b', 97),
+            ]
+          },
+          documento: {
+            x: getElementValue('sustancias-documento-x', 370),
+            y: getElementValue('sustancias-documento-y', 320),
+            fontSize: getElementValue('sustancias-documento-fontSize', 18),
+            bold: getElementChecked('sustancias-documento-bold', false),
+          },
+          duracion: {
+            x: getElementValue('sustancias-duracion-x', 430),
+            y: getElementValue('sustancias-duracion-y', 422),
+            fontSize: getElementValue('sustancias-duracion-fontSize', 14),
+            bold: getElementChecked('sustancias-duracion-bold', false),
+          },
+          fechaEmision: {
+            x: getElementValue('sustancias-fechaEmision-x', 240),
+            y: getElementValue('sustancias-fechaEmision-y', 438),
+            fontSize: getElementValue('sustancias-fechaEmision-fontSize', 14),
+            bold: getElementChecked('sustancias-fechaEmision-bold', false),
+          },
+          fechaVencimiento: {
+            x: getElementValue('sustancias-fechaVencimiento-x', 500),
+            y: getElementValue('sustancias-fechaVencimiento-y', 438),
+            fontSize: getElementValue('sustancias-fechaEmision-fontSize', 14),
+            bold: getElementChecked('sustancias-fechaEmision-bold', false),
+          },
+          instructorFirma: {
+            x: getElementValue('sustancias-instructorFirma-x', 160),
+            y: getElementValue('sustancias-instructorFirma-y', 455),
+            width: getElementValue('sustancias-instructorFirma-width', 145),
+            height: getElementValue('sustancias-instructorFirma-height', 61),
+          },
+          instructorNombre: {
+            x: getElementValue('sustancias-instructorNombre-x', 160),
+            y: getElementValue('sustancias-instructorNombre-y', 505),
+            fontSize: getElementValue('sustancias-instructorNombre-fontSize', 10),
+            bold: getElementChecked('sustancias-instructorNombre-bold', true),
+            color: [
+              getElementValue('sustancias-instructorNombre-color-r', 41),
+              getElementValue('sustancias-instructorNombre-color-g', 37),
+              getElementValue('sustancias-instructorNombre-color-b', 97),
+            ]
+          },
+          instructorRol: {
+            x: getElementValue('sustancias-instructorRol-x', 160),
+            y: getElementValue('sustancias-instructorRol-y', 513),
+            fontSize: getElementValue('sustancias-instructorRol-fontSize', 9.5),
+            bold: getElementChecked('sustancias-instructorRol-bold', false),
+            lineSpacing: getElementValue('sustancias-instructorRol-lineSpacing', 12),
+            color: [
+              getElementValue('sustancias-instructorRol-color-r', 41),
+              getElementValue('sustancias-instructorRol-color-g', 37),
+              getElementValue('sustancias-instructorRol-color-b', 97),
+            ]
+          },
+          representanteFirma: {
+            x: getElementValue('sustancias-representanteFirma-x', 498.5),
+            y: getElementValue('sustancias-representanteFirma-y', 440),
+            width: getElementValue('sustancias-representanteFirma-width', 145),
+            height: getElementValue('sustancias-representanteFirma-height', 61),
+          },
+          representanteNombre: {
+            x: getElementValue('sustancias-representanteNombre-x', 490),
+            y: getElementValue('sustancias-representanteNombre-y', 505),
+            fontSize: getElementValue('sustancias-representanteNombre-fontSize', 9.9),
+            bold: getElementChecked('sustancias-representanteNombre-bold', true),
+            color: [
+              getElementValue('sustancias-representanteNombre-color-r', 41),
+              getElementValue('sustancias-representanteNombre-color-g', 37),
+              getElementValue('sustancias-representanteNombre-color-b', 97),
+            ]
+          },
+          representanteRol: {
+            x: getElementValue('sustancias-representanteRol-x', 520),
+            y: getElementValue('sustancias-representanteRol-y', 513),
+            fontSize: getElementValue('sustancias-representanteRol-fontSize', 9.5),
+            bold: getElementChecked('sustancias-representanteRol-bold', false),
+            color: [
+              getElementValue('sustancias-representanteRol-color-r', 41),
+              getElementValue('sustancias-representanteRol-color-g', 37),
+              getElementValue('sustancias-representanteRol-color-b', 97),
+            ]
+          },
+          footer: {
+            x: getElementValue('sustancias-footer-x', 396),
+            y: getElementValue('sustancias-footer-y', 590),
+            fontSize: getElementValue('sustancias-footer-fontSize', 7),
+            bold: getElementChecked('sustancias-footer-bold', true),
+            color: [
+              getElementValue('sustancias-footer-color-r', 41),
+              getElementValue('sustancias-footer-color-g', 37),
+              getElementValue('sustancias-footer-color-b', 97),
+            ]
+          },
+          qr: {
+            x: getElementValue('sustancias-qr-x', 688),
+            y: getElementValue('sustancias-qr-y', 448.5),
+            size: getElementValue('sustancias-qr-size', 70),
+          }
+        },
+        otros: {
+          cursoNombre: {
+            x: getElementValue('otros-curso-x', 396),
+            y: getElementValue('otros-curso-y', 395),
+            fontSize: getElementValue('otros-curso-fontSize', 18),
+            bold: getElementChecked('otros-curso-bold', true),
+            color: [
+              getElementValue('otros-curso-color-r', 255),
+              getElementValue('otros-curso-color-g', 255),
+              getElementValue('otros-curso-color-b', 255),
+            ]
+          },
+          nombreEstudiante: {
+            x: getElementValue('otros-nombre-x', 396),
+            y: getElementValue('otros-nombre-y', 290),
+            fontSize: getElementValue('otros-nombre-fontSize', 18),
+            bold: getElementChecked('otros-nombre-bold', true),
+            color: [
+              getElementValue('otros-nombre-color-r', 41),
+              getElementValue('otros-nombre-color-g', 37),
+              getElementValue('otros-nombre-color-b', 97),
+            ]
+          },
+          documento: {
+            x: getElementValue('otros-documento-x', 450),
+            y: getElementValue('otros-documento-y', 320),
+            fontSize: getElementValue('otros-documento-fontSize', 18),
+            bold: getElementChecked('otros-documento-bold', false),
+          },
+          duracion: {
+            x: getElementValue('otros-duracion-x', 445),
+            y: getElementValue('otros-duracion-y', 422),
+            fontSize: getElementValue('otros-duracion-fontSize', 14),
+            bold: getElementChecked('otros-duracion-bold', false),
+          },
+          fechaEmision: {
+            x: getElementValue('otros-fechaEmision-x', 250),
+            y: getElementValue('otros-fechaEmision-y', 437),
+            fontSize: getElementValue('otros-fechaEmision-fontSize', 14),
+            bold: getElementChecked('otros-fechaEmision-bold', false),
+          },
+          fechaVencimiento: {
+            x: getElementValue('otros-fechaVencimiento-x', 520),
+            y: getElementValue('otros-fechaVencimiento-y', 438),
+            fontSize: getElementValue('otros-fechaVencimiento-fontSize', 14),
+            bold: getElementChecked('otros-fechaVencimiento-bold', false),
+          },
+          qr: {
+            x: getElementValue('otros-qr-x', 689),
+            y: getElementValue('otros-qr-y', 449),
+            size: getElementValue('otros-qr-size', 70),
+          },
+          instructorFirma: {
+            x: getElementValue('otros-instructorFirma-x', 130),
+            y: getElementValue('otros-instructorFirma-y', 450),
+            width: getElementValue('otros-instructorFirma-width', 190),
+            height: getElementValue('otros-instructorFirma-height', 80),
+          },
+          instructorNombre: {
+            x: getElementValue('otros-instructorNombre-x', 150),
+            y: getElementValue('otros-instructorNombre-y', 505),
+            fontSize: getElementValue('otros-instructorNombre-fontSize', 10),
+            bold: getElementChecked('otros-instructorNombre-bold', true),
+            color: [
+              getElementValue('otros-instructorNombre-color-r', 41),
+              getElementValue('otros-instructorNombre-color-g', 37),
+              getElementValue('otros-instructorNombre-color-b', 97),
+            ]
+          },
+          instructorRol: {
+            x: getElementValue('otros-instructorRol-x', 150),
+            y: getElementValue('otros-instructorRol-y', 513),
+            fontSize: getElementValue('otros-instructorRol-fontSize', 9.5),
+            bold: getElementChecked('otros-instructorRol-bold', false),
+            lineSpacing: getElementValue('otros-instructorRol-lineSpacing', 12),
+            color: [
+              getElementValue('otros-instructorRol-color-r', 41),
+              getElementValue('otros-instructorRol-color-g', 37),
+              getElementValue('otros-instructorRol-color-b', 97),
+            ]
+          },
+          representanteFirma: {
+            x: getElementValue('otros-representanteFirma-x', 495),
+            y: getElementValue('otros-representanteFirma-y', 445),
+            width: getElementValue('otros-representanteFirma-width', 145),
+            height: getElementValue('otros-representanteFirma-height', 61),
+          },
+          representanteNombre: {
+            x: getElementValue('otros-representanteNombre-x', 485),
+            y: getElementValue('otros-representanteNombre-y', 505),
+            fontSize: getElementValue('otros-representanteNombre-fontSize', 9.9),
+            bold: getElementChecked('otros-representanteNombre-bold', true),
+            color: [
+              getElementValue('otros-representanteNombre-color-r', 41),
+              getElementValue('otros-representanteNombre-color-g', 37),
+              getElementValue('otros-representanteNombre-color-b', 97),
+            ]
+          },
+          representanteRol: {
+            x: getElementValue('otros-representanteRol-x', 515),
+            y: getElementValue('otros-representanteRol-y', 513),
+            fontSize: getElementValue('otros-representanteRol-fontSize', 9.5),
+            bold: getElementChecked('otros-representanteRol-bold', false),
+            color: [
+              getElementValue('otros-representanteRol-color-r', 41),
+              getElementValue('otros-representanteRol-color-g', 37),
+              getElementValue('otros-representanteRol-color-b', 97),
+            ]
+          },
+          footer: {
+            x: getElementValue('otros-footer-x', 396),
+            y: getElementValue('otros-footer-y', 590),
+            fontSize: getElementValue('otros-footer-fontSize', 7),
+            bold: getElementChecked('otros-footer-bold', true),
+            color: [
+              getElementValue('otros-footer-color-r', 41),
+              getElementValue('otros-footer-color-g', 37),
+              getElementValue('otros-footer-color-b', 97),
+            ]
+          }
+        }
+      };
+    }
+
+    function loadPDF() {
+      const hash = document.getElementById('hashInput').value.trim();
+
+      if (!hash) {
+        alert('Por favor ingresa un hash de certificado válido.');
+        return;
+      }
+
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(hash)) {
+        alert('El hash debe ser un UUID válido.');
+        return;
+      }
+
+      currentHash = hash;
+      updatePDF();
+    }
+
+    function updatePDF() {
+      if (!currentHash) return;
+
+      const config = getConfig();
+      const configJson = encodeURIComponent(JSON.stringify(config));
+      const timestamp = new Date().getTime();
+      const pdfUrl = `${baseUrl}/public/certificates/view/${currentHash}?config=${configJson}&t=${timestamp}`;
+
+      console.log('[PDF Editor] Actualizando PDF con config:', config);
+      console.log('[PDF Editor] Config JSON:', configJson);
+      console.log('[PDF Editor] URL completa:', pdfUrl);
+
+      // Mostrar loading
+      document.getElementById('loadingOverlay').classList.add('active');
+
+      // Forzar recarga del iframe limpiando primero el src
+      const iframe = document.getElementById('pdfViewer');
+      iframe.src = '';
+
+      // Pequeño delay para asegurar que el iframe se limpia completamente
+      setTimeout(() => {
+        iframe.src = pdfUrl;
+
+        // Ocultar loading después de un tiempo
+        iframe.onload = () => {
+          document.getElementById('loadingOverlay').classList.remove('active');
+        };
+
+        // Timeout de seguridad
+        setTimeout(() => {
+          document.getElementById('loadingOverlay').classList.remove('active');
+        }, 5000);
+      }, 100);
+    }
+
+    function reloadPDF() {
+      if (!currentHash) {
+        alert('Primero carga un certificado.');
+        return;
+      }
+      updatePDF();
+    }
+
+    function resetValues() {
+      if (confirm('¿Restaurar todos los valores por defecto?')) {
+        location.reload();
+      }
+    }
+
+    function toggleAutoRefresh() {
+      const checkbox = document.getElementById('autoRefresh');
+
+      if (checkbox.checked) {
+        startAutoRefresh();
+      } else {
+        stopAutoRefresh();
+      }
+    }
+
+    function startAutoRefresh() {
+      stopAutoRefresh();
+      autoRefreshInterval = setInterval(() => {
+        if (currentHash) {
+          updatePDF();
+        } else {
+          stopAutoRefresh();
+        }
+      }, 3000);
+    }
+
+    function stopAutoRefresh() {
+      if (autoRefreshInterval) {
+        clearInterval(autoRefreshInterval);
+        autoRefreshInterval = null;
+      }
+    }
+
+    window.addEventListener('beforeunload', () => {
+      stopAutoRefresh();
+    });
+
+    async function saveToDatabase() {
+      const token = document.getElementById('jwtToken').value.trim();
+      
+      if (!token) {
+        alert('Por favor ingresa tu token JWT para guardar en la base de datos.');
+        return;
+      }
+
+      const config = getConfig();
+      const saveButton = document.querySelector('.btn-save');
+      const originalText = saveButton.textContent;
+      
+      try {
+        saveButton.disabled = true;
+        saveButton.textContent = '💾 Guardando...';
+
+        // Primero, obtener el formato activo
+        const activeResponse = await fetch(`${baseUrl}/certificate-formats/active`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        let formatId = null;
+        if (activeResponse.ok) {
+          const activeFormat = await activeResponse.json();
+          if (activeFormat && activeFormat.id) {
+            formatId = activeFormat.id;
+          }
+        }
+
+        // Preparar el payload según el tab activo
+        let updatePayload = {};
+        if (activeTab === 'alimentos') {
+          updatePayload = {
+            configAlimentos: config.alimentos,
+            activo: true,
+          };
+        } else if (activeTab === 'sustancias') {
+          updatePayload = {
+            configSustancias: config.sustancias,
+            activo: true,
+          };
+        } else if (activeTab === 'otros') {
+          updatePayload = {
+            configOtros: config.otros,
+            activo: true,
+          };
+        }
+
+        let response;
+        if (formatId) {
+          // Actualizar formato existente
+          response = await fetch(`${baseUrl}/certificate-formats/${formatId}`, {
+            method: 'PATCH',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(updatePayload),
+          });
+        } else {
+          // Crear nuevo formato
+          const createPayload = {
+            tipo: activeTab === 'alimentos' ? 'ALIMENTOS' : 
+                  activeTab === 'sustancias' ? 'SUSTANCIAS' : 'OTROS',
+            ...updatePayload,
+            activo: true,
+          };
+          response = await fetch(`${baseUrl}/certificate-formats`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(createPayload),
+          });
+        }
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({ message: 'Error desconocido' }));
+          throw new Error(errorData.message || `Error ${response.status}: ${response.statusText}`);
+        }
+
+        const result = await response.json();
+        alert(`✅ Configuración de "${activeTab}" guardada exitosamente en la base de datos!`);
+        console.log('Configuración guardada:', result);
+      } catch (error) {
+        console.error('Error al guardar en BD:', error);
+        alert(`❌ Error al guardar: ${error.message}\n\nVerifica que:\n- El token JWT sea válido\n- Tengas permisos de administrador\n- El servidor esté disponible`);
+      } finally {
+        saveButton.disabled = false;
+        saveButton.textContent = originalText;
+      }
+    }
+  </script>
+</body>
+
+</html>
