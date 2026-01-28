@@ -11,6 +11,7 @@ import {
   PdfConfig,
   CertificateData,
   CertificateTypeFlags,
+  DynamicDataConfig,
 } from '../types/pdf-config.interface';
 
 // Constants
@@ -137,6 +138,8 @@ export class PdfGeneratorService {
       estudiante,
       capacitacion,
       certificado,
+      configWithDefaults,
+      certificateTypes,
     );
 
     // Renderizar contenido según el tipo de certificado
@@ -263,6 +266,8 @@ export class PdfGeneratorService {
     estudiante: any,
     capacitacion: any,
     certificado: Certificado,
+    config?: PdfConfig,
+    certificateTypes?: CertificateTypeFlags,
   ): CertificateData {
     const nombreCompleto: string =
       estudiante?.nombres && estudiante?.apellidos
@@ -282,10 +287,28 @@ export class PdfGeneratorService {
         certificado.fechaVencimiento,
       );
 
-    const certificateTypes = determineCertificateTypes(capacitacion);
+    // Usar certificateTypes si se proporciona, si no, determinarlo
+    const types = certificateTypes || determineCertificateTypes(capacitacion);
+
+    // Obtener datos dinámicos de la configuración según el tipo de certificado
+    let dynamicData: DynamicDataConfig | undefined = undefined;
+    if (config) {
+      if (types.usarConfigAlimentos && config.alimentos?.dataDinamica) {
+        dynamicData = config.alimentos.dataDinamica;
+      } else if (
+        types.usarConfigSustancias &&
+        config.sustancias?.dataDinamica
+      ) {
+        dynamicData = config.sustancias.dataDinamica;
+      } else if (config.otros?.dataDinamica) {
+        dynamicData = config.otros.dataDinamica;
+      }
+    }
+
     const duration: string = getDuration(
-      certificateTypes.isCesaroto,
-      certificateTypes.isAlimentos,
+      types.isCesaroto,
+      types.isAlimentos,
+      dynamicData,
     );
 
     const result: CertificateData = {

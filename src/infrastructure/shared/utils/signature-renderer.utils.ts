@@ -1,6 +1,10 @@
 import { jsPDF } from 'jspdf';
 import { existsSync } from 'fs';
-import { PdfConfig, CertificateTypeFlags } from '../types/pdf-config.interface';
+import {
+  PdfConfig,
+  CertificateTypeFlags,
+  DynamicDataConfig,
+} from '../types/pdf-config.interface';
 import { DEFAULT_VALUES } from '../constants/pdf.constants';
 import { loadImageAsDataUrl } from './image.utils';
 import {
@@ -9,6 +13,17 @@ import {
 } from './certificate.utils';
 import { getCertificateConfig, getImageConfig } from './config-helpers.utils';
 import { renderPersonName, renderRole } from './text-renderer.utils';
+
+/**
+ * Obtiene los datos dinámicos de la configuración según el tipo de certificado
+ */
+function getDynamicData(
+  config: PdfConfig | undefined,
+  certificateTypes: CertificateTypeFlags,
+): DynamicDataConfig | undefined {
+  const certificateConfig = getCertificateConfig(config, certificateTypes);
+  return certificateConfig?.dataDinamica;
+}
 
 /**
  * Renderiza la imagen de una firma en el PDF
@@ -58,7 +73,9 @@ export async function renderInstructorSignature(
   const { isAlimentos, usarConfigAlimentos, usarConfigSustancias } =
     certificateTypes;
 
-  const instructorSig = getInstructorDetails(isAlimentos);
+  // Obtener datos dinámicos de la configuración
+  const dynamicData = getDynamicData(config, certificateTypes);
+  const instructorSig = getInstructorDetails(isAlimentos, dynamicData);
   const firmaConfig = getImageConfig(
     config,
     certificateTypes,
@@ -146,7 +163,9 @@ export async function renderRepresentativeSignature(
   const { isAlimentos, usarConfigAlimentos, usarConfigSustancias } =
     certificateTypes;
 
-  const repSig = getRepresentativeDetails(isAlimentos);
+  // Obtener datos dinámicos de la configuración
+  const dynamicData = getDynamicData(config, certificateTypes);
+  const repSig = getRepresentativeDetails(isAlimentos, dynamicData);
   const representanteFirmaConfig = getImageConfig(
     config,
     certificateTypes,
