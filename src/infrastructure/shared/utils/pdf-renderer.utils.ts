@@ -1,5 +1,9 @@
 import { jsPDF } from 'jspdf';
-import { PdfConfig, CertificateTypeFlags } from '../types/pdf-config.interface';
+import {
+  PdfConfig,
+  CertificateTypeFlags,
+  DynamicDataConfig,
+} from '../types/pdf-config.interface';
 import { DEFAULT_VALUES } from '../constants/pdf.constants';
 import { generateQRCodeImage } from './image.utils';
 import { getAllianceCompany } from './certificate.utils';
@@ -14,6 +18,17 @@ import {
   renderDocumentId,
 } from './text-renderer.utils';
 import { renderSignatures } from './signature-renderer.utils';
+
+/**
+ * Obtiene los datos dinámicos de la configuración según el tipo de certificado
+ */
+function getDynamicData(
+  config: PdfConfig | undefined,
+  certificateTypes: CertificateTypeFlags,
+): DynamicDataConfig | undefined {
+  const certificateConfig = getCertificateConfig(config, certificateTypes);
+  return certificateConfig?.dataDinamica;
+}
 
 /**
  * Renderiza duración y fechas en el PDF
@@ -299,7 +314,9 @@ export function renderFooter(
   doc.setFontSize(footerFontSize);
   doc.setTextColor(...footerColor);
 
-  const allianceCompany = getAllianceCompany(isAlimentos, isCesaroto);
+  // Obtener datos dinámicos para la empresa aliada
+  const dynamicData = getDynamicData(config, certificateTypes);
+  const allianceCompany = getAllianceCompany(isAlimentos, isCesaroto, dynamicData);
 
   // Construir el texto completo para calcular el ancho y dividir en líneas
   const footerText = `Certificado emitido por FORMAR360 en alianza con ${allianceCompany} La autenticidad de este documento puede verificarse escaneando el código QR.`;

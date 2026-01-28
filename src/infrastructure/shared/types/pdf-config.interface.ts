@@ -35,6 +35,33 @@ export interface QrConfig {
   size?: number;
 }
 
+/**
+ * Configuración de datos dinámicos para instructor
+ */
+export interface InstructorDynamicConfig {
+  nombre?: string; // Texto del nombre del instructor
+  rol?: string; // Texto del rol (puede incluir \n para multilínea)
+  firmaImagen?: string; // Nombre del archivo de firma (ej: 'firma_nini_pena.png')
+}
+
+/**
+ * Configuración de datos dinámicos para representante legal
+ */
+export interface RepresentanteDynamicConfig {
+  nombre?: string; // Texto del nombre del representante
+  firmaImagen?: string; // Nombre del archivo de firma (ej: 'firma_alfonso_velasco.png')
+}
+
+/**
+ * Configuración de datos dinámicos generales del certificado
+ */
+export interface DynamicDataConfig {
+  duracionHoras?: string; // Duración del curso en horas (ej: '10', '20', '60')
+  alianzaEmpresa?: string; // Nombre de la empresa aliada (ej: 'IPS CONFIANZA.', 'CEASAROTO.')
+  instructor?: InstructorDynamicConfig;
+  representante?: RepresentanteDynamicConfig;
+}
+
 export interface CertificateConfig {
   cursoNombre?: ElementConfig;
   nombreEstudiante?: ElementConfig;
@@ -50,6 +77,8 @@ export interface CertificateConfig {
   representanteFirma?: ImageConfig;
   qr?: QrConfig;
   footer?: ElementConfig;
+  // Datos dinámicos (textos editables)
+  dataDinamica?: DynamicDataConfig;
 }
 
 export interface CertificateConfigOtros extends CertificateConfig {
