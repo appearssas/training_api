@@ -12,9 +12,13 @@ import { CreateCertificateFormatDto } from '@/application/certificate-formats/dt
 import { UpdateCertificateFormatDto } from '@/application/certificate-formats/dto/update-certificate-format.dto';
 import { PUBLIC_ASSETS_PATH } from '../shared/constants/pdf.constants';
 
+/** TTL del caché de configuración activa (5 minutos) */
+const ACTIVE_CONFIG_CACHE_TTL_MS = 5 * 60 * 1000;
+
 @Injectable()
 export class CertificateFormatsService {
   private readonly backgroundsPath: string;
+  private activeConfigCache: { config: any; expiresAt: number } | null = null;
 
   constructor(
     private readonly repository: CertificateFormatsRepositoryAdapter,
@@ -32,7 +36,9 @@ export class CertificateFormatsService {
   }
 
   async create(createDto: CreateCertificateFormatDto): Promise<CertificateFormat> {
-    return await this.repository.create(createDto);
+    const result = await this.repository.create(createDto);
+    this.invalidateActiveConfigCache();
+    return result;
   }
 
   async findAll(): Promise<CertificateFormat[]> {
@@ -60,12 +66,15 @@ export class CertificateFormatsService {
     updateDto: UpdateCertificateFormatDto,
   ): Promise<CertificateFormat> {
     const format = await this.findOne(id);
-    return await this.repository.update(id, updateDto);
+    const result = await this.repository.update(id, updateDto);
+    this.invalidateActiveConfigCache();
+    return result;
   }
 
   async remove(id: number): Promise<void> {
-    const format = await this.findOne(id);
+    await this.findOne(id);
     await this.repository.remove(id);
+    this.invalidateActiveConfigCache();
   }
 
   /**
@@ -122,23 +131,45 @@ export class CertificateFormatsService {
 
     // Actualizar o crear el registro en la base de datos
     const relativePath = join('assets', fileName).replace(/\\/g, '/');
-    return await this.repository.updateBackgroundPath(tipo, relativePath);
+    const result = await this.repository.updateBackgroundPath(tipo, relativePath);
+    this.invalidateActiveConfigCache();
+    return result;
   }
 
   /**
-   * Obtiene la configuración activa como PdfConfig
+   * Obtiene la configuración activa como PdfConfig (con caché para PDF on-demand).
+   * Incluye datos de instructor y representante legal que cambian poco.
    */
   async getActiveConfig(): Promise<any> {
+    const now = Date.now();
+    if (
+      this.activeConfigCache &&
+      this.activeConfigCache.expiresAt > now
+    ) {
+      return this.activeConfigCache.config;
+    }
+
     const format = await this.repository.findActive();
     if (!format) {
+      this.activeConfigCache = null;
       return null;
     }
 
-    return {
+    const config = {
       alimentos: format.configAlimentos,
       sustancias: format.configSustancias,
       otros: format.configOtros,
     };
+    this.activeConfigCache = {
+      config,
+      expiresAt: now + ACTIVE_CONFIG_CACHE_TTL_MS,
+    };
+    return config;
+  }
+
+  /** Invalida el caché de configuración activa (llamar al actualizar formatos) */
+  invalidateActiveConfigCache(): void {
+    this.activeConfigCache = null;
   }
 
   /**

@@ -53,19 +53,6 @@ export class PublicCertificadosController {
       throw new NotFoundException('Certificado no encontrado');
     }
 
-    // Validar si la inscripción/capacitacion está cargada
-    // El repositorio ya debería traer todo con findByHashVerificacion (según vi en el adapter)
-    console.log('[Controller] Certificado encontrado:', {
-      id: certificate.id,
-      hash: certificate.hashVerificacion,
-      tieneInscripcion: !!certificate.inscripcion,
-      tieneCapacitacion: !!certificate.inscripcion?.capacitacion,
-      tieneEstudiante: !!certificate.inscripcion?.estudiante,
-      inscripcionId: certificate.inscripcion?.id,
-      capacitacionId: certificate.inscripcion?.capacitacion?.id,
-      estudianteId: certificate.inscripcion?.estudiante?.id,
-    });
-
     try {
       // Generar PDF en memoria (Buffer)
       const buffer = await this.pdfGenerator.generateCertificate(certificate);
