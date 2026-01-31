@@ -1,10 +1,24 @@
 import { readFileSync, existsSync } from 'fs';
 import { QrGeneratorService } from '../services/qr-generator.service';
 
+/** TTL del caché de imágenes (1 hora) - fondos y firmas cambian poco */
+const IMAGE_CACHE_TTL_MS = 60 * 60 * 1000;
+
+const imageCache = new Map<
+  string,
+  { dataUrl: string; expiresAt: number }
+>();
+
 /**
- * Carga una imagen y retorna su Data URL
+ * Carga una imagen y retorna su Data URL (con caché para fondos y firmas).
  */
 export async function loadImageAsDataUrl(imagePath: string): Promise<string> {
+  const now = Date.now();
+  const cached = imageCache.get(imagePath);
+  if (cached && cached.expiresAt > now) {
+    return cached.dataUrl;
+  }
+
   try {
     if (!existsSync(imagePath)) {
       throw new Error(`Image file not found: ${imagePath}`);
@@ -13,7 +27,6 @@ export async function loadImageAsDataUrl(imagePath: string): Promise<string> {
     const imageBuffer = readFileSync(imagePath);
     const base64 = imageBuffer.toString('base64');
 
-    // Determine MIME type from file extension
     const ext = imagePath.toLowerCase().split('.').pop();
     const mimeType =
       ext === 'png'
@@ -22,7 +35,12 @@ export async function loadImageAsDataUrl(imagePath: string): Promise<string> {
           ? 'image/jpeg'
           : 'image/png';
 
-    return `data:${mimeType};base64,${base64}`;
+    const dataUrl = `data:${mimeType};base64,${base64}`;
+    imageCache.set(imagePath, {
+      dataUrl,
+      expiresAt: now + IMAGE_CACHE_TTL_MS,
+    });
+    return dataUrl;
   } catch (error) {
     console.error('Error loading image:', error);
     throw error;

@@ -429,10 +429,8 @@ export class CertificadosRepositoryAdapter implements ICertificadosRepository {
 
   async findByHashVerificacion(hash: string): Promise<Certificado | null> {
     try {
-      console.log('[Repository] Buscando certificado con hash:', hash);
-
-      // Estrategia 1: Intentar con QueryBuilder primero
-      let certificado = await this.certificadoRepository
+      // Una sola query con todas las relaciones necesarias para el PDF (optimizado para descarga)
+      const certificado = await this.certificadoRepository
         .createQueryBuilder('certificado')
         .leftJoinAndSelect('certificado.inscripcion', 'inscripcion')
         .leftJoinAndSelect('inscripcion.estudiante', 'estudiante')
@@ -442,86 +440,7 @@ export class CertificadosRepositoryAdapter implements ICertificadosRepository {
         .where('certificado.hashVerificacion = :hash', { hash })
         .getOne();
 
-      // Logging para diagnóstico
-      if (certificado) {
-        console.log('[Repository] Certificado encontrado (QueryBuilder):', {
-          id: certificado.id,
-          hash: certificado.hashVerificacion,
-          tieneInscripcion: !!certificado.inscripcion,
-          inscripcionId: certificado.inscripcion?.id,
-          tieneCapacitacion: !!certificado.inscripcion?.capacitacion,
-          capacitacionId: certificado.inscripcion?.capacitacion?.id,
-          tieneEstudiante: !!certificado.inscripcion?.estudiante,
-          estudianteId: certificado.inscripcion?.estudiante?.id,
-        });
-
-        // Si la inscripción existe pero no tiene capacitación cargada, intentar recargarla
-        if (
-          certificado.inscripcion &&
-          !certificado.inscripcion.capacitacion &&
-          certificado.inscripcion.id
-        ) {
-          console.log(
-            '[Repository] Recargando inscripción con relaciones...',
-            certificado.inscripcion.id,
-          );
-          const inscripcionCompleta = await this.inscripcionRepository
-            .createQueryBuilder('inscripcion')
-            .leftJoinAndSelect('inscripcion.capacitacion', 'capacitacion')
-            .leftJoinAndSelect('inscripcion.estudiante', 'estudiante')
-            .leftJoinAndSelect('capacitacion.instructor', 'instructor')
-            .leftJoinAndSelect('capacitacion.tipoCapacitacion', 'tipoCapacitacion')
-            .where('inscripcion.id = :id', { id: certificado.inscripcion.id })
-            .getOne();
-
-          if (inscripcionCompleta) {
-            certificado.inscripcion = inscripcionCompleta;
-            console.log('[Repository] Inscripción recargada:', {
-              tieneCapacitacion: !!inscripcionCompleta.capacitacion,
-              capacitacionId: inscripcionCompleta.capacitacion?.id,
-            });
-          } else {
-            console.error(
-              '[Repository] No se pudo recargar la inscripción con ID:',
-              certificado.inscripcion.id,
-            );
-          }
-        }
-
-        // Si aún no tiene capacitación después del recargo, intentar con findOne
-        if (
-          certificado.inscripcion &&
-          !certificado.inscripcion.capacitacion &&
-          certificado.inscripcion.id
-        ) {
-          console.log(
-            '[Repository] Intentando estrategia alternativa con findOne...',
-          );
-          const certificadoAlternativo = await this.certificadoRepository.findOne(
-            {
-              where: { hashVerificacion: hash },
-              relations: [
-                'inscripcion',
-                'inscripcion.estudiante',
-                'inscripcion.capacitacion',
-                'inscripcion.capacitacion.instructor',
-                'inscripcion.capacitacion.tipoCapacitacion',
-              ],
-            },
-          );
-
-          if (
-            certificadoAlternativo?.inscripcion?.capacitacion
-          ) {
-            console.log(
-              '[Repository] Estrategia alternativa exitosa, usando certificado alternativo',
-            );
-            certificado = certificadoAlternativo;
-          }
-        }
-      }
-
-      return certificado;
+      return certificado ?? null;
     } catch (error) {
       console.error('[Repository] Error en findByHashVerificacion:', error);
       throw new InternalServerErrorException('Error al verificar el certificado');
