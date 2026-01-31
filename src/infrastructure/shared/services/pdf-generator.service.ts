@@ -1,7 +1,8 @@
 import { Injectable, Inject, forwardRef } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Certificado } from '@/entities/certificados/certificado.entity';
-import { existsSync, readFileSync } from 'fs';
+import { existsSync } from 'fs';
+import { loadImageAsDataUrl } from '../utils/image.utils';
 import { QrGeneratorService } from './qr-generator.service';
 import { jsPDF } from 'jspdf';
 import { CertificateFormatsService } from '../../certificate-formats/certificate-formats.service';
@@ -91,44 +92,29 @@ export class PdfGeneratorService {
     if (!configToUse && this.certificateFormatsService) {
       try {
         const dbConfig = await this.certificateFormatsService.getActiveConfig();
-        if (dbConfig) {
-          console.log(
-            '[PDF Generator] Configuración obtenida desde BD:',
-            dbConfig,
-          );
-          configToUse = dbConfig;
-        } else {
-          console.log(
-            '[PDF Generator] No hay configuración activa en BD, usando valores por defecto',
+        if (dbConfig) configToUse = dbConfig;
+      } catch (error) {
+        if (process.env.NODE_ENV !== 'production') {
+          console.warn(
+            '[PDF Generator] Error al obtener configuración desde BD:',
+            error,
           );
         }
-      } catch (error) {
-        console.warn(
-          '[PDF Generator] Error al obtener configuración desde BD:',
-          error,
-        );
-        console.log('[PDF Generator] Continuando con valores por defecto');
       }
     }
 
-    // Aplicar valores por defecto para la categoría "otros" si es necesario
     const configWithDefaults = getConfigWithDefaults(
       configToUse,
       certificateTypes,
     );
 
-    // Log de configuración
-    this.logConfiguration(configWithDefaults);
-
     const estudiante = inscripcion.estudiante as any;
 
-    // Crear el PDF
     const doc = this.createPdfDocument();
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
 
-    // Cargar fondo
-    this.loadBackground(doc, capacitacion, pageWidth, pageHeight);
+    await this.loadBackground(doc, capacitacion, pageWidth, pageHeight);
 
     // Configurar fuente
     doc.setFont('helvetica');
@@ -197,28 +183,6 @@ export class PdfGeneratorService {
     return this.outputPdfAsBuffer(doc);
   }
 
-  private logConfiguration(config?: PdfConfig): void {
-    if (config) {
-      console.log(
-        '[PDF Generator] Config recibida:',
-        JSON.stringify(config, null, 2),
-      );
-      console.log('[PDF Generator] Tipo de config:', typeof config);
-      console.log(
-        '[PDF Generator] Config.alimentos existe?',
-        !!config.alimentos,
-      );
-      console.log(
-        '[PDF Generator] Config.alimentos.cursoNombre existe?',
-        !!config.alimentos?.cursoNombre,
-      );
-    } else {
-      console.log(
-        '[PDF Generator] NO se recibió config, usando valores por defecto',
-      );
-    }
-  }
-
   private createPdfDocument(): jsPDF {
     return new jsPDF({
       unit: PDF_CONFIG.UNIT,
@@ -227,23 +191,16 @@ export class PdfGeneratorService {
     });
   }
 
-  private loadBackground(
+  private async loadBackground(
     doc: jsPDF,
     capacitacion: any,
     pageWidth: number,
     pageHeight: number,
-  ): void {
+  ): Promise<void> {
     try {
       const backgroundPath = getCertificateBackground(capacitacion);
-      console.log('[PDF Generator] Background path:', backgroundPath);
       if (existsSync(backgroundPath)) {
-        // Cargar PNG directamente (los fondos ahora son PNG, no SVG)
-        const pngBuffer = readFileSync(backgroundPath);
-        const bgImage = `data:image/png;base64,${pngBuffer.toString('base64')}`;
-
-        // @deprecated - La conversión SVG a PNG ya no es necesaria
-        // const bgImage = await svgToImage(backgroundPath, pageWidth, pageHeight);
-
+        const bgImage = await loadImageAsDataUrl(backgroundPath);
         doc.addImage(
           bgImage,
           'PNG',
@@ -254,11 +211,11 @@ export class PdfGeneratorService {
           undefined,
           'SLOW',
         );
-      } else {
-        console.warn(`[PDF Warning] Background not found: ${backgroundPath}`);
       }
     } catch (error) {
-      console.error('Error loading background:', error);
+      if (process.env.NODE_ENV !== 'production') {
+        console.error('Error loading background:', error);
+      }
     }
   }
 

@@ -211,15 +211,6 @@ export async function renderQRCode(
       const certificateConfig = getCertificateConfig(config, certificateTypes);
       const qrConfig = certificateConfig?.qr;
 
-      console.log('[PDF] QR Config Debug:', {
-        hasConfig: !!config,
-        hasCertificateConfig: !!certificateConfig,
-        hasQrConfig: !!qrConfig,
-        qrConfigValue: qrConfig,
-        usarConfigAlimentos,
-        usarConfigSustancias,
-      });
-
       const qrSize =
         qrConfig?.size !== undefined ? qrConfig.size : DEFAULT_VALUES.QR.SIZE;
       const qrX =
@@ -234,25 +225,6 @@ export async function renderQRCode(
           : usarConfigAlimentos || usarConfigSustancias
             ? DEFAULT_VALUES.QR.ALIMENTOS_POS.y
             : DEFAULT_VALUES.QR.OTROS_POS.y;
-
-      console.log(
-        '[PDF] QR - X:',
-        qrX,
-        'Y:',
-        qrY,
-        'size:',
-        qrSize,
-        'usarConfigAlimentos:',
-        usarConfigAlimentos,
-        'usarConfigSustancias:',
-        usarConfigSustancias,
-        'qrConfig.x:',
-        qrConfig?.x,
-        'qrConfig.y:',
-        qrConfig?.y,
-        'qrConfig.size:',
-        qrConfig?.size,
-      );
 
       doc.addImage(qrImage, 'PNG', qrX, qrY, qrSize, qrSize);
     }
@@ -301,15 +273,6 @@ export function renderFooter(
       ? footerConfig.fontSize
       : DEFAULT_VALUES.FONT_SIZES.TINY;
   const footerColor = footerConfig?.color ?? DEFAULT_VALUES.COLORS.BLUE_DARK;
-
-  console.log(
-    '[PDF] footer - X:',
-    footerX,
-    'Y:',
-    footerY,
-    'fontSize:',
-    footerFontSize,
-  );
 
   doc.setFontSize(footerFontSize);
   doc.setTextColor(...footerColor);
