@@ -87,6 +87,8 @@ export class PdfGeneratorService {
     const capacitacion = inscripcion.capacitacion as any;
     const certificateTypes = determineCertificateTypes(capacitacion);
 
+    console.log('certificateTypes', certificateTypes);
+
     // Si no se proporciona config, intentar obtenerla desde la base de datos
     let configToUse = config;
     if (!configToUse && this.certificateFormatsService) {

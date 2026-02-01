@@ -2369,9 +2369,16 @@ Licencia SST</textarea>
 
         let formatId = null;
         if (activeResponse.ok) {
-          const activeFormat = await activeResponse.json();
-          if (activeFormat && activeFormat.id) {
-            formatId = activeFormat.id;
+          const text = await activeResponse.text();
+          if (text && text.trim()) {
+            try {
+              const activeFormat = JSON.parse(text);
+              if (activeFormat && activeFormat.id) {
+                formatId = activeFormat.id;
+              }
+            } catch (e) {
+              // Respuesta vacía o no JSON (ej. cuando no hay formato activo)
+            }
           }
         }
 
@@ -2423,12 +2430,23 @@ Licencia SST</textarea>
           });
         }
 
+        const responseText = await response.text();
         if (!response.ok) {
-          const errorData = await response.json().catch(() => ({ message: 'Error desconocido' }));
+          let errorData = { message: 'Error desconocido' };
+          if (responseText && responseText.trim()) {
+            try {
+              errorData = JSON.parse(responseText);
+            } catch (e) {}
+          }
           throw new Error(errorData.message || `Error ${response.status}: ${response.statusText}`);
         }
 
-        const result = await response.json();
+        let result = null;
+        if (responseText && responseText.trim()) {
+          try {
+            result = JSON.parse(responseText);
+          } catch (e) {}
+        }
         alert(`✅ Configuración de "${activeTab}" guardada exitosamente en la base de datos!`);
         console.log('Configuración guardada:', result);
       } catch (error) {
