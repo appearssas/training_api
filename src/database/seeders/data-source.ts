@@ -18,7 +18,7 @@ export const AppDataSource = new DataSource({
   database: process.env.DATABASE_NAME || 'trainings_db',
   entities: ['src/**/*.entity{.ts,.js}'],
   synchronize: false,
-  logging: process.env.NODE_ENV === 'development',
+  logging: process.env.STAGE === 'dev',
   charset: 'utf8mb4',
   timezone: '+00:00',
 });

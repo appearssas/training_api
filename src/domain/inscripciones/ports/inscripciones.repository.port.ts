@@ -50,4 +50,9 @@ export interface IInscripcionesRepository {
     estudianteId: number,
     capacitacionId: number,
   ): Promise<boolean>;
+
+  /**
+   * Obtiene todas las inscripciones de un estudiante (sin paginación, para uso admin)
+   */
+  findAllByEstudiante(estudianteId: number): Promise<Inscripcion[]>;
 }

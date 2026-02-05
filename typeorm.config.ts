@@ -15,7 +15,7 @@ export const AppDataSource = new DataSource({
   entities: ['src/**/*.entity{.ts,.js}'],
   migrations: ['src/migrations/[0-9]*-*.ts'],
   synchronize: false,
-  logging: process.env.NODE_ENV === 'development',
+  logging: process.env.STAGE === 'dev',
   charset: 'utf8mb4',
   timezone: '+00:00',
 });

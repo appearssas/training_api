@@ -27,8 +27,8 @@ RUN apk add --no-cache fontconfig
 RUN addgroup -g 1001 -S nodejs && \
   adduser -S nestjs -u 1001
 
-# Set NODE_ENV to production
-ENV NODE_ENV=production
+# Entorno de ejecución: prod | dev
+ENV STAGE=prod
 
 # Copiar package.json y yarn.lock
 COPY package.json yarn.lock ./
