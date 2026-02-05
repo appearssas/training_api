@@ -5,18 +5,17 @@ export class CreateConfiguracionSesionTable1768595691527 implements MigrationInt
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     // Verificar si la tabla ya existe (el alias puede llegar como count o COUNT según el driver)
-    const [tableRow] = await queryRunner.query<
-      { count?: number; COUNT?: number }[]
-    >(`
+    const tableResult = await queryRunner.query(`
             SELECT COUNT(*) as count
             FROM information_schema.tables
             WHERE table_schema = DATABASE()
             AND table_name = 'configuracion_sesion'
         `);
+    const tableRow = Array.isArray(tableResult) ? tableResult[0] : tableResult;
     const tableCount = Number(
-      tableRow?.count ??
-        tableRow?.COUNT ??
-        Object.values(tableRow || {})[0] ??
+      (tableRow as Record<string, unknown>)?.count ??
+        (tableRow as Record<string, unknown>)?.COUNT ??
+        Object.values((tableRow as Record<string, unknown>) || {})[0] ??
         0,
     );
 
@@ -37,17 +36,19 @@ export class CreateConfiguracionSesionTable1768595691527 implements MigrationInt
     }
 
     // Verificar si la foreign key ya existe (mismo criterio con el alias)
-    const [fkRow] = await queryRunner.query<
-      { count?: number; COUNT?: number }[]
-    >(`
+    const fkResult = await queryRunner.query(`
             SELECT COUNT(*) as count
             FROM information_schema.table_constraints
             WHERE table_schema = DATABASE()
             AND table_name = 'configuracion_sesion'
             AND constraint_name = 'FK_configuracion_sesion_creado_por'
         `);
+    const fkRow = Array.isArray(fkResult) ? fkResult[0] : fkResult;
     const fkCount = Number(
-      fkRow?.count ?? fkRow?.COUNT ?? Object.values(fkRow || {})[0] ?? 0,
+      (fkRow as Record<string, unknown>)?.count ??
+        (fkRow as Record<string, unknown>)?.COUNT ??
+        Object.values((fkRow as Record<string, unknown>) || {})[0] ??
+        0,
     );
 
     if (fkCount === 0) {
