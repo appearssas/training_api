@@ -31,8 +31,7 @@ services:
     env_file:
       - .env
     environment:
-      - NODE_ENV=${NODE_ENV:-development}
-      - STAGE=dev
+      - STAGE=${STAGE:-dev}
       - DATABASE_HOST=db
       - DATABASE_PORT=3306
       - DATABASE_USER=${DATABASE_USER:-root}

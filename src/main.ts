@@ -5,7 +5,7 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { join } from 'path';
 
-const isProduction = process.env.NODE_ENV === 'production';
+const isProduction = process.env.STAGE === 'prod';
 const enableSwagger = process.env.ENABLE_SWAGGER === 'true' || !isProduction;
 
 async function bootstrap() {

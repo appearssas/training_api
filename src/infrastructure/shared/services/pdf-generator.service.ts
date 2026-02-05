@@ -96,7 +96,7 @@ export class PdfGeneratorService {
         const dbConfig = await this.certificateFormatsService.getActiveConfig();
         if (dbConfig) configToUse = dbConfig;
       } catch (error) {
-        if (process.env.NODE_ENV !== 'production') {
+        if (process.env.STAGE !== 'prod') {
           console.warn(
             '[PDF Generator] Error al obtener configuración desde BD:',
             error,
@@ -215,7 +215,7 @@ export class PdfGeneratorService {
         );
       }
     } catch (error) {
-      if (process.env.NODE_ENV !== 'production') {
+      if (process.env.STAGE !== 'prod') {
         console.error('Error loading background:', error);
       }
     }
