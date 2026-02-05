@@ -75,7 +75,11 @@ export class DashboardService {
   private async getActiveCourses() {
     const now = new Date();
     const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    const previousMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const previousMonthStart = new Date(
+      now.getFullYear(),
+      now.getMonth() - 1,
+      1,
+    );
 
     // Cursos activos (publicados y que no han terminado)
     const total = await this.capacitacionRepository.count({
@@ -101,9 +105,10 @@ export class DashboardService {
       },
     });
 
-    const variation = previousMonth > 0 
-      ? Math.round(((currentMonth - previousMonth) / previousMonth) * 100)
-      : 0;
+    const variation =
+      previousMonth > 0
+        ? Math.round(((currentMonth - previousMonth) / previousMonth) * 100)
+        : 0;
 
     return { value: total, variation };
   }
@@ -111,14 +116,18 @@ export class DashboardService {
   private async getEnrolledUsers() {
     const now = new Date();
     const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    const previousMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const previousMonthStart = new Date(
+      now.getFullYear(),
+      now.getMonth() - 1,
+      1,
+    );
 
     // Total de usuarios inscritos activos
     const result = await this.inscripcionRepository
       .createQueryBuilder('inscripcion')
       .select('COUNT(DISTINCT inscripcion.estudiante_id)', 'count')
-      .where('inscripcion.estado IN (:...estados)', { 
-        estados: [EstadoInscripcion.INSCRITO, EstadoInscripcion.EN_PROGRESO] 
+      .where('inscripcion.estado IN (:...estados)', {
+        estados: [EstadoInscripcion.INSCRITO, EstadoInscripcion.EN_PROGRESO],
       })
       .getRawOne();
 
@@ -128,7 +137,9 @@ export class DashboardService {
     const currentResult = await this.inscripcionRepository
       .createQueryBuilder('inscripcion')
       .select('COUNT(DISTINCT inscripcion.estudiante_id)', 'count')
-      .where('inscripcion.fechaInscripcion >= :start', { start: currentMonthStart })
+      .where('inscripcion.fechaInscripcion >= :start', {
+        start: currentMonthStart,
+      })
       .getRawOne();
 
     const currentMonth = parseInt(currentResult?.count || '0');
@@ -137,15 +148,20 @@ export class DashboardService {
     const previousResult = await this.inscripcionRepository
       .createQueryBuilder('inscripcion')
       .select('COUNT(DISTINCT inscripcion.estudiante_id)', 'count')
-      .where('inscripcion.fechaInscripcion >= :start', { start: previousMonthStart })
-      .andWhere('inscripcion.fechaInscripcion < :end', { end: currentMonthStart })
+      .where('inscripcion.fechaInscripcion >= :start', {
+        start: previousMonthStart,
+      })
+      .andWhere('inscripcion.fechaInscripcion < :end', {
+        end: currentMonthStart,
+      })
       .getRawOne();
 
     const previousMonth = parseInt(previousResult?.count || '0');
 
-    const variation = previousMonth > 0
-      ? Math.round(((currentMonth - previousMonth) / previousMonth) * 100)
-      : 0;
+    const variation =
+      previousMonth > 0
+        ? Math.round(((currentMonth - previousMonth) / previousMonth) * 100)
+        : 0;
 
     return { value: total, variation };
   }
@@ -155,7 +171,7 @@ export class DashboardService {
       .createQueryBuilder('inscripcion')
       .select('COUNT(*)', 'total')
       .addSelect(
-        "COUNT(CASE WHEN inscripcion.estado = :completo THEN 1 END)",
+        'COUNT(CASE WHEN inscripcion.estado = :completo THEN 1 END)',
         'completed',
       )
       .setParameters({ completo: EstadoInscripcion.COMPLETADO })
@@ -189,7 +205,11 @@ export class DashboardService {
   private async getCertificatesIssued() {
     const now = new Date();
     const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    const previousMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const previousMonthStart = new Date(
+      now.getFullYear(),
+      now.getMonth() - 1,
+      1,
+    );
 
     // Del mes actual
     const currentMonth = await this.certificadoRepository.count({
@@ -205,9 +225,10 @@ export class DashboardService {
       },
     });
 
-    const variation = previousMonth > 0
-      ? Math.round(((currentMonth - previousMonth) / previousMonth) * 100)
-      : 0;
+    const variation =
+      previousMonth > 0
+        ? Math.round(((currentMonth - previousMonth) / previousMonth) * 100)
+        : 0;
 
     return { value: currentMonth, variation };
   }
@@ -236,11 +257,11 @@ export class DashboardService {
       relations: ['modalidad'],
     });
 
-    return trainings.map((training) => {
+    return trainings.map(training => {
       const date = new Date(training.fechaInicio);
       const short = training.titulo
         .split(' ')
-        .map((w) => w[0])
+        .map(w => w[0])
         .join('')
         .substring(0, 2)
         .toUpperCase();
@@ -251,8 +272,14 @@ export class DashboardService {
       return {
         id: training.id,
         title: training.titulo,
-        date: date.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' }),
-        time: date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }),
+        date: date.toLocaleDateString('es-ES', {
+          day: '2-digit',
+          month: 'short',
+        }),
+        time: date.toLocaleTimeString('es-ES', {
+          hour: '2-digit',
+          minute: '2-digit',
+        }),
         duration: training.duracionHoras ? `${training.duracionHoras}h` : 'N/A',
         modality: training.modalidad?.nombre || 'Online',
         statusLabel,
@@ -282,7 +309,7 @@ export class DashboardService {
         .createQueryBuilder('inscripcion')
         .select('COUNT(*)', 'total')
         .addSelect(
-        "COUNT(CASE WHEN inscripcion.estado = :completo THEN 1 END)",
+          'COUNT(CASE WHEN inscripcion.estado = :completo THEN 1 END)',
           'completed',
         )
         .where('inscripcion.fechaInscripcion >= :start', { start: monthDate })
@@ -308,18 +335,22 @@ export class DashboardService {
     const now = new Date();
     const thirtyDaysLater = new Date();
     thirtyDaysLater.setDate(now.getDate() + 30);
-    
+
     const certificates = await this.certificadoRepository.find({
       where: {
         fechaVencimiento: Between(now, thirtyDaysLater),
       },
-      relations: ['inscripcion', 'inscripcion.estudiante', 'inscripcion.capacitacion'],
+      relations: [
+        'inscripcion',
+        'inscripcion.estudiante',
+        'inscripcion.capacitacion',
+      ],
       take: 5,
       order: {
         fechaVencimiento: 'ASC',
       },
     });
-    
+
     return certificates.map(cert => ({
       id: `cert-${cert.id}`,
       type: 'warning',
@@ -336,14 +367,18 @@ export class DashboardService {
       order: { fechaInscripcion: 'DESC' },
       take: 5,
     });
-    
+
     // 2. Últimos certificados
     const recentCertificates = await this.certificadoRepository.find({
-      relations: ['inscripcion', 'inscripcion.estudiante', 'inscripcion.capacitacion'],
+      relations: [
+        'inscripcion',
+        'inscripcion.estudiante',
+        'inscripcion.capacitacion',
+      ],
       order: { fechaEmision: 'DESC' },
       take: 5,
     });
-    
+
     const activities = [
       ...recentEnrollments.map(ins => ({
         id: `ins-${ins.id}`,
@@ -360,27 +395,31 @@ export class DashboardService {
         title: 'Certificado emitido',
         description: `Certificado emitido para ${cert.inscripcion?.estudiante?.nombres} ${cert.inscripcion?.estudiante?.apellidos || ''} en ${cert.inscripcion?.capacitacion?.titulo}`,
         timestamp: cert.fechaEmision,
-      }))
+      })),
     ];
-    
+
     // Ordenar combinado por fecha descendente
     return activities
-      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+      .sort(
+        (a, b) =>
+          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+      )
       .slice(0, 10)
       .map(activity => {
         // Calcular tiempo relativo simple
-        const diff = new Date().getTime() - new Date(activity.timestamp).getTime();
+        const diff =
+          new Date().getTime() - new Date(activity.timestamp).getTime();
         const hours = Math.floor(diff / (1000 * 60 * 60));
         const days = Math.floor(hours / 24);
-        
+
         let timeLabel = '';
         if (days > 0) timeLabel = `hace ${days} días`;
         else if (hours > 0) timeLabel = `hace ${hours} horas`;
         else timeLabel = 'hace unos momentos';
-        
+
         return {
           ...activity,
-          time: timeLabel
+          time: timeLabel,
         };
       });
   }
