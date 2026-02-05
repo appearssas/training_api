@@ -27,12 +27,22 @@ describe('DashboardService', () => {
       where: jest.fn().mockReturnThis(),
       andWhere: jest.fn().mockReturnThis(),
       leftJoin: jest.fn().mockReturnThis(),
+      leftJoinAndSelect: jest.fn().mockReturnThis(),
+      innerJoin: jest.fn().mockReturnThis(),
+      innerJoinAndSelect: jest.fn().mockReturnThis(),
       groupBy: jest.fn().mockReturnThis(),
       orderBy: jest.fn().mockReturnThis(),
-      limit: jest.fn().mockReturnThis(),
+      take: jest.fn().mockReturnThis(),
       setParameter: jest.fn().mockReturnThis(),
       setParameters: jest.fn().mockReturnThis(),
-      getRawOne: jest.fn().mockResolvedValue({ count: '0', total: '0', completed: '0', avg: '0' }),
+      getRawOne: jest
+        .fn()
+        .mockResolvedValue({
+          count: '0',
+          total: '0',
+          completed: '0',
+          avg: '0',
+        }),
       getRawMany: jest.fn().mockResolvedValue([]),
       getMany: jest.fn().mockResolvedValue([]),
       getCount: jest.fn().mockResolvedValue(0),
@@ -132,17 +142,22 @@ describe('DashboardService', () => {
 
       // Mock query builder results for various methods
       const inscripcionQB = inscripcionRepository.createQueryBuilder();
-      (inscripcionQB.getRawOne as jest.Mock).mockResolvedValue({ 
-        count: '100', 
-        total: '100', 
+      (inscripcionQB.getRawOne as jest.Mock).mockResolvedValue({
+        count: '100',
+        total: '100',
         completed: '50',
-        avg: '4.5'
+        avg: '4.5',
       });
 
       const resenaQB = resenaRepository.createQueryBuilder();
       (resenaQB.getRawMany as jest.Mock).mockResolvedValue([]);
 
-      const result = await service.getStats();
+      const mockUser = {
+        id: 1,
+        rolPrincipal: { codigo: 'ADMIN' },
+        persona: { empresaId: null },
+      } as any;
+      const result = await service.getStats(mockUser);
 
       expect(result).toBeDefined();
       expect(result.kpis).toBeDefined();

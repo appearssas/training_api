@@ -2,35 +2,46 @@
 
 Para que la API Nest funcione en un plan con **512 MB RAM** y **0.5 CPU**, sigue esta configuración.
 
-## Causa del error "JavaScript heap out of memory"
+---
 
-- **No uses** `yarn start` en producción: ese comando ejecuta `nest start`, que compila TypeScript en tiempo de ejecución y consume mucha más memoria.
-- Debes compilar en el **Build** y en el **Start** ejecutar solo el código ya compilado, con límite de heap.
+## ⚠️ Start Command (obligatorio)
 
-## Configuración en Render
-
-### Build Command
-
-```bash
-yarn install && yarn build
-```
-
-### Start Command
-
-Usa **uno** de estos:
-
-**Opción recomendada (heap limitado):**
+**En Render → tu servicio → Settings → Start Command** debe ser:
 
 ```bash
 yarn start:prod:low-memory
 ```
 
-**Opción alternativa (variable de entorno):**
+**No uses `yarn start`.** Si usas `yarn start`, Render ejecuta `nest start`, que compila TypeScript en tiempo de ejecución y provoca **JavaScript heap out of memory** (~252 MB de heap y crash). Con `yarn start:prod:low-memory` se ejecuta el código ya compilado (`node dist/src/main.js`) con límite de heap 384 MB.
 
-- Start Command: `yarn start:prod`
-- En **Environment** añade: `NODE_OPTIONS` = `--max-old-space-size=384`
+**Alternativa (misma idea):** Start Command `yarn start:prod` y en Environment la variable `NODE_OPTIONS` = `--max-old-space-size=384`.
 
-### Variables de entorno útiles
+---
+
+## Build Command
+
+**Con migraciones y seed:**
+
+```bash
+yarn install --production=false && yarn typeorm:migration:run && yarn seed && yarn build
+```
+
+**Solo build:**
+
+```bash
+yarn install --production=false && yarn build
+```
+
+(`--production=false` instala devDependencies necesarias para migraciones, seed y compilación.)
+
+---
+
+## Causa del error "JavaScript heap out of memory"
+
+- **No uses** `yarn start` en producción: ese comando ejecuta `nest start`, que compila TypeScript en tiempo de ejecución y consume mucha más memoria.
+- Debes compilar en el **Build** y en el **Start** ejecutar solo el código ya compilado, con límite de heap.
+
+## Variables de entorno útiles
 
 | Variable         | Valor             | Descripción                                                           |
 | ---------------- | ----------------- | --------------------------------------------------------------------- |
