@@ -41,7 +41,9 @@ export class CreateConductorExternoUseCase {
     }
 
     if (!createConductorExternoDto.email) {
-      throw new BadRequestException('El email es obligatorio para enviar las credenciales de acceso');
+      throw new BadRequestException(
+        'El email es obligatorio para enviar las credenciales de acceso',
+      );
     }
 
     // Verificar que el número de documento no esté en uso
@@ -50,16 +52,13 @@ export class CreateConductorExternoUseCase {
         createConductorExternoDto.numeroDocumento,
       );
     if (existingPersonaByDoc) {
-      throw new ConflictException(
-        'El número de documento ya está registrado',
-      );
+      throw new ConflictException('El número de documento ya está registrado');
     }
 
     // Verificar que el email no esté en uso
-    const existingPersonaByEmail =
-      await this.personasRepository.findByEmail(
-        createConductorExternoDto.email,
-      );
+    const existingPersonaByEmail = await this.personasRepository.findByEmail(
+      createConductorExternoDto.email,
+    );
     if (existingPersonaByEmail) {
       throw new ConflictException('El email ya está registrado');
     }
@@ -82,9 +81,8 @@ export class CreateConductorExternoUseCase {
     };
 
     // Crear conductor externo (persona + alumno + usuario con contraseña temporal)
-    const result = await this.personasRepository.createConductorExterno(
-      personaData,
-    );
+    const result =
+      await this.personasRepository.createConductorExterno(personaData);
 
     // Enviar email con credenciales temporales
     try {
@@ -99,10 +97,9 @@ export class CreateConductorExternoUseCase {
         `Credenciales temporales enviadas a ${result.persona.email}`,
       );
     } catch (error) {
-      // No fallar la creación si el email falla, solo loguear
-      // En producción, podrías querer lanzar un error o notificar al admin
+      const message = error instanceof Error ? error.message : String(error);
       this.logger.error(
-        `Error enviando email a ${result.persona.email}: ${error.message}`,
+        `Error enviando email a ${result.persona.email}: ${message}`,
       );
       this.logger.warn(
         `Credenciales generadas pero no enviadas por email. Username: ${result.usuario.username}, Password: ${result.passwordTemporal}`,
@@ -135,4 +132,3 @@ export class CreateConductorExternoUseCase {
     };
   }
 }
-
