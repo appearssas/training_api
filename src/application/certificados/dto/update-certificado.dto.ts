@@ -12,8 +12,25 @@ import { ApiPropertyOptional } from '@nestjs/swagger';
 /**
  * DTO para actualizar un certificado
  * Principalmente usado para certificados retroactivos (RF-25 a RF-31)
+ * y para edición de fechas de expedición y caducidad
  */
 export class UpdateCertificadoDto {
+  @ApiPropertyOptional({
+    description: 'Fecha de expedición del certificado (editable)',
+    example: '2024-12-01',
+  })
+  @IsOptional()
+  @IsDateString()
+  fechaEmision?: string;
+
+  @ApiPropertyOptional({
+    description: 'Fecha de caducidad del certificado',
+    example: '2025-12-01',
+  })
+  @IsOptional()
+  @IsDateString()
+  fechaVencimiento?: string;
+
   @ApiPropertyOptional({
     description: 'Fecha retroactiva de emisión (RF-26, RF-27)',
     example: '2024-12-01',
@@ -62,4 +79,3 @@ export class UpdateCertificadoDto {
   @IsString()
   urlCertificado?: string;
 }
-

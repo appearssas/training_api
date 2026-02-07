@@ -34,6 +34,7 @@ import { FindAllCertificadosUseCase } from '@/application/certificados/use-cases
 import { FindOneCertificadoUseCase } from '@/application/certificados/use-cases/find-one-certificado.use-case';
 import { FindByEstudianteCertificadosUseCase } from '@/application/certificados/use-cases/find-by-estudiante-certificados.use-case';
 import { UpdateCertificadoRetroactivoUseCase } from '@/application/certificados/use-cases/update-certificado-retroactivo.use-case';
+import { UpdateCertificadoUseCase } from '@/application/certificados/use-cases/update-certificado.use-case';
 import { RegenerateCertificatesUseCase } from '@/application/certificados/use-cases/regenerate-certificates.use-case';
 import { PaginationDto } from '@/application/shared/dto/pagination.dto';
 import * as fs from 'fs/promises';
@@ -60,6 +61,7 @@ export class CertificadosController {
     private readonly findOneCertificadoUseCase: FindOneCertificadoUseCase,
     private readonly findByEstudianteCertificadosUseCase: FindByEstudianteCertificadosUseCase,
     private readonly updateCertificadoRetroactivoUseCase: UpdateCertificadoRetroactivoUseCase,
+    private readonly updateCertificadoUseCase: UpdateCertificadoUseCase,
     private readonly configService: ConfigService,
     private readonly pdfGeneratorService: PdfGeneratorService,
     private readonly regenerateCertificatesUseCase: RegenerateCertificatesUseCase,
@@ -262,7 +264,7 @@ export class CertificadosController {
           await fs.access(filePath);
           found = true;
           break;
-        } catch (e) {
+        } catch {
           continue;
         }
       }
@@ -290,7 +292,7 @@ export class CertificadosController {
       try {
         const result = await this.findOneCertificadoUseCase.execute(id);
         return res.json(result);
-      } catch (error) {
+      } catch {
         throw new NotFoundException('Certificado no encontrado');
       }
     }
@@ -364,7 +366,7 @@ export class CertificadosController {
     const fileName = `certificado-${id}-${Date.now()}.pdf`;
 
     // Función auxiliar para enviar la respuesta
-    const sendFile = async (buffer: Buffer) => {
+    const sendFile = (buffer: Buffer) => {
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader(
         'Content-Disposition',
@@ -477,8 +479,49 @@ export class CertificadosController {
     return this.updateCertificadoRetroactivoUseCase.execute(
       id,
       updateDto,
-      user.id,
+      Number(user.id),
     );
+  }
+
+  @Patch(':id')
+  @Roles('ADMIN')
+  @ApiOperation({
+    summary: 'Editar fechas de un certificado',
+    description:
+      'Actualiza la fecha de expedición y/o fecha de caducidad del certificado. Solo ADMIN.',
+  })
+  @ApiParam({
+    name: 'id',
+    type: 'number',
+    description: 'ID del certificado',
+  })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        fechaEmision: { type: 'string', format: 'date', example: '2024-12-01' },
+        fechaVencimiento: {
+          type: 'string',
+          format: 'date',
+          example: '2025-12-01',
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Certificado actualizado exitosamente',
+  })
+  @ApiResponse({ status: 404, description: 'Certificado no encontrado' })
+  @ApiResponse({
+    status: 400,
+    description: 'Datos inválidos (ej. caducidad anterior a expedición)',
+  })
+  update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateDto: UpdateCertificadoDto,
+  ) {
+    return this.updateCertificadoUseCase.execute(id, updateDto);
   }
 
   @Delete(':id')
@@ -497,6 +540,7 @@ export class CertificadosController {
   })
   @ApiResponse({ status: 404, description: 'Certificado no encontrado' })
   remove(@Param('id', ParseIntPipe) id: number) {
+    void id; // reservado para futuro caso de uso de eliminación
     // TODO: Implementar caso de uso de eliminación si es necesario
     return {
       message:

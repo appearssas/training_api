@@ -17,6 +17,19 @@ import { UpdateCertificadoDto } from '@/application/certificados/dto/update-cert
 import { PaginationDto } from '@/application/shared/dto/pagination.dto';
 
 /**
+ * Parsea una cadena de solo fecha (YYYY-MM-DD) como mediodía UTC para que el día
+ * calendario se conserve al guardar/leer en cualquier zona (ej. America/Bogota).
+ * Evita que "2027-02-06" se guarde como 2027-02-05 por conversión a local.
+ */
+function parseDateOnly(dateStr: string): Date {
+  const trimmed = dateStr?.trim() ?? '';
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+    return new Date(trimmed + 'T12:00:00.000Z');
+  }
+  return new Date(dateStr);
+}
+
+/**
  * Adaptador del repositorio de Certificados
  * Implementa el puerto ICertificadosRepository usando TypeORM
  * Sigue principios SOLID: Dependency Inversion
@@ -30,29 +43,39 @@ export class CertificadosRepositoryAdapter implements ICertificadosRepository {
     private readonly inscripcionRepository: Repository<Inscripcion>,
   ) {}
 
-  async create(createCertificadoDto: CreateCertificadoDto): Promise<Certificado> {
+  async create(
+    createCertificadoDto: CreateCertificadoDto,
+  ): Promise<Certificado> {
     try {
       // Log para debugging: verificar qué inscripcionId se recibe en el repositorio
-      console.log('🔍 CertificadosRepositoryAdapter.create - inscripcionId recibido:', createCertificadoDto.inscripcionId);
-      
+      console.log(
+        '🔍 CertificadosRepositoryAdapter.create - inscripcionId recibido:',
+        createCertificadoDto.inscripcionId,
+      );
+
       // CORRECCIÓN: Cargar inscripción con todas las relaciones necesarias
       // Esto asegura que el certificado tenga acceso a los datos correctos de la capacitación
       // IMPORTANTE: Usar QueryBuilder para evitar problemas de caché de TypeORM
       const inscripcion = await this.inscripcionRepository
         .createQueryBuilder('inscripcion')
-        .where('inscripcion.id = :id', { id: createCertificadoDto.inscripcionId })
+        .where('inscripcion.id = :id', {
+          id: createCertificadoDto.inscripcionId,
+        })
         .leftJoinAndSelect('inscripcion.estudiante', 'estudiante')
         .leftJoinAndSelect('inscripcion.capacitacion', 'capacitacion')
         .leftJoinAndSelect('capacitacion.instructor', 'instructor')
         .leftJoinAndSelect('capacitacion.tipoCapacitacion', 'tipoCapacitacion')
         .getOne();
-      
+
       // Log para verificar qué inscripción se cargó
-      console.log('🔍 CertificadosRepositoryAdapter.create - inscripción cargada:', {
-        id: inscripcion?.id,
-        capacitacionId: inscripcion?.capacitacion?.id,
-        capacitacionTitulo: inscripcion?.capacitacion?.titulo,
-      });
+      console.log(
+        '🔍 CertificadosRepositoryAdapter.create - inscripción cargada:',
+        {
+          id: inscripcion?.id,
+          capacitacionId: inscripcion?.capacitacion?.id,
+          capacitacionTitulo: inscripcion?.capacitacion?.titulo,
+        },
+      );
 
       if (!inscripcion) {
         throw new NotFoundException(
@@ -67,11 +90,13 @@ export class CertificadosRepositoryAdapter implements ICertificadosRepository {
         );
       }
 
-      // Calcular fecha de emisión (puede ser retroactiva)
-      const fechaEmision = createCertificadoDto.esRetroactivo && createCertificadoDto.fechaRetroactiva
-        ? new Date(createCertificadoDto.fechaRetroactiva)
-        : new Date();
-      
+      // Calcular fecha de emisión (puede ser retroactiva). Usar parseDateOnly para evitar desfase por zona horaria (Bogotá).
+      const fechaEmision =
+        createCertificadoDto.esRetroactivo &&
+        createCertificadoDto.fechaRetroactiva
+          ? parseDateOnly(createCertificadoDto.fechaRetroactiva)
+          : new Date();
+
       // Calcular fecha de vencimiento: 1 año después de la fecha de emisión
       const fechaVencimiento = new Date(fechaEmision);
       fechaVencimiento.setFullYear(fechaVencimiento.getFullYear() + 1);
@@ -81,16 +106,20 @@ export class CertificadosRepositoryAdapter implements ICertificadosRepository {
       newCertificado.numeroCertificado = `CERT-${Date.now()}-${Math.random().toString(36).substring(7)}`;
       newCertificado.fechaAprobacionReal = new Date();
       newCertificado.fechaRetroactiva = createCertificadoDto.fechaRetroactiva
-        ? new Date(createCertificadoDto.fechaRetroactiva)
+        ? parseDateOnly(createCertificadoDto.fechaRetroactiva)
         : null;
-      newCertificado.esRetroactivo = createCertificadoDto.esRetroactivo ?? false;
-      newCertificado.justificacionRetroactiva = createCertificadoDto.justificacionRetroactiva || null;
+      newCertificado.esRetroactivo =
+        createCertificadoDto.esRetroactivo ?? false;
+      newCertificado.justificacionRetroactiva =
+        createCertificadoDto.justificacionRetroactiva || null;
       newCertificado.fechaVencimiento = fechaVencimiento;
-      newCertificado.hashVerificacion = (createCertificadoDto as any).hashVerificacion || null;
+      newCertificado.hashVerificacion =
+        (createCertificadoDto as any).hashVerificacion || null;
       newCertificado.codigoQr = (createCertificadoDto as any).codigoQr || null;
-      newCertificado.urlVerificacionPublica = (createCertificadoDto as any).urlVerificacionPublica || null;
+      newCertificado.urlVerificacionPublica =
+        (createCertificadoDto as any).urlVerificacionPublica || null;
       newCertificado.activo = true;
-      
+
       // Log para debugging: verificar datos antes de guardar
       console.log('📝 Creando certificado con datos:', {
         inscripcionId: inscripcion.id,
@@ -98,13 +127,16 @@ export class CertificadosRepositoryAdapter implements ICertificadosRepository {
         capacitacionTitulo: inscripcion.capacitacion?.titulo,
         fechaEmision: fechaEmision.toISOString(),
         fechaVencimiento: fechaVencimiento.toISOString(),
-        hashVerificacion: newCertificado.hashVerificacion ? 'presente' : 'ausente',
+        hashVerificacion: newCertificado.hashVerificacion
+          ? 'presente'
+          : 'ausente',
         codigoQr: newCertificado.codigoQr ? 'presente' : 'ausente',
-        urlVerificacionPublica: newCertificado.urlVerificacionPublica || 'ausente',
+        urlVerificacionPublica:
+          newCertificado.urlVerificacionPublica || 'ausente',
       });
 
       const saved = await this.certificadoRepository.save(newCertificado);
-      
+
       // CORRECCIÓN CRÍTICA: Recargar el certificado con todas las relaciones usando QueryBuilder
       // y luego asignar manualmente la inscripción cargada para evitar problemas de caché de TypeORM
       const certificadoConRelaciones = await this.certificadoRepository
@@ -116,25 +148,29 @@ export class CertificadosRepositoryAdapter implements ICertificadosRepository {
         .leftJoinAndSelect('capacitacion.tipoCapacitacion', 'tipoCapacitacion')
         .where('certificado.id = :id', { id: saved.id })
         .getOne();
-      
+
       // IMPORTANTE: Asignar directamente la inscripción cargada previamente con todas sus relaciones
       // Esto asegura que se use la capacitación correcta y evita problemas de caché de TypeORM
       if (certificadoConRelaciones) {
         certificadoConRelaciones.inscripcion = inscripcion;
       }
-      
+
       // Log para verificar que la capacitación se cargó correctamente
       if (certificadoConRelaciones) {
         console.log('✅ Certificado recargado con relaciones:', {
           certificadoId: certificadoConRelaciones.id,
-          capacitacionId: certificadoConRelaciones.inscripcion?.capacitacion?.id,
-          capacitacionTitulo: certificadoConRelaciones.inscripcion?.capacitacion?.titulo,
-          hashVerificacion: certificadoConRelaciones.hashVerificacion || 'ausente',
+          capacitacionId:
+            certificadoConRelaciones.inscripcion?.capacitacion?.id,
+          capacitacionTitulo:
+            certificadoConRelaciones.inscripcion?.capacitacion?.titulo,
+          hashVerificacion:
+            certificadoConRelaciones.hashVerificacion || 'ausente',
           codigoQr: certificadoConRelaciones.codigoQr ? 'presente' : 'ausente',
-          urlVerificacionPublica: certificadoConRelaciones.urlVerificacionPublica || 'ausente',
+          urlVerificacionPublica:
+            certificadoConRelaciones.urlVerificacionPublica || 'ausente',
         });
       }
-      
+
       return certificadoConRelaciones || saved;
     } catch (error: unknown) {
       if (error instanceof QueryFailedError) {
@@ -150,8 +186,14 @@ export class CertificadosRepositoryAdapter implements ICertificadosRepository {
     userContext?: CertificadosUserContext,
   ): Promise<any> {
     try {
-      const { page = 1, limit = 10, search, sortField, sortOrder, filters } =
-        pagination;
+      const {
+        page = 1,
+        limit = 10,
+        search,
+        sortField,
+        sortOrder,
+        filters,
+      } = pagination;
       const skip = (page - 1) * limit;
 
       // IMPORTANTE: Usar QueryBuilder con leftJoinAndSelect para forzar la carga de relaciones
@@ -191,7 +233,7 @@ export class CertificadosRepositoryAdapter implements ICertificadosRepository {
 
       // Filtro por estudiante (studentId)
       if (filters?.studentId) {
-        const studentId = parseInt(filters.studentId);
+        const studentId = parseInt(String(filters.studentId), 10);
         if (!isNaN(studentId)) {
           queryBuilder.andWhere('estudiante.id = :studentId', { studentId });
           console.log(`🔍 Filtrado por estudiante ID: ${studentId}`);
@@ -200,7 +242,7 @@ export class CertificadosRepositoryAdapter implements ICertificadosRepository {
 
       // Filtro por curso (courseId)
       if (filters?.courseId) {
-        const courseId = parseInt(filters.courseId);
+        const courseId = parseInt(String(filters.courseId), 10);
         if (!isNaN(courseId)) {
           queryBuilder.andWhere('capacitacion.id = :courseId', { courseId });
           console.log(`🔍 Filtrado por curso ID: ${courseId}`);
@@ -208,10 +250,14 @@ export class CertificadosRepositoryAdapter implements ICertificadosRepository {
       }
 
       // Filtro por estado (status): normalizar a minúsculas por si llega con otro formato
-      const status = filters?.status ? String(filters.status).toLowerCase().trim() : '';
+      const status = filters?.status
+        ? String(filters.status).toLowerCase().trim()
+        : '';
       if (status) {
         if (status === 'valid') {
-          queryBuilder.andWhere('certificado.activo = :activo', { activo: true });
+          queryBuilder.andWhere('certificado.activo = :activo', {
+            activo: true,
+          });
           queryBuilder.andWhere(
             '(certificado.fechaVencimiento IS NULL OR certificado.fechaVencimiento > :now)',
             { now: new Date() },
@@ -221,9 +267,13 @@ export class CertificadosRepositoryAdapter implements ICertificadosRepository {
           const hoy = new Date();
           hoy.setHours(23, 59, 59, 999);
           queryBuilder.andWhere('certificado.fechaVencimiento IS NOT NULL');
-          queryBuilder.andWhere('certificado.fechaVencimiento <= :hoy', { hoy });
+          queryBuilder.andWhere('certificado.fechaVencimiento <= :hoy', {
+            hoy,
+          });
         } else if (status === 'revoked') {
-          queryBuilder.andWhere('certificado.activo = :activo', { activo: false });
+          queryBuilder.andWhere('certificado.activo = :activo', {
+            activo: false,
+          });
         }
         console.log(`🔍 Filtrado por estado: ${status}`);
       }
@@ -255,7 +305,8 @@ export class CertificadosRepositoryAdapter implements ICertificadosRepository {
             certificadoId: cert.id,
             inscripcionId: cert.inscripcion?.id,
             capacitacionId: cert.inscripcion?.capacitacion?.id,
-            capacitacionTitulo: cert.inscripcion?.capacitacion?.titulo || 'NO DISPONIBLE',
+            capacitacionTitulo:
+              cert.inscripcion?.capacitacion?.titulo || 'NO DISPONIBLE',
           });
         });
       }
@@ -273,7 +324,9 @@ export class CertificadosRepositoryAdapter implements ICertificadosRepository {
       };
     } catch (error: unknown) {
       console.error('❌ Error en findAll certificados:', error);
-      throw new InternalServerErrorException('Error al obtener los certificados');
+      throw new InternalServerErrorException(
+        'Error al obtener los certificados',
+      );
     }
   }
 
@@ -297,7 +350,8 @@ export class CertificadosRepositoryAdapter implements ICertificadosRepository {
           certificadoId: certificado.id,
           inscripcionId: certificado.inscripcion?.id,
           capacitacionId: certificado.inscripcion?.capacitacion?.id,
-          capacitacionTitulo: certificado.inscripcion?.capacitacion?.titulo || 'NO DISPONIBLE',
+          capacitacionTitulo:
+            certificado.inscripcion?.capacitacion?.titulo || 'NO DISPONIBLE',
         });
       }
 
@@ -321,11 +375,13 @@ export class CertificadosRepositoryAdapter implements ICertificadosRepository {
         .where('inscripcion.id = :inscripcionId', { inscripcionId })
         .orderBy('certificado.fechaEmision', 'DESC')
         .getMany();
-      
+
       return certificados;
     } catch (error) {
       console.error(error);
-      throw new InternalServerErrorException('Error al obtener los certificados de la inscripción');
+      throw new InternalServerErrorException(
+        'Error al obtener los certificados de la inscripción',
+      );
     }
   }
 
@@ -358,13 +414,11 @@ export class CertificadosRepositoryAdapter implements ICertificadosRepository {
         );
       }
 
-      queryBuilder
-        .orderBy('certificado.fechaEmision', 'DESC')
-        .take(limit);
+      queryBuilder.orderBy('certificado.fechaEmision', 'DESC').take(limit);
 
       const certificados = await queryBuilder.getMany();
 
-      return certificados.map((cert) => ({
+      return certificados.map(cert => ({
         id: cert.id,
         hashVerificacion: cert.hashVerificacion || '',
         numeroCertificado: cert.numeroCertificado,
@@ -382,9 +436,18 @@ export class CertificadosRepositoryAdapter implements ICertificadosRepository {
     }
   }
 
-  async findByEstudiante(estudianteId: number, pagination?: PaginationDto): Promise<any> {
+  async findByEstudiante(
+    estudianteId: number,
+    pagination?: PaginationDto,
+  ): Promise<any> {
     try {
-      const { page = 1, limit = 10, search, sortField, sortOrder } = pagination || {};
+      const {
+        page = 1,
+        limit = 10,
+        search,
+        sortField,
+        sortOrder,
+      } = pagination || {};
       const skip = (page - 1) * limit;
 
       const queryBuilder = this.certificadoRepository
@@ -423,7 +486,9 @@ export class CertificadosRepositoryAdapter implements ICertificadosRepository {
       };
     } catch (error) {
       console.error(error);
-      throw new InternalServerErrorException('Error al obtener los certificados del estudiante');
+      throw new InternalServerErrorException(
+        'Error al obtener los certificados del estudiante',
+      );
     }
   }
 
@@ -443,7 +508,9 @@ export class CertificadosRepositoryAdapter implements ICertificadosRepository {
       return certificado ?? null;
     } catch (error) {
       console.error('[Repository] Error en findByHashVerificacion:', error);
-      throw new InternalServerErrorException('Error al verificar el certificado');
+      throw new InternalServerErrorException(
+        'Error al verificar el certificado',
+      );
     }
   }
 
@@ -460,16 +527,41 @@ export class CertificadosRepositoryAdapter implements ICertificadosRepository {
         throw new NotFoundException(`Certificado con ID ${id} no encontrado`);
       }
 
-      const updatedCertificado = {
-        ...certificado,
-        ...updateCertificadoDto,
-        fechaRetroactiva: updateCertificadoDto.fechaRetroactiva
-          ? new Date(updateCertificadoDto.fechaRetroactiva)
-          : certificado.fechaRetroactiva,
-      };
+      const updatedCertificado = { ...certificado };
+
+      if (updateCertificadoDto.fechaEmision !== undefined) {
+        updatedCertificado.fechaEmision = parseDateOnly(
+          updateCertificadoDto.fechaEmision,
+        );
+      }
+      if (updateCertificadoDto.fechaVencimiento !== undefined) {
+        updatedCertificado.fechaVencimiento = parseDateOnly(
+          updateCertificadoDto.fechaVencimiento,
+        );
+      }
+      if (updateCertificadoDto.fechaRetroactiva !== undefined) {
+        updatedCertificado.fechaRetroactiva =
+          updateCertificadoDto.fechaRetroactiva
+            ? parseDateOnly(updateCertificadoDto.fechaRetroactiva)
+            : null;
+      }
+      if (updateCertificadoDto.esRetroactivo !== undefined) {
+        updatedCertificado.esRetroactivo = updateCertificadoDto.esRetroactivo;
+      }
+      if (updateCertificadoDto.justificacionRetroactiva !== undefined) {
+        updatedCertificado.justificacionRetroactiva =
+          updateCertificadoDto.justificacionRetroactiva ?? null;
+      }
+      if (updateCertificadoDto.emitidoPor !== undefined) {
+        (updatedCertificado as any).emitidoPor =
+          updateCertificadoDto.emitidoPor;
+      }
+      if (updateCertificadoDto.urlCertificado !== undefined) {
+        updatedCertificado.urlCertificado = updateCertificadoDto.urlCertificado;
+      }
 
       await this.certificadoRepository.save(updatedCertificado);
-      
+
       // IMPORTANTE: Recargar el certificado con todas las relaciones usando QueryBuilder
       const certificadoRecargado = await this.certificadoRepository
         .createQueryBuilder('certificado')
@@ -480,14 +572,16 @@ export class CertificadosRepositoryAdapter implements ICertificadosRepository {
         .leftJoinAndSelect('capacitacion.tipoCapacitacion', 'tipoCapacitacion')
         .where('certificado.id = :id', { id })
         .getOne();
-      
-      return certificadoRecargado || updatedCertificado as Certificado;
+
+      return certificadoRecargado || (updatedCertificado as Certificado);
     } catch (error) {
       if (error instanceof NotFoundException) {
         throw error;
       }
       console.error(error);
-      throw new InternalServerErrorException('Error al actualizar el certificado');
+      throw new InternalServerErrorException(
+        'Error al actualizar el certificado',
+      );
     }
   }
 
@@ -507,8 +601,9 @@ export class CertificadosRepositoryAdapter implements ICertificadosRepository {
         throw error;
       }
       console.error(error);
-      throw new InternalServerErrorException('Error al eliminar el certificado');
+      throw new InternalServerErrorException(
+        'Error al eliminar el certificado',
+      );
     }
   }
 }
-
