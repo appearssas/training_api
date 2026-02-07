@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
+import { BullModule } from '@nestjs/bullmq';
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { JwtAuthGuard } from './infrastructure/shared/guards/jwt-auth.guard';
 import { AppController } from './app.controller';
@@ -26,6 +27,7 @@ import {
   ResenasModule,
   DocumentosLegalesModule,
   ConfiguracionSesionModule,
+  AssistantModule,
   GlobalExceptionFilter,
   CertificatesModule,
   PagosModule,
@@ -38,6 +40,23 @@ import {
       isGlobal: true,
       envFilePath: '.env',
     }),
+    // BullMQ (Redis): solo si REDIS_ENABLED=true; si no, el bulk se ejecuta en síncrono
+    ...(process.env.REDIS_ENABLED === 'true'
+      ? [
+          BullModule.forRootAsync({
+            useFactory: (config: ConfigService) => ({
+              connection: {
+                host: config.get<string>('REDIS_HOST', 'localhost'),
+                port: config.get<number>('REDIS_PORT', 6379),
+                ...(config.get<string>('REDIS_PASSWORD') && {
+                  password: config.get<string>('REDIS_PASSWORD'),
+                }),
+              },
+            }),
+            inject: [ConfigService],
+          }),
+        ]
+      : []),
     ScheduleModule.forRoot(),
     DatabaseModule,
     StorageModule,
@@ -61,6 +80,7 @@ import {
     ResenasModule,
     DocumentosLegalesModule,
     ConfiguracionSesionModule,
+    AssistantModule,
   ],
   controllers: [AppController],
   providers: [

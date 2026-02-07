@@ -22,3 +22,4 @@ export { StorageModule } from '@/infrastructure/shared/storage/storage.module';
 export { ResenasModule } from '@/infrastructure/resenas/resenas.module';
 export { DocumentosLegalesModule } from '@/infrastructure/documentos-legales/ocumentos-legales.module';
 export { ConfiguracionSesionModule } from '@/infrastructure/sesion/configuracion-sesion.module';
+export { AssistantModule } from '@/infrastructure/assistant/assistant.module';
