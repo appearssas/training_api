@@ -23,7 +23,9 @@ export class InscripcionesRepositoryAdapter implements IInscripcionesRepository 
     private readonly inscripcionRepository: Repository<Inscripcion>,
   ) {}
 
-  async create(createInscripcionDto: CreateInscripcionDto): Promise<Inscripcion> {
+  async create(
+    createInscripcionDto: CreateInscripcionDto,
+  ): Promise<Inscripcion> {
     try {
       const inscripcionData: any = {
         capacitacion: { id: createInscripcionDto.capacitacionId } as any,
@@ -37,20 +39,25 @@ export class InscripcionesRepositoryAdapter implements IInscripcionesRepository 
       }
 
       if (createInscripcionDto.fechaInicio) {
-        inscripcionData.fechaInicio = new Date(createInscripcionDto.fechaInicio);
+        inscripcionData.fechaInicio = new Date(
+          createInscripcionDto.fechaInicio,
+        );
       }
 
       const newInscripcion = this.inscripcionRepository.create(inscripcionData);
-      const savedInscripcion = await this.inscripcionRepository.save(newInscripcion);
+      const savedInscripcion =
+        await this.inscripcionRepository.save(newInscripcion);
 
       // Retornar la inscripción con sus relaciones
-      const inscripcionId = Array.isArray(savedInscripcion) 
-        ? savedInscripcion[0].id 
+      const inscripcionId = Array.isArray(savedInscripcion)
+        ? savedInscripcion[0].id
         : (savedInscripcion as Inscripcion).id;
-      
+
       const inscripcionCompleta = await this.findOne(inscripcionId);
       if (!inscripcionCompleta) {
-        throw new InternalServerErrorException('Error al recuperar la inscripción creada');
+        throw new InternalServerErrorException(
+          'Error al recuperar la inscripción creada',
+        );
       }
       return inscripcionCompleta;
     } catch (error: unknown) {
@@ -70,7 +77,14 @@ export class InscripcionesRepositoryAdapter implements IInscripcionesRepository 
 
   async findAll(pagination: PaginationDto): Promise<any> {
     try {
-      const { page = 1, limit = 10, search, sortField, sortOrder, filters } = pagination;
+      const {
+        page = 1,
+        limit = 10,
+        search,
+        sortField,
+        sortOrder,
+        filters,
+      } = pagination;
       const skip = (page - 1) * limit;
 
       const queryBuilder = this.inscripcionRepository
@@ -95,9 +109,12 @@ export class InscripcionesRepositoryAdapter implements IInscripcionesRepository 
           });
         }
         if (filters.capacitacionId) {
-          queryBuilder.andWhere('inscripcion.capacitacion_id = :capacitacionId', {
-            capacitacionId: filters.capacitacionId,
-          });
+          queryBuilder.andWhere(
+            'inscripcion.capacitacion_id = :capacitacionId',
+            {
+              capacitacionId: filters.capacitacionId,
+            },
+          );
         }
         if (filters.estudianteId) {
           queryBuilder.andWhere('inscripcion.estudiante_id = :estudianteId', {
@@ -127,7 +144,9 @@ export class InscripcionesRepositoryAdapter implements IInscripcionesRepository 
       };
     } catch (error: unknown) {
       console.error('Error fetching inscripciones:', error);
-      throw new InternalServerErrorException('Error al obtener las inscripciones');
+      throw new InternalServerErrorException(
+        'Error al obtener las inscripciones',
+      );
     }
   }
 
@@ -169,7 +188,9 @@ export class InscripcionesRepositoryAdapter implements IInscripcionesRepository 
       }
 
       if (updateInscripcionDto.progresoPorcentaje !== undefined) {
-        inscripcion.progresoPorcentaje = Number(updateInscripcionDto.progresoPorcentaje);
+        inscripcion.progresoPorcentaje = Number(
+          updateInscripcionDto.progresoPorcentaje,
+        );
       }
 
       if (updateInscripcionDto.fechaInicio !== undefined) {
@@ -177,18 +198,23 @@ export class InscripcionesRepositoryAdapter implements IInscripcionesRepository 
       }
 
       if (updateInscripcionDto.fechaFinalizacion !== undefined) {
-        inscripcion.fechaFinalizacion = new Date(updateInscripcionDto.fechaFinalizacion);
+        inscripcion.fechaFinalizacion = new Date(
+          updateInscripcionDto.fechaFinalizacion,
+        );
       }
 
       if (updateInscripcionDto.calificacionFinal !== undefined) {
-        inscripcion.calificacionFinal = Number(updateInscripcionDto.calificacionFinal);
+        inscripcion.calificacionFinal = Number(
+          updateInscripcionDto.calificacionFinal,
+        );
       }
 
       if (updateInscripcionDto.aprobado !== undefined) {
         inscripcion.aprobado = updateInscripcionDto.aprobado;
       }
 
-      const updatedInscripcion = await this.inscripcionRepository.save(inscripcion);
+      const updatedInscripcion =
+        await this.inscripcionRepository.save(inscripcion);
 
       // Retornar la inscripción actualizada con sus relaciones
       return this.findOne(updatedInscripcion.id) as Promise<Inscripcion>;
@@ -197,7 +223,9 @@ export class InscripcionesRepositoryAdapter implements IInscripcionesRepository 
         throw error;
       }
       console.error('Error updating inscripcion:', error);
-      throw new InternalServerErrorException('Error al actualizar la inscripción');
+      throw new InternalServerErrorException(
+        'Error al actualizar la inscripción',
+      );
     }
   }
 
@@ -217,7 +245,9 @@ export class InscripcionesRepositoryAdapter implements IInscripcionesRepository 
         throw error;
       }
       console.error('Error deleting inscripcion:', error);
-      throw new InternalServerErrorException('Error al eliminar la inscripción');
+      throw new InternalServerErrorException(
+        'Error al eliminar la inscripción',
+      );
     }
   }
 
@@ -237,7 +267,10 @@ export class InscripcionesRepositoryAdapter implements IInscripcionesRepository 
         .leftJoinAndSelect('capacitacion.modalidad', 'modalidad')
         .leftJoinAndSelect('capacitacion.instructor', 'instructor')
         .leftJoinAndSelect('capacitacion.evaluaciones', 'evaluaciones')
-        .leftJoinAndSelect('inscripcion.intentosEvaluacion', 'intentosEvaluacion')
+        .leftJoinAndSelect(
+          'inscripcion.intentosEvaluacion',
+          'intentosEvaluacion',
+        )
         .leftJoinAndSelect('intentosEvaluacion.evaluacion', 'intentoEvaluacion')
         .where('inscripcion.estudiante_id = :estudianteId', { estudianteId });
 
@@ -268,6 +301,27 @@ export class InscripcionesRepositoryAdapter implements IInscripcionesRepository 
     }
   }
 
+  async findAllByEstudiante(estudianteId: number): Promise<Inscripcion[]> {
+    try {
+      return await this.inscripcionRepository.find({
+        where: { estudiante: { id: estudianteId } },
+        relations: [
+          'estudiante',
+          'capacitacion',
+          'capacitacion.tipoCapacitacion',
+          'capacitacion.modalidad',
+          'pago',
+        ],
+        order: { fechaInscripcion: 'DESC' },
+      });
+    } catch (error: unknown) {
+      console.error('Error fetching all inscripciones by estudiante:', error);
+      throw new InternalServerErrorException(
+        'Error al obtener las inscripciones del estudiante',
+      );
+    }
+  }
+
   async findByCapacitacion(
     capacitacionId: number,
     pagination?: PaginationDto,
@@ -280,7 +334,9 @@ export class InscripcionesRepositoryAdapter implements IInscripcionesRepository 
         .createQueryBuilder('inscripcion')
         .leftJoinAndSelect('inscripcion.estudiante', 'estudiante')
         .leftJoinAndSelect('inscripcion.pago', 'pago')
-        .where('inscripcion.capacitacion_id = :capacitacionId', { capacitacionId });
+        .where('inscripcion.capacitacion_id = :capacitacionId', {
+          capacitacionId,
+        });
 
       // Ordenamiento
       if (sortField) {
@@ -323,7 +379,9 @@ export class InscripcionesRepositoryAdapter implements IInscripcionesRepository 
       return count > 0;
     } catch (error: unknown) {
       console.error('Error checking existing inscripcion:', error);
-      throw new InternalServerErrorException('Error al verificar inscripción existente');
+      throw new InternalServerErrorException(
+        'Error al verificar inscripción existente',
+      );
     }
   }
 }

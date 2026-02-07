@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const QRCode = require('qrcode');
+import QRCode from 'qrcode';
 import { ConfigService } from '@nestjs/config';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -37,25 +36,26 @@ export class QrGeneratorService {
    */
   generateVerificationUrlForQR(token: string): string {
     // Para el QR, necesitamos la URL completa para que funcione cuando se escanea
-    const isProd = process.env.NODE_ENV === 'production' || !!process.env.RENDER;
-    
+    const isProd = process.env.STAGE === 'prod' || !!process.env.RENDER;
+
     // Si estamos en producción, el fallback DEBE ser la URL de producción
     // Si estamos en local, el fallback DEBE ser localhost
     const prodFallback = 'https://training-dev.onrender.com';
     const localFallback = 'http://localhost:9000';
-    
+
     const defaultUrl = isProd ? prodFallback : localFallback;
 
-    let cleanBaseUrl = (this.configService.get<string>('FRONTEND_URL') || 
-                    this.configService.get<string>('PUBLIC_VERIFICATION_URL') || 
-                    this.configService.get<string>('APP_URL') || 
-                    defaultUrl);
+    let cleanBaseUrl =
+      this.configService.get<string>('FRONTEND_URL') ||
+      this.configService.get<string>('PUBLIC_VERIFICATION_URL') ||
+      this.configService.get<string>('APP_URL') ||
+      defaultUrl;
 
     if (cleanBaseUrl.includes('#')) {
       cleanBaseUrl = cleanBaseUrl.split('#')[0];
     }
     cleanBaseUrl = cleanBaseUrl.replace(/\/+$/, '');
-                    
+
     // Fix: Route confirmated by user on Render: BASE_URL/#/verify/TOKEN
     return `${cleanBaseUrl}/#/verify/${token}`;
   }
@@ -67,7 +67,7 @@ export class QrGeneratorService {
    */
   async generateQRCode(data: string): Promise<string> {
     try {
-      const qrCodeDataUrl = await QRCode.toDataURL(data, {
+      const qrCodeDataUrl: string = await QRCode.toDataURL(data, {
         errorCorrectionLevel: 'M',
         type: 'image/png',
         width: 300,
@@ -75,7 +75,8 @@ export class QrGeneratorService {
       });
       return qrCodeDataUrl;
     } catch (error) {
-      throw new Error(`Error al generar código QR: ${error.message}`);
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(`Error al generar código QR: ${message}`);
     }
   }
 
@@ -90,4 +91,3 @@ export class QrGeneratorService {
     return token;
   }
 }
-

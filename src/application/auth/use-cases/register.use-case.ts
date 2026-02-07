@@ -186,7 +186,7 @@ export class RegisterUseCase {
 
           if (documentosActivos.length > 0) {
             // Obtener los IDs de los documentos activos
-            const documentosIds = documentosActivos.map((doc) => doc.id);
+            const documentosIds = documentosActivos.map(doc => doc.id);
 
             // Aceptar todos los documentos activos
             await this.aceptarTerminosUseCase.execute(
@@ -224,9 +224,10 @@ export class RegisterUseCase {
             `✅ Email con credenciales enviado a ${registerDto.email} para usuario ${registerDto.numeroDocumento}`,
           );
         } catch (error) {
-          // No fallar el registro si falla el envío de email, solo loguearlo
+          const message =
+            error instanceof Error ? error.message : String(error);
           this.logger.error(
-            `⚠️ Error al enviar email de credenciales a ${registerDto.email}: ${error.message}`,
+            `⚠️ Error al enviar email de credenciales a ${registerDto.email}: ${message}`,
           );
           this.logger.warn(
             'El usuario fue creado exitosamente, pero no se pudo enviar el email con las credenciales.',

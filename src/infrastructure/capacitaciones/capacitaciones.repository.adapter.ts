@@ -109,7 +109,7 @@ export class CapacitacionesRepositoryAdapter implements ICapacitacionesRepositor
 
           // Validar que tenga al menos una opción correcta
           const tieneOpcionCorrecta = preguntaData.opciones.some(
-            (opcion) => opcion.esCorrecta,
+            opcion => opcion.esCorrecta,
           );
           if (!tieneOpcionCorrecta) {
             throw new BadRequestException(
@@ -155,7 +155,7 @@ export class CapacitacionesRepositoryAdapter implements ICapacitacionesRepositor
 
         const puntajeTotalCalculado = preguntasGuardadas.reduce(
           (sum, pregunta) => sum + Number(pregunta.puntaje || 0),
-          0
+          0,
         );
 
         // Actualizar el puntajeTotal de la evaluación con el valor calculado
@@ -229,19 +229,19 @@ export class CapacitacionesRepositoryAdapter implements ICapacitacionesRepositor
       const [data, total] = await queryBuilder.getManyAndCount();
 
       // Calcular promedio de calificaciones y mapear reseñas para cada capacitación
-      const dataWithRatings = data.map((capacitacion) => {
+      const dataWithRatings = data.map(capacitacion => {
         if (capacitacion.inscripciones) {
           // Mapear reseñas manteniendo referencia a su inscripción para acceder al estudiante
-          const todasLasResenas = capacitacion.inscripciones
-            .flatMap((inscripcion) => 
+          const todasLasResenas = capacitacion.inscripciones.flatMap(
+            inscripcion =>
               (inscripcion.resenas || [])
-                .filter((resena) => resena.activo !== false)
-                .map((resena) => ({
+                .filter(resena => resena.activo !== false)
+                .map(resena => ({
                   resena,
                   inscripcion, // Mantener referencia a la inscripción para acceder al estudiante
-                }))
-            );
-          
+                })),
+          );
+
           if (todasLasResenas.length > 0) {
             const sumaCalificaciones = todasLasResenas.reduce(
               (suma, item) => suma + item.resena.calificacion,
@@ -250,17 +250,17 @@ export class CapacitacionesRepositoryAdapter implements ICapacitacionesRepositor
             (capacitacion as any).promedioCalificacion = Number(
               (sumaCalificaciones / todasLasResenas.length).toFixed(2),
             );
-            
+
             // Agregar todas las reseñas a la capacitación para facilitar el acceso
-            (capacitacion as any).resenas = todasLasResenas.map((item) => ({
+            (capacitacion as any).resenas = todasLasResenas.map(item => ({
               id: item.resena.id,
               alumnoId: item.inscripcion?.estudiante?.id || null,
               calificacion: item.resena.calificacion,
               comentario: item.resena.comentario || null,
-              fechaCreacion: item.resena.fechaCreacion 
-                ? (typeof item.resena.fechaCreacion === 'string' 
-                    ? item.resena.fechaCreacion 
-                    : new Date(item.resena.fechaCreacion).toISOString())
+              fechaCreacion: item.resena.fechaCreacion
+                ? typeof item.resena.fechaCreacion === 'string'
+                  ? item.resena.fechaCreacion
+                  : new Date(item.resena.fechaCreacion).toISOString()
                 : new Date().toISOString(),
             }));
           } else {
@@ -346,16 +346,20 @@ export class CapacitacionesRepositoryAdapter implements ICapacitacionesRepositor
           'inscripciones.estudiante',
         ],
       });
-      
+
       // Ordenar manualmente las relaciones después de cargar
       if (result?.evaluaciones) {
         result.evaluaciones.sort((a, b) => (a.orden || 0) - (b.orden || 0));
-        result.evaluaciones.forEach((evaluacion) => {
+        result.evaluaciones.forEach(evaluacion => {
           if (evaluacion.preguntas) {
-            evaluacion.preguntas.sort((a, b) => (a.orden || 0) - (b.orden || 0));
-            evaluacion.preguntas.forEach((pregunta) => {
+            evaluacion.preguntas.sort(
+              (a, b) => (a.orden || 0) - (b.orden || 0),
+            );
+            evaluacion.preguntas.forEach(pregunta => {
               if (pregunta.opciones) {
-                pregunta.opciones.sort((a, b) => (a.orden || 0) - (b.orden || 0));
+                pregunta.opciones.sort(
+                  (a, b) => (a.orden || 0) - (b.orden || 0),
+                );
               }
             });
           }
@@ -395,13 +399,14 @@ export class CapacitacionesRepositoryAdapter implements ICapacitacionesRepositor
       }
       // #endregion
       return result;
-    } catch (error) {
+    } catch (error: unknown) {
       // #region agent log
       try {
-        const errorData: any = {
+        const err = error as Record<string, unknown>;
+        const errorData: Record<string, unknown> = {
           id,
-          errorName: error?.constructor?.name,
-          errorMessage: error?.message,
+          errorName: err?.constructor?.name,
+          errorMessage: error instanceof Error ? error.message : String(error),
           isQueryFailed: error instanceof QueryFailedError,
         };
         if (error instanceof QueryFailedError) {
@@ -413,7 +418,7 @@ export class CapacitacionesRepositoryAdapter implements ICapacitacionesRepositor
           errorData.sqlState = error.driverError?.sqlState;
           errorData.sqlMessage = error.driverError?.sqlMessage;
         }
-        if (error?.stack) {
+        if (error instanceof Error && error.stack) {
           errorData.stack = error.stack.split('\n').slice(0, 5).join('\n');
         }
         appendFileSync(

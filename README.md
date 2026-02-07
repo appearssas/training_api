@@ -176,7 +176,7 @@ DATABASE_USER=root
 DATABASE_PASSWORD=root
 DATABASE_NAME=trainings_db
 PORT=3000
-NODE_ENV=development
+STAGE=dev
 JWT_SECRET=your-super-secret-jwt-key-change-in-production
 JWT_EXPIRES_IN=24h
 ```

@@ -954,10 +954,11 @@ export class AuthController {
         email: body.email,
       };
     } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
       return {
         success: false,
         message: 'Error al enviar correo de prueba',
-        error: error.message,
+        error: message,
         email: body.email,
         detalles: {
           host: process.env.EMAIL_HOST || 'NO CONFIGURADO',

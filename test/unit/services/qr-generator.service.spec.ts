@@ -67,13 +67,11 @@ describe('QrGeneratorService', () => {
     });
 
     it('should use PUBLIC_VERIFICATION_URL as fallback', () => {
-      jest
-        .spyOn(configService, 'get')
-        .mockImplementation((key: string) => {
-          if (key === 'FRONTEND_URL') return undefined;
-          if (key === 'PUBLIC_VERIFICATION_URL') return 'https://fallback.com';
-          return undefined;
-        });
+      jest.spyOn(configService, 'get').mockImplementation((key: string) => {
+        if (key === 'FRONTEND_URL') return undefined;
+        if (key === 'PUBLIC_VERIFICATION_URL') return 'https://fallback.com';
+        return undefined;
+      });
       const token = 'test-token-123';
       const url = service.generateVerificationUrlForQR(token);
       expect(url).toBe('https://fallback.com/#/verify/test-token-123');
@@ -81,21 +79,22 @@ describe('QrGeneratorService', () => {
 
     it('should use default URL when no config is provided', () => {
       jest.spyOn(configService, 'get').mockReturnValue(undefined);
-      const originalEnv = process.env.NODE_ENV;
-      process.env.NODE_ENV = 'development';
-      
+      const originalStage = process.env.STAGE;
+      process.env.STAGE = 'dev';
+
       const token = 'test-token-123';
       const url = service.generateVerificationUrlForQR(token);
       expect(url).toContain('/#/verify/test-token-123');
-      
-      process.env.NODE_ENV = originalEnv;
+
+      process.env.STAGE = originalStage;
     });
   });
 
   describe('generateQRCode', () => {
     it('should generate QR code as base64 data URL', async () => {
       const QRCode = require('qrcode');
-      const mockDataUrl = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+      const mockDataUrl =
+        'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
       QRCode.toDataURL.mockResolvedValue(mockDataUrl);
 
       const data = 'https://example.com/verify/token';

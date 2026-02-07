@@ -1,8 +1,11 @@
 import {
   Controller,
+  Inject,
+  Optional,
   Get,
   Put,
   Delete,
+  Post,
   Param,
   Query,
   Body,
@@ -11,6 +14,9 @@ import {
   HttpStatus,
   ParseIntPipe,
 } from '@nestjs/common';
+import { InjectQueue } from '@nestjs/bullmq';
+import type { Queue } from 'bullmq';
+import type { QueueEvents } from 'bullmq';
 import {
   ApiTags,
   ApiOperation,
@@ -26,7 +32,13 @@ import { GetUsersUseCase } from '@/application/usuarios/use-cases/get-users.use-
 import { GetUserByIdUseCase } from '@/application/usuarios/use-cases/get-user-by-id.use-case';
 import { UpdateUserUseCase } from '@/application/usuarios/use-cases/update-user.use-case';
 import { DeleteUserUseCase } from '@/application/usuarios/use-cases/delete-user.use-case';
+import { CompleteUserTrainingsUseCase } from '@/application/usuarios/use-cases/complete-user-trainings.use-case';
+import { CompleteUserTrainingsBulkUseCase } from '@/application/usuarios/use-cases/complete-user-trainings-bulk.use-case';
 import { ListUsersDto } from '@/application/usuarios/dto/list-users.dto';
+import { CompleteUserTrainingsResponseDto } from '@/application/usuarios/dto/complete-user-trainings-response.dto';
+import { CompleteUserTrainingsBulkRequestDto } from '@/application/usuarios/dto/complete-user-trainings-bulk-request.dto';
+import { CompleteUserTrainingsBulkResponseDto } from '@/application/usuarios/dto/complete-user-trainings-bulk-response.dto';
+import { COMPLETE_TRAININGS_QUEUE } from './complete-trainings.processor';
 import { UpdateUserDto } from '@/application/usuarios/dto/update-user.dto';
 import {
   UserResponseDto,
@@ -44,6 +56,14 @@ export class UsuariosController {
     private readonly getUserByIdUseCase: GetUserByIdUseCase,
     private readonly updateUserUseCase: UpdateUserUseCase,
     private readonly deleteUserUseCase: DeleteUserUseCase,
+    private readonly completeUserTrainingsUseCase: CompleteUserTrainingsUseCase,
+    private readonly completeUserTrainingsBulkUseCase: CompleteUserTrainingsBulkUseCase,
+    @Optional()
+    @InjectQueue(COMPLETE_TRAININGS_QUEUE)
+    private readonly completeTrainingsQueue: Queue | null,
+    @Optional()
+    @Inject('COMPLETE_TRAININGS_QUEUE_EVENTS')
+    private readonly completeTrainingsQueueEvents: QueueEvents | null,
   ) {}
 
   @Get()
@@ -132,7 +152,8 @@ export class UsuariosController {
   })
   @ApiResponse({
     status: 403,
-    description: 'Acceso denegado - Se requiere rol de administrador (ADMIN) o cliente (CLIENTE)',
+    description:
+      'Acceso denegado - Se requiere rol de administrador (ADMIN) o cliente (CLIENTE)',
   })
   async findAll(
     @Query() listUsersDto: ListUsersDto,
@@ -146,7 +167,8 @@ export class UsuariosController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Obtener usuario por ID',
-    description: 'Obtiene los detalles de un usuario específico por su ID. Disponible para ADMIN y CLIENTE.',
+    description:
+      'Obtiene los detalles de un usuario específico por su ID. Disponible para ADMIN y CLIENTE.',
   })
   @ApiParam({ name: 'id', type: Number, example: 1 })
   @ApiResponse({
@@ -200,7 +222,8 @@ export class UsuariosController {
   })
   @ApiResponse({
     status: 403,
-    description: 'Acceso denegado - Se requiere rol de administrador (ADMIN) o cliente (CLIENTE)',
+    description:
+      'Acceso denegado - Se requiere rol de administrador (ADMIN) o cliente (CLIENTE)',
   })
   async findOne(
     @Param('id', ParseIntPipe) id: number,
@@ -284,13 +307,122 @@ export class UsuariosController {
   })
   @ApiResponse({
     status: 403,
-    description: 'Acceso denegado - Se requiere rol de administrador (ADMIN) o cliente (CLIENTE)',
+    description:
+      'Acceso denegado - Se requiere rol de administrador (ADMIN) o cliente (CLIENTE)',
   })
   async update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateUserDto: UpdateUserDto,
   ): Promise<UserResponseDto> {
     return await this.updateUserUseCase.execute(id, updateUserDto);
+  }
+
+  @Post('complete-trainings-bulk')
+  @Roles('ADMIN')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Completar capacitaciones de varios usuarios (solo ADMIN)',
+    description: `Acepta una lista de IDs de usuario y ejecuta el mismo flujo de "completar capacitaciones" para cada uno.
+Devuelve un resultado por usuario (inscripciones procesadas, mensaje y eventuales errores).
+Solo disponible para usuarios con rol **ADMIN**.`,
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Resultados por usuario (éxitos y errores).',
+    type: CompleteUserTrainingsBulkResponseDto,
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Body inválido (userIds vacío o no array de números)',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'No autorizado',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Acceso denegado - Solo rol ADMIN',
+  })
+  async completeTrainingsBulk(
+    @Body() dto: CompleteUserTrainingsBulkRequestDto,
+  ): Promise<CompleteUserTrainingsBulkResponseDto> {
+    if (this.completeTrainingsQueue && this.completeTrainingsQueueEvents) {
+      const job = await this.completeTrainingsQueue.add('bulk', {
+        userIds: dto.userIds,
+      });
+      const timeoutMs = 300_000; // 5 minutos para lotes grandes
+      const result = await job.waitUntilFinished(
+        this.completeTrainingsQueueEvents,
+        timeoutMs,
+      );
+      return result as CompleteUserTrainingsBulkResponseDto;
+    }
+    return this.completeUserTrainingsBulkUseCase.execute(dto.userIds);
+  }
+
+  @Post(':id/complete-trainings')
+  @Roles('ADMIN')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Completar capacitaciones del usuario (solo ADMIN)',
+    description: `Marca todas las capacitaciones del usuario como completadas y lo habilita para certificar.
+
+**Acciones realizadas por cada inscripción del usuario:**
+- Marca todas las lecciones como completadas (progreso 100 %).
+- Crea y finaliza un intento por cada evaluación del curso con respuestas correctas (única, múltiple y texto abierto).
+- Actualiza la inscripción: estado completado, aprobado y habilitado para certificado.
+
+Solo disponible para usuarios con rol **ADMIN**. El usuario debe tener una persona (estudiante) asociada.`,
+  })
+  @ApiParam({
+    name: 'id',
+    type: Number,
+    example: 1,
+    description: 'ID del usuario',
+  })
+  @ApiResponse({
+    status: 200,
+    description:
+      'Capacitaciones completadas. Devuelve cantidad de inscripciones procesadas y eventuales errores por inscripción.',
+    type: CompleteUserTrainingsResponseDto,
+    examples: {
+      exito: {
+        summary: 'Procesamiento exitoso',
+        value: {
+          userId: 1,
+          inscripcionesProcesadas: 3,
+          message: 'Se completaron 3 capacitación(es) para el usuario.',
+        },
+      },
+      conErrores: {
+        summary: 'Procesamiento con algunos errores',
+        value: {
+          userId: 1,
+          inscripcionesProcesadas: 2,
+          message: 'Se completaron 2 capacitación(es) para el usuario.',
+          errors: [
+            'Inscripción 5 (capacitación 2): No tienes intentos disponibles. Máximo permitido: 1',
+          ],
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Usuario no encontrado o sin persona (estudiante) asociada',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'No autorizado',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Acceso denegado - Solo rol ADMIN',
+  })
+  async completeTrainings(
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<CompleteUserTrainingsResponseDto> {
+    return await this.completeUserTrainingsUseCase.execute(id);
   }
 
   @Delete(':id')
@@ -334,7 +466,8 @@ export class UsuariosController {
   })
   @ApiResponse({
     status: 403,
-    description: 'Acceso denegado - Se requiere rol de administrador (ADMIN) o cliente (CLIENTE)',
+    description:
+      'Acceso denegado - Se requiere rol de administrador (ADMIN) o cliente (CLIENTE)',
   })
   async remove(
     @Param('id', ParseIntPipe) id: number,

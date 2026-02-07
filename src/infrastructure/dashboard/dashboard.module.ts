@@ -16,7 +16,6 @@ import { IntentoEvaluacion } from '@/entities/evaluaciones/intento-evaluacion.en
       Inscripcion,
       Certificado,
       Evaluacion,
-      Evaluacion,
       Resena,
       IntentoEvaluacion,
     ]),
