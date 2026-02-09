@@ -155,28 +155,53 @@ export function getAllianceCompany(
 }
 
 /**
- * Obtiene la duración del curso basada en el tipo y configuración dinámica
- * @param isCesaroto - Indica si es un curso de Cesaroto
- * @param isAlimentos - Indica si es un curso de alimentos
- * @param dynamicData - Datos dinámicos opcionales de la base de datos
+ * Mapeo NOMBRE CURSO → INTENSIDAD HORARIA (tabla oficial de cursos).
+ * Se ordena por longitud del nombre descendente para que el match más específico gane.
  */
-export function getDuration(
-  isCesaroto: boolean,
-  isAlimentos: boolean,
-  dynamicData?: DynamicDataConfig,
-): string {
-  // Si hay datos dinámicos de duración, usarlos
-  if (dynamicData?.duracionHoras) {
-    return dynamicData.duracionHoras;
+const INTENSIDAD_HORARIA_POR_CURSO: { key: string; hours: number }[] = [
+  { key: 'CURSO BÁSICO DE TRANSPORTE DE MERCANCÍAS PELIGROSAS', hours: 60 },
+  { key: 'ACTUALIZACIÓN TRANSPORTE DE MERCANCIAS PELIGROSAS', hours: 20 },
+  { key: 'CONTROL DE INCENDIOS Y MANEJO DE EXTINTORES', hours: 20 },
+  { key: 'MANEJO DEFENSIVO Y PREVENTIVO', hours: 20 },
+  { key: 'MECANICA BASICA AUTOMOTRIZ', hours: 20 },
+  { key: 'PRIMEROS AUXILIOS Y PRIMER RESPONDIENTE', hours: 20 },
+  { key: 'CONTROL Y ATENCIÓN DE EMERGENCIAS', hours: 20 },
+  { key: 'HIGIENE Y MANIPULACIÓN DE ALIMENTOS', hours: 10 },
+];
+
+function normalizeForDurationMatch(s: string): string {
+  return (s || '')
+    .normalize('NFD')
+    .replace(/\u0307/g, '')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toUpperCase()
+    .trim();
+}
+
+/**
+ * Obtiene la duración (intensidad horaria) del curso según el nombre del curso.
+ * No usa base de datos; usa la tabla oficial de cursos e intensidad horaria.
+ * @param courseName - Nombre del curso (ej. titulo de la capacitación)
+ * @returns Horas como string (ej. "60", "20", "10") o "20" por defecto si no hay match
+ */
+export function getDuration(courseName: string): string {
+  const normalized = normalizeForDurationMatch(courseName);
+  if (!normalized) return '20';
+
+  // Ordenar por longitud del key descendente para priorizar el match más específico
+  const sorted = [...INTENSIDAD_HORARIA_POR_CURSO].sort(
+    (a, b) =>
+      normalizeForDurationMatch(b.key).length -
+      normalizeForDurationMatch(a.key).length,
+  );
+
+  for (const { key, hours } of sorted) {
+    const keyNorm = normalizeForDurationMatch(key);
+    if (keyNorm && normalized.includes(keyNorm)) {
+      return String(hours);
+    }
   }
 
-  // Valores por defecto según el tipo de curso
-  if (isCesaroto) {
-    return '60';
-  }
-  if (isAlimentos) {
-    return '10';
-  }
   return '20';
 }
 
