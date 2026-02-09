@@ -98,9 +98,8 @@ export class EmailService {
         `   Configuración final: Host=${host}, Port=${port}, Secure=${secure}, User=${user}`,
       );
     } catch (error) {
-      this.logger.error(
-        `Error configurando transporter de email: ${error.message}`,
-      );
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.error(`Error configurando transporter de email: ${message}`);
     }
   }
 
@@ -235,9 +234,8 @@ export class EmailService {
       this.logger.log(`✅ Correo enviado exitosamente a ${email}`);
       this.logger.debug(`Message ID: ${info.messageId}`);
     } catch (error) {
-      this.logger.error(
-        `❌ Error enviando correo a ${email}: ${error.message}`,
-      );
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.error(`❌ Error enviando correo a ${email}: ${message}`);
       this.logger.error(
         `   Configuración actual: HOST=${this.configService.get('EMAIL_HOST') || this.configService.get('MAIL_HOST') || 'NO CONFIGURADO'}, PORT=${this.configService.get('EMAIL_PORT') || this.configService.get('MAIL_PORT') || 'NO CONFIGURADO'}, USER=${this.configService.get('EMAIL_USER') || this.configService.get('MAIL_USER') || 'NO CONFIGURADO'}`,
       );
@@ -371,9 +369,10 @@ export class EmailService {
 
       // Si es un error de nodemailer, incluir más detalles
       if (error && typeof error === 'object' && 'code' in error) {
-        this.logger.error(`   Error code: ${error.code}`);
-        if ('command' in error) {
-          this.logger.error(`   Failed command: ${error.command}`);
+        const err = error as { code?: string; command?: string };
+        this.logger.error(`   Error code: ${String(err.code)}`);
+        if ('command' in err) {
+          this.logger.error(`   Failed command: ${String(err.command)}`);
         }
       }
 
@@ -661,7 +660,8 @@ export class EmailService {
           this.escapeHtml(passwordTemporal),
         );
     } catch (error) {
-      this.logger.error(`Error generando contenido de email: ${error.message}`);
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.error(`Error generando contenido de email: ${message}`);
       // Fallback a template inline
       return this.getInlineTemplateCredenciales(
         nombre,
@@ -743,6 +743,6 @@ export class EmailService {
       '"': '&quot;',
       "'": '&#039;',
     };
-    return text.replace(/[&<>"']/g, (m) => map[m]);
+    return text.replace(/[&<>"']/g, m => map[m]);
   }
 }

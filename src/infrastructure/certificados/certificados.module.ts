@@ -12,6 +12,7 @@ import { FindOneCertificadoUseCase } from '@/application/certificados/use-cases/
 import { FindByEstudianteCertificadosUseCase } from '@/application/certificados/use-cases/find-by-estudiante-certificados.use-case';
 import { VerifyCertificadoUseCase } from '@/application/certificados/use-cases/verify-certificado.use-case';
 import { UpdateCertificadoRetroactivoUseCase } from '@/application/certificados/use-cases/update-certificado-retroactivo.use-case';
+import { UpdateCertificadoUseCase } from '@/application/certificados/use-cases/update-certificado.use-case';
 import { RegenerateCertificatesUseCase } from '@/application/certificados/use-cases/regenerate-certificates.use-case';
 import { PdfGeneratorService } from '../shared/services/pdf-generator.service';
 import { QrGeneratorService } from '../shared/services/qr-generator.service';
@@ -41,6 +42,7 @@ import { CertificateFormatsModule } from '../certificate-formats/certificate-for
     FindByEstudianteCertificadosUseCase,
     VerifyCertificadoUseCase,
     UpdateCertificadoRetroactivoUseCase,
+    UpdateCertificadoUseCase,
     RegenerateCertificatesUseCase,
     PdfGeneratorService,
     QrGeneratorService,
@@ -61,4 +63,3 @@ import { CertificateFormatsModule } from '../certificate-formats/certificate-for
   ],
 })
 export class CertificadosModule {}
-

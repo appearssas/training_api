@@ -57,6 +57,7 @@ import { CertificadoValidatorService } from '../shared/services/certificado-vali
     ToggleStatusUseCase,
     EvaluacionValidatorService,
     CertificadoValidatorService,
+    'ICapacitacionesRepository',
   ],
 })
 export class CapacitacionesModule {}

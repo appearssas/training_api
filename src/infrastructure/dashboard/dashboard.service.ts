@@ -58,7 +58,7 @@ export class DashboardService {
       this.getCertificatesIssued(empresaId),
       this.getEvaluationsPending(empresaId),
       this.getUpcomingTrainings(empresaId),
-      this.getAreaProgress(),
+      Promise.resolve(this.getAreaProgress()),
       this.getCompletionTrend(empresaId),
       this.getNotifications(empresaId),
       this.getRecentActivity(empresaId),
@@ -374,8 +374,8 @@ export class DashboardService {
         .substring(0, 2)
         .toUpperCase();
 
-      let statusLabel = 'Programada';
-      let statusColor = 'info';
+      const statusLabel = 'Programada';
+      const statusColor = 'info';
 
       return {
         id: training.id,
@@ -398,7 +398,7 @@ export class DashboardService {
     });
   }
 
-  private async getAreaProgress() {
+  private getAreaProgress() {
     // TODO: Implementar cuando se cree tabla de áreas en la BD
     // Actualmente Capacitacion solo tiene areaId pero no hay relación
     return [];
@@ -489,9 +489,7 @@ export class DashboardService {
     return this.mapNotifications(certificates);
   }
 
-  private mapNotifications(
-    certificates: Certificado[],
-  ): Array<{
+  private mapNotifications(certificates: Certificado[]): Array<{
     id: string;
     type: string;
     message: string;

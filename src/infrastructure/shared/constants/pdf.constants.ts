@@ -26,7 +26,8 @@ try {
   const files = readdirSync(PUBLIC_ASSETS_PATH);
   console.log('Files in ASSETS directory:', files);
 } catch (error) {
-  console.error('Could not list assets directory:', error.message);
+  const message = error instanceof Error ? error.message : String(error);
+  console.error('Could not list assets directory:', message);
 }
 
 export { PUBLIC_ASSETS_PATH };

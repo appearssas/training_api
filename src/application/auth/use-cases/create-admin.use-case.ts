@@ -1,10 +1,4 @@
-import {
-  Injectable,
-  Inject,
-  ConflictException,
-  BadRequestException,
-  Logger,
-} from '@nestjs/common';
+import { Injectable, Inject, ConflictException, Logger } from '@nestjs/common';
 import { IAuthRepository } from '@/domain/auth/ports/auth.repository.port';
 import { CreateAdminDto } from '@/application/auth/dto/create-admin.dto';
 import { TipoDocumento } from '@/entities/persona/types';
@@ -61,7 +55,9 @@ export class CreateAdminUseCase {
     const passwordTemporal = createAdminDto.password;
 
     // Hash de la contraseña
-    const passwordHash = this.authRepository.hashPassword(createAdminDto.password);
+    const passwordHash = this.authRepository.hashPassword(
+      createAdminDto.password,
+    );
 
     // Preparar datos de persona
     const personaData = {
@@ -92,18 +88,20 @@ export class CreateAdminUseCase {
 
     // Si el administrador aceptó los términos y políticas, aceptarlos automáticamente
     // Si no se enviaron explícitamente, aceptarlos por defecto cuando se crea desde el panel de admin
-    const debeAceptarTerminos = createAdminDto.aceptaTerminos !== false && 
-                                createAdminDto.aceptaPoliticaDatos !== false;
-    
+    const debeAceptarTerminos =
+      createAdminDto.aceptaTerminos !== false &&
+      createAdminDto.aceptaPoliticaDatos !== false;
+
     if (debeAceptarTerminos) {
       try {
         // Obtener todos los documentos legales activos
-        const documentosActivos = await this.obtenerDocumentosActivosUseCase.execute();
-        
+        const documentosActivos =
+          await this.obtenerDocumentosActivosUseCase.execute();
+
         if (documentosActivos.length > 0) {
           // Obtener los IDs de los documentos activos
-          const documentosIds = documentosActivos.map((doc) => doc.id);
-          
+          const documentosIds = documentosActivos.map(doc => doc.id);
+
           // Aceptar todos los documentos activos
           await this.aceptarTerminosUseCase.execute(
             { documentosIds },
@@ -111,15 +109,15 @@ export class CreateAdminUseCase {
             undefined, // IP address no disponible
             undefined, // User agent no disponible
           );
-          
+
           this.logger.log(
             `✅ Términos y políticas aceptados automáticamente para administrador ${createAdminDto.username}`,
           );
         }
       } catch (error) {
-        // Si hay un error al aceptar términos, loguearlo pero no fallar la creación
+        const message = error instanceof Error ? error.message : String(error);
         this.logger.error(
-          `⚠️ Error al aceptar términos durante la creación del administrador: ${error.message}`,
+          `⚠️ Error al aceptar términos durante la creación del administrador: ${message}`,
         );
         // Continuar con la creación aunque falle la aceptación de términos
       }
@@ -128,22 +126,23 @@ export class CreateAdminUseCase {
     // Enviar email con credenciales temporales
     if (createAdminDto.email) {
       try {
-        const nombreCompleto = `${createAdminDto.nombres} ${createAdminDto.apellidos}`.trim();
-        
+        const nombreCompleto =
+          `${createAdminDto.nombres} ${createAdminDto.apellidos}`.trim();
+
         await this.emailService.enviarCredencialesTemporales(
           createAdminDto.email,
           nombreCompleto,
           createAdminDto.username,
           passwordTemporal,
         );
-        
+
         this.logger.log(
           `✅ Email con credenciales enviado a ${createAdminDto.email} para administrador ${createAdminDto.username}`,
         );
       } catch (error) {
-        // No fallar la creación si falla el envío de email, solo loguearlo
+        const message = error instanceof Error ? error.message : String(error);
         this.logger.error(
-          `⚠️ Error al enviar email de credenciales a ${createAdminDto.email}: ${error.message}`,
+          `⚠️ Error al enviar email de credenciales a ${createAdminDto.email}: ${message}`,
         );
         this.logger.warn(
           'El administrador fue creado exitosamente, pero no se pudo enviar el email con las credenciales.',
@@ -165,4 +164,3 @@ export class CreateAdminUseCase {
     };
   }
 }
-

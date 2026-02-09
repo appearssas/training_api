@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const QRCode = require('qrcode');
+import QRCode from 'qrcode';
 import { ConfigService } from '@nestjs/config';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -68,7 +67,7 @@ export class QrGeneratorService {
    */
   async generateQRCode(data: string): Promise<string> {
     try {
-      const qrCodeDataUrl = await QRCode.toDataURL(data, {
+      const qrCodeDataUrl: string = await QRCode.toDataURL(data, {
         errorCorrectionLevel: 'M',
         type: 'image/png',
         width: 300,
@@ -76,7 +75,8 @@ export class QrGeneratorService {
       });
       return qrCodeDataUrl;
     } catch (error) {
-      throw new Error(`Error al generar código QR: ${error.message}`);
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(`Error al generar código QR: ${message}`);
     }
   }
 

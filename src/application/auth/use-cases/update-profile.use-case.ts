@@ -36,18 +36,22 @@ export class UpdateProfileUseCase {
         throw new UnauthorizedException('La contraseña actual es incorrecta');
       }
 
-      fullUser.passwordHash = this.authRepository.hashPassword(updateDto.newPassword);
+      fullUser.passwordHash = this.authRepository.hashPassword(
+        updateDto.newPassword,
+      );
     }
-    
+
     // --- Lógica para actualizar datos de persona ---
     if (fullUser.persona) {
       if (updateDto.email && updateDto.email !== fullUser.persona.email) {
-        const existingPersona = await this.authRepository.findByEmail(updateDto.email);
+        const existingPersona = await this.authRepository.findByEmail(
+          updateDto.email,
+        );
         if (existingPersona && existingPersona.id !== fullUser.persona.id) {
           throw new ConflictException('El email ya está en uso');
         }
       }
-      
+
       const personaDataToUpdate: Partial<Persona> = {
         nombres: updateDto.nombres,
         apellidos: updateDto.apellidos,
@@ -62,8 +66,9 @@ export class UpdateProfileUseCase {
         biografia: updateDto.biografia,
       };
 
-      Object.keys(personaDataToUpdate).forEach(
-        (key) => personaDataToUpdate[key] === undefined && delete personaDataToUpdate[key],
+      const data = personaDataToUpdate as Record<string, unknown>;
+      Object.keys(data).forEach(
+        key => data[key] === undefined && delete data[key],
       );
 
       if (Object.keys(personaDataToUpdate).length > 0) {
@@ -72,7 +77,7 @@ export class UpdateProfileUseCase {
         Object.assign(fullUser.persona, sanitizedData);
       }
     }
-    
+
     await this.authRepository.saveUser(fullUser);
 
     return {
@@ -80,4 +85,3 @@ export class UpdateProfileUseCase {
     };
   }
 }
-
