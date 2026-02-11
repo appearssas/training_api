@@ -8,7 +8,13 @@ import { PaginationDto } from '@/application/shared/dto/pagination.dto';
  */
 export interface ICapacitacionesRepository {
   create(createCapacitacionDto: CreateCapacitacionDto): Promise<Capacitacion>;
-  findAll(pagination: PaginationDto): Promise<any>;
+  /**
+   * Si options.empresaId está definido, solo devuelve capacitaciones que tengan al menos una inscripción de esa empresa (para CLIENTE/OPERADOR).
+   */
+  findAll(
+    pagination: PaginationDto,
+    options?: { empresaId?: number },
+  ): Promise<any>;
   findOne(id: number): Promise<Capacitacion | null>;
   update(
     id: number,

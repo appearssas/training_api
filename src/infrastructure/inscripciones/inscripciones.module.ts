@@ -15,9 +15,14 @@ import { Capacitacion } from '@/entities/capacitacion/capacitacion.entity';
 import { Persona } from '@/entities/persona/persona.entity';
 import { Pago } from '@/entities/pagos/pago.entity';
 import { InscripcionValidatorService } from '../shared/services/inscripcion-validator.service';
+import { EmpresasModule } from '../empresas/empresas.module';
 
 @Module({
   controllers: [InscripcionesController],
+  imports: [
+    TypeOrmModule.forFeature([Inscripcion, Capacitacion, Persona, Pago]),
+    EmpresasModule,
+  ],
   providers: [
     CreateInscripcionUseCase,
     FindAllInscripcionesUseCase,
@@ -32,9 +37,6 @@ import { InscripcionValidatorService } from '../shared/services/inscripcion-vali
       provide: 'IInscripcionesRepository',
       useClass: InscripcionesRepositoryAdapter,
     },
-  ],
-  imports: [
-    TypeOrmModule.forFeature([Inscripcion, Capacitacion, Persona, Pago]),
   ],
   exports: [
     CreateInscripcionUseCase,

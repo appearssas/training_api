@@ -20,6 +20,8 @@ import {
 } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
 import { RolesGuard, Roles } from '@/infrastructure/shared/guards/roles.guard';
+import { GetUser } from '@/infrastructure/shared/auth/decorators/get-user.decorator';
+import { Usuario } from '@/entities/usuarios/usuario.entity';
 import {
   CreateCapacitacionDto,
   UpdateCapacitacionDto,
@@ -84,7 +86,7 @@ export class CapacitacionesController {
   @ApiOperation({
     summary: 'Obtener lista de capacitaciones con paginación',
     description:
-      'Obtiene una lista paginada de todas las capacitaciones disponibles en el sistema. Todos los roles autenticados pueden ver las capacitaciones.',
+      'Lista paginada de capacitaciones. ADMIN/INSTRUCTOR/ALUMNO ven todo el catálogo. CLIENTE y OPERADOR solo ven cursos en los que su empresa tiene al menos un alumno inscrito (cursos asignados a su empresa).',
   })
   @ApiBody({ type: PaginationDto })
   @ApiResponse({
@@ -107,8 +109,8 @@ export class CapacitacionesController {
     status: 400,
     description: 'Parámetros de paginación inválidos',
   })
-  findAll(@Body() pagination: PaginationDto) {
-    return this.findAllCapacitacionesUseCase.execute(pagination);
+  findAll(@Body() pagination: PaginationDto, @GetUser() user?: Usuario) {
+    return this.findAllCapacitacionesUseCase.execute(pagination, user);
   }
 
   @Get(':id')

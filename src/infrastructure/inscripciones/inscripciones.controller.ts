@@ -7,7 +7,6 @@ import {
   Param,
   Body,
   ParseIntPipe,
-  BadRequestException,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -20,6 +19,8 @@ import {
 } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
 import { RolesGuard, Roles } from '@/infrastructure/shared/guards/roles.guard';
+import { GetUser } from '@/infrastructure/shared/auth/decorators/get-user.decorator';
+import { Usuario } from '@/entities/usuarios/usuario.entity';
 import {
   CreateInscripcionDto,
   UpdateInscripcionDto,
@@ -62,7 +63,8 @@ export class InscripcionesController {
     description:
       'Inscribe un estudiante a una capacitación. Valida que la capacitación esté disponible (PUBLICADA o EN_CURSO), ' +
       'que el estudiante no esté ya inscrito, y que no se exceda la capacidad máxima si está definida. ' +
-      'Para conductores externos, el pago es requerido. ADMIN, ALUMNO y CLIENTE pueden crear inscripciones.',
+      'ADMIN puede inscribir a cualquier estudiante en cualquier curso (sin restricción de empresa). ' +
+      'CLIENTE solo puede inscribir en cursos asignados a su empresa y solo a usuarios de su empresa.',
   })
   @ApiBody({ type: CreateInscripcionDto })
   @ApiResponse({
@@ -88,8 +90,11 @@ export class InscripcionesController {
     status: 404,
     description: 'Capacitación o estudiante no encontrado',
   })
-  create(@Body() createInscripcionDto: CreateInscripcionDto) {
-    return this.createInscripcionUseCase.execute(createInscripcionDto);
+  create(
+    @Body() createInscripcionDto: CreateInscripcionDto,
+    @GetUser() user?: Usuario,
+  ) {
+    return this.createInscripcionUseCase.execute(createInscripcionDto, user);
   }
 
   @Post('list')
@@ -97,7 +102,7 @@ export class InscripcionesController {
   @ApiOperation({
     summary: 'Obtener lista de inscripciones con paginación',
     description:
-      'Obtiene todas las inscripciones del sistema con opciones de paginación, búsqueda y filtrado. ADMIN, INSTRUCTOR, CLIENTE y OPERADOR pueden ver todas las inscripciones.',
+      'Obtiene inscripciones con paginación, búsqueda y filtrado. ADMIN e INSTRUCTOR ven todas. CLIENTE y OPERADOR solo inscripciones de estudiantes de su empresa.',
   })
   @ApiBody({ type: PaginationDto })
   @ApiResponse({
@@ -117,15 +122,16 @@ export class InscripcionesController {
       },
     },
   })
-  findAll(@Body() pagination: PaginationDto) {
-    return this.findAllInscripcionesUseCase.execute(pagination);
+  findAll(@Body() pagination: PaginationDto, @GetUser() user?: Usuario) {
+    return this.findAllInscripcionesUseCase.execute(pagination, user);
   }
 
   @Get(':id')
   @Roles('ADMIN', 'INSTRUCTOR', 'ALUMNO', 'CLIENTE', 'OPERADOR')
   @ApiOperation({
     summary: 'Obtener una inscripción por ID',
-    description: 'Obtiene los detalles completos de una inscripción específica, incluyendo relaciones con capacitación y estudiante. Todos los roles autenticados pueden ver inscripciones.',
+    description:
+      'Obtiene los detalles completos de una inscripción específica, incluyendo relaciones con capacitación y estudiante. Todos los roles autenticados pueden ver inscripciones.',
   })
   @ApiParam({
     name: 'id',
@@ -194,7 +200,8 @@ export class InscripcionesController {
   @Roles('ADMIN')
   @ApiOperation({
     summary: 'Eliminar una inscripción',
-    description: 'Elimina una inscripción del sistema. Esta acción no se puede deshacer. Solo ADMIN puede eliminar inscripciones.',
+    description:
+      'Elimina una inscripción del sistema. Esta acción no se puede deshacer. Solo ADMIN puede eliminar inscripciones.',
   })
   @ApiParam({
     name: 'id',
@@ -257,7 +264,7 @@ export class InscripcionesController {
   @ApiOperation({
     summary: 'Obtener inscripciones de una capacitación',
     description:
-      'Obtiene todas las inscripciones de una capacitación específica con paginación. Útil para ver la lista de estudiantes inscritos en un curso. ADMIN, INSTRUCTOR, CLIENTE y OPERADOR pueden ver inscripciones de capacitaciones.',
+      'Obtiene las inscripciones de una capacitación con paginación. ADMIN e INSTRUCTOR ven todos los alumnos. CLIENTE y OPERADOR solo ven alumnos de su empresa.',
   })
   @ApiParam({
     name: 'capacitacionId',
@@ -285,9 +292,14 @@ export class InscripcionesController {
   })
   findByCapacitacion(
     @Param('capacitacionId', ParseIntPipe) capacitacionId: number,
-    @Body() pagination?: PaginationDto,
+    @Body() pagination: PaginationDto | undefined,
+    @GetUser() user?: Usuario,
   ) {
-    return this.findByCapacitacionUseCase.execute(capacitacionId, pagination);
+    return this.findByCapacitacionUseCase.execute(
+      capacitacionId,
+      pagination,
+      user,
+    );
   }
 
   @Post('bulk-assign')
@@ -296,9 +308,9 @@ export class InscripcionesController {
     summary: 'Asignar múltiples cursos a múltiples usuarios',
     description:
       'Asigna múltiples cursos (capacitaciones) a múltiples usuarios (estudiantes) en una sola operación. ' +
-      'Valida cada combinación usuario-curso antes de crear la inscripción. ' +
-      'Omite duplicados y registra errores para cada fallo. ' +
-      'Solo ADMIN y CLIENTE pueden realizar asignaciones masivas.',
+      'ADMIN puede asignar cualquier curso a cualquier usuario (sin restricción de empresa). ' +
+      'CLIENTE solo puede asignar cursos asignados a su empresa y solo a usuarios de su empresa. ' +
+      'Omite duplicados y registra errores para cada fallo.',
   })
   @ApiBody({ type: BulkAssignCoursesDto })
   @ApiResponse({
@@ -307,9 +319,21 @@ export class InscripcionesController {
     schema: {
       type: 'object',
       properties: {
-        success: { type: 'number', example: 10, description: 'Número de inscripciones creadas exitosamente' },
-        failed: { type: 'number', example: 2, description: 'Número de inscripciones que fallaron' },
-        total: { type: 'number', example: 12, description: 'Total de combinaciones procesadas' },
+        success: {
+          type: 'number',
+          example: 10,
+          description: 'Número de inscripciones creadas exitosamente',
+        },
+        failed: {
+          type: 'number',
+          example: 2,
+          description: 'Número de inscripciones que fallaron',
+        },
+        total: {
+          type: 'number',
+          example: 12,
+          description: 'Total de combinaciones procesadas',
+        },
         details: {
           type: 'object',
           properties: {
@@ -355,7 +379,10 @@ export class InscripcionesController {
     status: 400,
     description: 'Datos inválidos (array vacío, IDs inválidos, etc.)',
   })
-  bulkAssignCourses(@Body() bulkAssignDto: BulkAssignCoursesDto) {
-    return this.bulkAssignCoursesUseCase.execute(bulkAssignDto);
+  bulkAssignCourses(
+    @Body() bulkAssignDto: BulkAssignCoursesDto,
+    @GetUser() user?: Usuario,
+  ) {
+    return this.bulkAssignCoursesUseCase.execute(bulkAssignDto, user);
   }
 }

@@ -3,16 +3,16 @@ import { IInscripcionesRepository } from '@/domain/inscripciones/ports/inscripci
 import { CreateInscripcionDto } from '@/application/inscripciones/dto/create-inscripcion.dto';
 import { Inscripcion } from '@/entities/inscripcion/inscripcion.entity';
 import { InscripcionValidatorService } from '@/infrastructure/shared/services/inscripcion-validator.service';
+import { Usuario } from '@/entities/usuarios/usuario.entity';
+
+/** Solo CLIENTE y OPERADOR tienen restricción por empresa. ADMIN e INSTRUCTOR pueden asignar cursos a quien sea, sin importar empresa. */
+const ROLES_CON_RESTRICCION_EMPRESA = ['CLIENTE', 'OPERADOR'] as const;
 
 /**
  * Caso de uso: Crear una nueva inscripción
- * 
- * Reglas de negocio aplicadas:
- * - Valida que la capacitación esté disponible (PUBLICADA o EN_CURSO)
- * - Valida que el estudiante exista y esté activo
- * - Valida que no exista una inscripción duplicada
- * - Valida la capacidad máxima de la capacitación (si está definida)
- * - Valida el pago si se proporciona (requerido para conductores externos)
+ *
+ * ADMIN/INSTRUCTOR: pueden inscribir a cualquier estudiante en cualquier curso (no aplican validaciones de empresa).
+ * CLIENTE/OPERADOR: el curso debe estar asignado a su empresa y el estudiante debe ser de su empresa.
  */
 @Injectable()
 export class CreateInscripcionUseCase {
@@ -22,7 +22,29 @@ export class CreateInscripcionUseCase {
     private readonly inscripcionValidator: InscripcionValidatorService,
   ) {}
 
-  async execute(createInscripcionDto: CreateInscripcionDto): Promise<Inscripcion> {
+  async execute(
+    createInscripcionDto: CreateInscripcionDto,
+    user?: Usuario,
+  ): Promise<Inscripcion> {
+    const rol = user?.rolPrincipal?.codigo;
+    const esClienteOOperador =
+      rol != null && ROLES_CON_RESTRICCION_EMPRESA.includes(rol as any);
+    const empresaId = esClienteOOperador
+      ? (user?.persona?.empresaId ?? user?.persona?.empresa?.id)
+      : undefined;
+
+    // Solo CLIENTE/OPERADOR: validar curso asignado a su empresa y estudiante de su empresa. ADMIN/INSTRUCTOR omiten estas validaciones.
+    if (empresaId != null) {
+      await this.inscripcionValidator.validateCapacitacionAssignedToEmpresa(
+        createInscripcionDto.capacitacionId,
+        empresaId,
+      );
+      await this.inscripcionValidator.validateEstudianteBelongsToEmpresa(
+        createInscripcionDto.estudianteId,
+        empresaId,
+      );
+    }
+
     // 1. Validar que la capacitación esté disponible para inscripciones
     await this.inscripcionValidator.validateCapacitacionDisponible(
       createInscripcionDto.capacitacionId,
@@ -44,7 +66,7 @@ export class CreateInscripcionUseCase {
       createInscripcionDto.capacitacionId,
     );
 
-    // 5. Validar el pago si se proporciona
+    // 5. Valida el pago si se proporciona
     await this.inscripcionValidator.validatePago(createInscripcionDto.pagoId);
 
     // 6. Crear la inscripción

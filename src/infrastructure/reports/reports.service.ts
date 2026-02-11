@@ -5,6 +5,7 @@ import { Inscripcion } from '../../entities/inscripcion/inscripcion.entity';
 import { Certificado } from '../../entities/certificados/certificado.entity';
 import { Capacitacion } from '../../entities/capacitacion/capacitacion.entity';
 import { EstadoInscripcion } from '../../entities/inscripcion/types';
+import { Usuario } from '@/entities/usuarios/usuario.entity';
 
 export interface ReportFilters {
   dateFrom?: string;
@@ -12,6 +13,8 @@ export interface ReportFilters {
   courseId?: number;
   status?: string;
 }
+
+const ROLES_SOLO_EMPRESA = ['CLIENTE', 'OPERADOR'] as const;
 
 @Injectable()
 export class ReportsService {
@@ -24,8 +27,18 @@ export class ReportsService {
     private capacitacionRepository: Repository<Capacitacion>,
   ) {}
 
-  async getStats(filters: ReportFilters) {
+  /**
+   * ADMIN: información general. CLIENTE/OPERADOR: solo datos de su empresa.
+   */
+  async getStats(filters: ReportFilters, user?: Usuario) {
     const { dateFrom, dateTo, courseId, status } = filters;
+
+    const rol = user?.rolPrincipal?.codigo;
+    const empresaId: number | undefined =
+      rol &&
+      ROLES_SOLO_EMPRESA.includes(rol as (typeof ROLES_SOLO_EMPRESA)[number])
+        ? (user?.persona?.empresaId ?? user?.persona?.empresa?.id)
+        : undefined;
 
     // Base query builder for inscriptions
     const query = this.inscripcionRepository
@@ -33,6 +46,10 @@ export class ReportsService {
       .leftJoinAndSelect('inscripcion.estudiante', 'estudiante')
       .leftJoinAndSelect('estudiante.empresa', 'empresa')
       .leftJoinAndSelect('inscripcion.capacitacion', 'capacitacion');
+
+    if (empresaId != null) {
+      query.andWhere('estudiante.empresa_id = :empresaId', { empresaId });
+    }
 
     // Apply filters
     if (dateFrom) {
@@ -53,9 +70,9 @@ export class ReportsService {
     // KPIs Calculation
     const totalInscriptions = inscriptions.length;
     const completed = inscriptions.filter(
-      (i) => i.estado === EstadoInscripcion.COMPLETADO,
+      i => i.estado === EstadoInscripcion.COMPLETADO,
     ).length;
-    const approved = inscriptions.filter((i) => i.aprobado).length;
+    const approved = inscriptions.filter(i => i.aprobado).length;
 
     // Compliance Rate (Completed / Total)
     const complianceRate =
@@ -71,19 +88,23 @@ export class ReportsService {
         ? Math.round((approved / totalInscriptions) * 100)
         : 0;
 
-    // Certificates Query
+    // Certificates Query (filter by empresa when CLIENTE/OPERADOR)
     const certQuery = this.certificadoRepository
       .createQueryBuilder('certificado')
-      .leftJoinAndSelect('certificado.inscripcion', 'inscripcion');
+      .leftJoinAndSelect('certificado.inscripcion', 'inscripcion')
+      .leftJoin('inscripcion.estudiante', 'certEstudiante');
 
+    if (empresaId != null) {
+      certQuery.andWhere('certEstudiante.empresa_id = :empresaId', {
+        empresaId,
+      });
+    }
     if (dateFrom) {
       certQuery.andWhere('certificado.fechaEmision >= :dateFrom', { dateFrom });
     }
     if (dateTo) {
       certQuery.andWhere('certificado.fechaEmision <= :dateTo', { dateTo });
     }
-
-    // If course filter is active, we need to filter certificates by course via inscription
     if (courseId) {
       certQuery.andWhere('inscripcion.capacitacion_id = :courseId', {
         courseId,
@@ -97,15 +118,15 @@ export class ReportsService {
     const activeUsers = new Set(
       inscriptions
         .filter(
-          (i) =>
+          i =>
             i.estado === EstadoInscripcion.INSCRITO ||
             i.estado === EstadoInscripcion.EN_PROGRESO,
         )
-        .map((i) => i.estudiante.id),
+        .map(i => i.estudiante.id),
     ).size;
 
     // Active Courses (Count of courses with at least one active inscription)
-    const activeCourses = new Set(inscriptions.map((i) => i.capacitacion.id))
+    const activeCourses = new Set(inscriptions.map(i => i.capacitacion.id))
       .size;
 
     // Average Satisfaction (Mocked for now as we don't have Resenas repository injected yet, or simple aggregation)
@@ -113,7 +134,7 @@ export class ReportsService {
 
     // Client Distribution Chart
     const clientMap = new Map<string, number>();
-    inscriptions.forEach((i) => {
+    inscriptions.forEach(i => {
       // Usar empresa.razonSocial si existe, sino 'Particular'
       const clientName = i.estudiante?.empresa?.razonSocial || 'Particular';
       clientMap.set(clientName, (clientMap.get(clientName) || 0) + 1);
@@ -129,7 +150,7 @@ export class ReportsService {
       string,
       { name: string; count: number; id: number; passed: number }
     >();
-    inscriptions.forEach((i) => {
+    inscriptions.forEach(i => {
       const key = i.capacitacion.titulo;
       if (!courseMap.has(key)) {
         courseMap.set(key, {
@@ -147,7 +168,7 @@ export class ReportsService {
     const topCourses = Array.from(courseMap.values())
       .sort((a, b) => b.count - a.count)
       .slice(0, 5)
-      .map((c) => ({
+      .map(c => ({
         id: c.id,
         name: c.name,
         short: c.name.substring(0, 2).toUpperCase(),
@@ -160,7 +181,7 @@ export class ReportsService {
 
     // Approval By Course
     const approvalByCourse = Array.from(courseMap.values())
-      .map((c) => ({
+      .map(c => ({
         id: c.id,
         name: c.name,
         rate: Math.round((c.count > 0 ? c.passed / c.count : 0) * 100),
@@ -188,7 +209,7 @@ export class ReportsService {
       'Dic',
     ];
 
-    inscriptions.forEach((i) => {
+    inscriptions.forEach(i => {
       if (i.fechaFinalizacion) {
         const d = new Date(i.fechaFinalizacion);
         const label = months[d.getMonth()];
@@ -205,7 +226,7 @@ export class ReportsService {
 
     // Certificates Trend
     const certTrendMap = new Map<string, number>();
-    certificates.forEach((c) => {
+    certificates.forEach(c => {
       const d = new Date(c.fechaEmision);
       const label = months[d.getMonth()];
       certTrendMap.set(label, (certTrendMap.get(label) || 0) + 1);
@@ -215,7 +236,7 @@ export class ReportsService {
     );
 
     // Table Data: Course Reports (Reuse courseMap)
-    const courseReports = Array.from(courseMap.values()).map((c) => ({
+    const courseReports = Array.from(courseMap.values()).map(c => ({
       id: c.id,
       courseName: c.name,
       enrolled: c.count,
@@ -235,7 +256,7 @@ export class ReportsService {
         passed: number;
       }
     >();
-    inscriptions.forEach((i) => {
+    inscriptions.forEach(i => {
       if (!userMap.has(i.estudiante.id)) {
         userMap.set(i.estudiante.id, {
           userName: `${i.estudiante.nombres} ${i.estudiante.apellidos || ''}`,

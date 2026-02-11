@@ -77,7 +77,9 @@ export class CertificatesController {
   })
   @ApiResponse({ status: 401, description: 'No autorizado' })
   @ApiResponse({ status: 400, description: 'Parámetros de consulta inválidos' })
-  async getExpiringCertificatesReport(@Query() dto: GetExpiringCertificatesDto) {
+  async getExpiringCertificatesReport(
+    @Query() dto: GetExpiringCertificatesDto,
+  ) {
     return await this.getExpiringReportUseCase.execute(dto);
   }
 
@@ -185,7 +187,10 @@ export class CertificatesController {
     },
   })
   @ApiResponse({ status: 401, description: 'No autorizado' })
-  @ApiResponse({ status: 500, description: 'Error al ejecutar la verificación' })
+  @ApiResponse({
+    status: 500,
+    description: 'Error al ejecutar la verificación',
+  })
   async checkExpirationsManually() {
     await this.checkExpirationsCron.executeManually();
     return {
@@ -197,7 +202,8 @@ export class CertificatesController {
   @Get(':filename')
   @ApiOperation({
     summary: 'Redirigir a descarga de PDF',
-    description: 'Redirige las peticiones de PDF al controlador público de certificados.',
+    description:
+      'Redirige las peticiones de PDF al controlador público de certificados.',
   })
   servePdfRedirect(@Param('filename') filename: string, @Res() res: Response) {
     if (!filename.endsWith('.pdf')) {

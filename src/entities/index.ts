@@ -32,6 +32,7 @@ export * from './documentos/documento-legal.entity';
 export * from './aceptaciones/aceptacion-politica.entity';
 export * from './password-reset/password-reset-token.entity';
 export * from './empresas/empresa.entity';
+export * from './empresas/capacitacion-empresa.entity';
 export * from './sesion/configuracion-sesion.entity';
 export * from './certificate-formats/certificate-format.entity';
 export * from './assistant/assistant-empresa-quota.entity';
