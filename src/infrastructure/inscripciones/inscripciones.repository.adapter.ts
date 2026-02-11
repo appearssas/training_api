@@ -75,7 +75,10 @@ export class InscripcionesRepositoryAdapter implements IInscripcionesRepository 
     }
   }
 
-  async findAll(pagination: PaginationDto): Promise<any> {
+  async findAll(
+    pagination: PaginationDto,
+    options?: { empresaId?: number },
+  ): Promise<any> {
     try {
       const {
         page = 1,
@@ -93,12 +96,24 @@ export class InscripcionesRepositoryAdapter implements IInscripcionesRepository 
         .leftJoinAndSelect('inscripcion.estudiante', 'estudiante')
         .leftJoinAndSelect('inscripcion.pago', 'pago');
 
+      // Cliente institucional / operador: solo inscripciones de su empresa
+      let hasWhere = false;
+      if (options?.empresaId != null) {
+        queryBuilder.where('estudiante.empresa_id = :empresaId', {
+          empresaId: options.empresaId,
+        });
+        hasWhere = true;
+      }
+
       // Búsqueda por texto
       if (search) {
-        queryBuilder.where(
-          '(capacitacion.titulo LIKE :search OR estudiante.nombres LIKE :search OR estudiante.apellidos LIKE :search)',
-          { search: `%${search}%` },
-        );
+        const searchCondition =
+          '(capacitacion.titulo LIKE :search OR estudiante.nombres LIKE :search OR estudiante.apellidos LIKE :search)';
+        if (hasWhere) {
+          queryBuilder.andWhere(searchCondition, { search: `%${search}%` });
+        } else {
+          queryBuilder.where(searchCondition, { search: `%${search}%` });
+        }
       }
 
       // Filtros adicionales
@@ -325,6 +340,7 @@ export class InscripcionesRepositoryAdapter implements IInscripcionesRepository 
   async findByCapacitacion(
     capacitacionId: number,
     pagination?: PaginationDto,
+    options?: { empresaId?: number },
   ): Promise<any> {
     try {
       const { page = 1, limit = 10, sortField, sortOrder } = pagination || {};
@@ -337,6 +353,13 @@ export class InscripcionesRepositoryAdapter implements IInscripcionesRepository 
         .where('inscripcion.capacitacion_id = :capacitacionId', {
           capacitacionId,
         });
+
+      // CLIENTE/OPERADOR: solo inscripciones de estudiantes de su empresa
+      if (options?.empresaId != null) {
+        queryBuilder.andWhere('estudiante.empresa_id = :empresaId', {
+          empresaId: options.empresaId,
+        });
+      }
 
       // Ordenamiento
       if (sortField) {

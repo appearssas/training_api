@@ -193,13 +193,26 @@ export class CapacitacionesRepositoryAdapter implements ICapacitacionesRepositor
     }
   }
 
-  async findAll(pagination: PaginationDto): Promise<any> {
+  async findAll(
+    pagination: PaginationDto,
+    options?: { empresaId?: number },
+  ): Promise<any> {
     try {
       const { page = 1, limit = 10, search, sortField, sortOrder } = pagination;
       const skip = (page - 1) * limit;
 
       const queryBuilder =
         this.capacitacionRepository.createQueryBuilder('capacitacion');
+
+      // Cliente institucional / operador: solo cursos asignados a su empresa por el admin (el cliente luego los asigna a sus usuarios)
+      let hasWhere = false;
+      if (options?.empresaId != null) {
+        queryBuilder.where(
+          'capacitacion.id IN (SELECT ce.capacitacion_id FROM capacitaciones_empresas ce WHERE ce.empresa_id = :empresaId)',
+          { empresaId: options.empresaId },
+        );
+        hasWhere = true;
+      }
 
       // Incluir relaciones necesarias para el frontend
       queryBuilder
@@ -212,10 +225,13 @@ export class CapacitacionesRepositoryAdapter implements ICapacitacionesRepositor
         .leftJoinAndSelect('inscripciones.estudiante', 'estudiante');
 
       if (search) {
-        queryBuilder.where(
-          'capacitacion.titulo LIKE :search OR capacitacion.descripcion LIKE :search',
-          { search: `%${search}%` },
-        );
+        const searchCondition =
+          '(capacitacion.titulo LIKE :search OR capacitacion.descripcion LIKE :search)';
+        if (hasWhere) {
+          queryBuilder.andWhere(searchCondition, { search: `%${search}%` });
+        } else {
+          queryBuilder.where(searchCondition, { search: `%${search}%` });
+        }
       }
 
       if (sortField) {

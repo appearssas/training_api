@@ -206,25 +206,35 @@ export class CertificadosRepositoryAdapter implements ICertificadosRepository {
         .leftJoinAndSelect('capacitacion.instructor', 'instructor')
         .leftJoinAndSelect('capacitacion.tipoCapacitacion', 'tipoCapacitacion');
 
-      // Control de visibilidad por rol: ADMIN ve todos; el resto solo "creados por ellos"
+      // Control de visibilidad por rol: ADMIN ve todos; INSTRUCTOR solo sus cursos; ALUMNO solo los propios; CLIENTE/OPERADOR por empresa
       const rol = userContext?.rol ?? '';
       const personaId = userContext?.personaId ?? null;
+      const empresaId = userContext?.empresaId ?? null;
       if (rol !== 'ADMIN' && personaId != null) {
         if (rol === 'INSTRUCTOR') {
-          // Solo certificados de capacitaciones donde el usuario es el instructor
           queryBuilder.andWhere('instructor.id = :personaId', { personaId });
           console.log(
             `🔐 [findAll] Filtro INSTRUCTOR: instructor.id = ${personaId}`,
           );
+        } else if (
+          (rol === 'CLIENTE' || rol === 'OPERADOR') &&
+          empresaId != null
+        ) {
+          // Certificados de conductores/estudiantes de su empresa
+          queryBuilder.andWhere('estudiante.empresaId = :empresaId', {
+            empresaId,
+          });
+          console.log(
+            `🔐 [findAll] Filtro ${rol}: estudiante.empresaId = ${empresaId}`,
+          );
         } else {
-          // ALUMNO, CLIENTE, OPERADOR: solo certificados donde el usuario es el estudiante
+          // ALUMNO o CLIENTE/OPERADOR sin empresa: solo certificados donde el usuario es el estudiante
           queryBuilder.andWhere('estudiante.id = :personaId', { personaId });
           console.log(
             `🔐 [findAll] Filtro ${rol}: estudiante.id = ${personaId}`,
           );
         }
       } else if (rol !== 'ADMIN' && personaId == null) {
-        // Sin persona (ej. usuario mal configurado): no devolver certificados
         queryBuilder.andWhere('1 = 0');
         console.log(`🔐 [findAll] Rol ${rol} sin personaId: sin resultados.`);
       } else {
@@ -439,6 +449,7 @@ export class CertificadosRepositoryAdapter implements ICertificadosRepository {
   async findByEstudiante(
     estudianteId: number,
     pagination?: PaginationDto,
+    userContext?: CertificadosUserContext,
   ): Promise<any> {
     try {
       const {
@@ -457,6 +468,15 @@ export class CertificadosRepositoryAdapter implements ICertificadosRepository {
         .leftJoinAndSelect('inscripcion.capacitacion', 'capacitacion')
         .where('inscripcion.estudiante_id = :estudianteId', { estudianteId })
         .andWhere('certificado.activo = :activo', { activo: true });
+
+      // CLIENTE/OPERADOR: solo certificados de estudiantes de su empresa
+      const rol = userContext?.rol ?? '';
+      const empresaId = userContext?.empresaId ?? null;
+      if ((rol === 'CLIENTE' || rol === 'OPERADOR') && empresaId != null) {
+        queryBuilder.andWhere('estudiante.empresaId = :empresaId', {
+          empresaId,
+        });
+      }
 
       // Búsqueda por texto
       if (search) {

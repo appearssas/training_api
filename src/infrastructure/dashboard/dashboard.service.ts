@@ -471,7 +471,7 @@ export class DashboardService {
       .andWhere('estudiante.empresaId = :empresaId', { empresaId })
       .orderBy('cert.fechaVencimiento', 'ASC')
       .take(5)
-      .select('cert.id')
+      .select(['cert.id', 'cert.fechaVencimiento'])
       .getMany();
 
     const ids = certIds.map(c => c.id);

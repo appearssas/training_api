@@ -12,6 +12,7 @@ import {
   UseGuards,
   BadRequestException,
   NotFoundException,
+  ForbiddenException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -106,7 +107,7 @@ export class CertificadosController {
   @ApiOperation({
     summary: 'Obtener lista de certificados con paginación',
     description:
-      'ADMIN: ve todos los certificados. INSTRUCTOR: solo los de capacitaciones donde es instructor. ALUMNO/CLIENTE/OPERADOR: solo los propios (donde es el estudiante). Requiere JWT. Filtros en `filters`: `studentId`, `courseId`, `status` (valid|expired|revoked).',
+      'ADMIN: ve todos. INSTRUCTOR: solo de sus capacitaciones. ALUMNO: solo los propios. CLIENTE/OPERADOR: certificados de conductores/estudiantes de su empresa. Filtros en `filters`: `studentId`, `courseId`, `status` (valid|expired|revoked).',
   })
   @ApiBody({
     type: PaginationDto,
@@ -150,9 +151,16 @@ export class CertificadosController {
     description: 'No autorizado. Usar Authorize con JWT.',
   })
   findAll(@Body() pagination: PaginationDto, @GetUser() user: any) {
+    const rol = user?.rolPrincipal?.codigo ?? '';
+    const personaId = user?.persona?.id ?? null;
+    const empresaId =
+      rol === 'CLIENTE' || rol === 'OPERADOR'
+        ? (user?.persona?.empresaId ?? user?.persona?.empresa?.id ?? null)
+        : null;
     const userContext = {
-      rol: user?.rolPrincipal?.codigo ?? '',
-      personaId: user?.persona?.id ?? null,
+      rol,
+      personaId,
+      empresaId: empresaId ?? undefined,
     };
     return this.findAllCertificadosUseCase.execute(pagination, userContext);
   }
@@ -190,11 +198,23 @@ export class CertificadosController {
   })
   findByEstudiante(
     @Param('estudianteId', ParseIntPipe) estudianteId: number,
-    @Body() pagination?: PaginationDto,
+    @Body() pagination: PaginationDto | undefined,
+    @GetUser() user: any,
   ) {
+    const rol = user?.rolPrincipal?.codigo ?? '';
+    const empresaId =
+      rol === 'CLIENTE' || rol === 'OPERADOR'
+        ? (user?.persona?.empresaId ?? user?.persona?.empresa?.id ?? null)
+        : null;
+    const userContext = {
+      rol,
+      personaId: user?.persona?.id ?? null,
+      empresaId: empresaId ?? undefined,
+    };
     return this.findByEstudianteCertificadosUseCase.execute(
       estudianteId,
       pagination,
+      userContext,
     );
   }
 
@@ -243,6 +263,7 @@ export class CertificadosController {
   async findOneOrFile(
     @Param('idOrFilename') idOrFilename: string,
     @Res() res: Response,
+    @GetUser() user: any,
   ) {
     // 1. Si es PDF, servir el archivo
     if (idOrFilename.endsWith('.pdf')) {
@@ -274,9 +295,17 @@ export class CertificadosController {
         const match = filename.match(/certificado-(\d+)-/);
         if (match && match[1]) {
           const id = parseInt(match[1], 10);
-          return this.regenerateAndServePdf(id, res, 'inline');
+          return this.regenerateAndServePdf(id, res, 'inline', user);
         }
         throw new NotFoundException('Archivo no encontrado');
+      }
+
+      // Verificar acceso para PDFs de certificados (CLIENTE/OPERADOR solo de su empresa)
+      const match = filename.match(/certificado-(\d+)-/);
+      if (match && match[1]) {
+        const id = parseInt(match[1], 10);
+        const cert = await this.findOneCertificadoUseCase.execute(id);
+        this.ensureCertificateAccessForUser(cert, user);
       }
 
       res.setHeader('Content-Type', 'application/pdf');
@@ -291,8 +320,10 @@ export class CertificadosController {
       const id = parseInt(idOrFilename, 10);
       try {
         const result = await this.findOneCertificadoUseCase.execute(id);
+        this.ensureCertificateAccessForUser(result, user);
         return res.json(result);
-      } catch {
+      } catch (err) {
+        if (err instanceof ForbiddenException) throw err;
         throw new NotFoundException('Certificado no encontrado');
       }
     }
@@ -321,8 +352,12 @@ export class CertificadosController {
     },
   })
   @ApiResponse({ status: 404, description: 'Certificado no encontrado' })
-  async viewPDF(@Param('id', ParseIntPipe) id: number, @Res() res: Response) {
-    return this.regenerateAndServePdf(id, res, 'inline');
+  async viewPDF(
+    @Param('id', ParseIntPipe) id: number,
+    @Res() res: Response,
+    @GetUser() user: any,
+  ) {
+    return this.regenerateAndServePdf(id, res, 'inline', user);
   }
 
   @Get(':id/download')
@@ -348,8 +383,29 @@ export class CertificadosController {
   async downloadPDF(
     @Param('id', ParseIntPipe) id: number,
     @Res() res: Response,
+    @GetUser() user: any,
   ) {
-    return this.regenerateAndServePdf(id, res, 'attachment');
+    return this.regenerateAndServePdf(id, res, 'attachment', user);
+  }
+
+  /**
+   * Verifica que un usuario CLIENTE/OPERADOR solo acceda a certificados de estudiantes de su empresa.
+   */
+  private ensureCertificateAccessForUser(certificado: any, user: any): void {
+    const rol = user?.rolPrincipal?.codigo ?? '';
+    if (rol !== 'CLIENTE' && rol !== 'OPERADOR') return;
+    const empresaId =
+      user?.persona?.empresaId ?? user?.persona?.empresa?.id ?? null;
+    if (empresaId == null) return;
+    const estudianteEmpresaId =
+      certificado?.inscripcion?.estudiante?.empresaId ??
+      certificado?.inscripcion?.estudiante?.empresa?.id ??
+      null;
+    if (estudianteEmpresaId !== empresaId) {
+      throw new ForbiddenException(
+        'No tiene permiso para acceder a este certificado',
+      );
+    }
   }
 
   /**
@@ -359,8 +415,10 @@ export class CertificadosController {
     id: number,
     res: Response,
     disposition: 'inline' | 'attachment',
+    user?: any,
   ) {
     const certificado = await this.findOneCertificadoUseCase.execute(id);
+    if (user) this.ensureCertificateAccessForUser(certificado, user);
 
     // Nombre base para el archivo
     const fileName = `certificado-${id}-${Date.now()}.pdf`;

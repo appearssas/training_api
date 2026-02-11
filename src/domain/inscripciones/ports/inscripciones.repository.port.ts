@@ -14,9 +14,13 @@ export interface IInscripcionesRepository {
   create(createInscripcionDto: CreateInscripcionDto): Promise<Inscripcion>;
 
   /**
-   * Obtiene todas las inscripciones con paginación
+   * Obtiene todas las inscripciones con paginación.
+   * Si options.empresaId está definido, solo devuelve inscripciones de estudiantes de esa empresa (para CLIENTE/OPERADOR).
    */
-  findAll(pagination: PaginationDto): Promise<any>;
+  findAll(
+    pagination: PaginationDto,
+    options?: { empresaId?: number },
+  ): Promise<any>;
 
   /**
    * Obtiene una inscripción por ID
@@ -26,7 +30,10 @@ export interface IInscripcionesRepository {
   /**
    * Actualiza una inscripción existente
    */
-  update(id: number, updateInscripcionDto: UpdateInscripcionDto): Promise<Inscripcion>;
+  update(
+    id: number,
+    updateInscripcionDto: UpdateInscripcionDto,
+  ): Promise<Inscripcion>;
 
   /**
    * Elimina una inscripción
@@ -36,12 +43,20 @@ export interface IInscripcionesRepository {
   /**
    * Obtiene todas las inscripciones de un estudiante específico
    */
-  findByEstudiante(estudianteId: number, pagination?: PaginationDto): Promise<any>;
+  findByEstudiante(
+    estudianteId: number,
+    pagination?: PaginationDto,
+  ): Promise<any>;
 
   /**
-   * Obtiene todas las inscripciones de una capacitación específica
+   * Obtiene todas las inscripciones de una capacitación específica.
+   * Si options.empresaId está definido, solo devuelve inscripciones de estudiantes de esa empresa (para CLIENTE/OPERADOR).
    */
-  findByCapacitacion(capacitacionId: number, pagination?: PaginationDto): Promise<any>;
+  findByCapacitacion(
+    capacitacionId: number,
+    pagination?: PaginationDto,
+    options?: { empresaId?: number },
+  ): Promise<any>;
 
   /**
    * Verifica si un estudiante ya está inscrito en una capacitación

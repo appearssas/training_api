@@ -1,12 +1,17 @@
-import { Injectable, Inject, BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  Inject,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Capacitacion } from '@/entities/capacitacion/capacitacion.entity';
 import { Persona } from '@/entities/persona/persona.entity';
-import { Inscripcion } from '@/entities/inscripcion/inscripcion.entity';
 import { Pago } from '@/entities/pagos/pago.entity';
 import { EstadoCapacitacion } from '@/entities/capacitacion/types';
 import { IInscripcionesRepository } from '@/domain/inscripciones/ports/inscripciones.repository.port';
+import { EmpresasCapacitacionesService } from '@/infrastructure/empresas/empresas-capacitaciones.service';
 
 /**
  * Servicio de validación para inscripciones
@@ -23,13 +28,16 @@ export class InscripcionValidatorService {
     private readonly pagoRepository: Repository<Pago>,
     @Inject('IInscripcionesRepository')
     private readonly inscripcionesRepository: IInscripcionesRepository,
+    private readonly empresasCapacitacionesService: EmpresasCapacitacionesService,
   ) {}
 
   /**
    * Valida que la capacitación esté disponible para inscripciones
    * Una capacitación está disponible si está en estado PUBLICADA o EN_CURSO
    */
-  async validateCapacitacionDisponible(capacitacionId: number): Promise<Capacitacion> {
+  async validateCapacitacionDisponible(
+    capacitacionId: number,
+  ): Promise<Capacitacion> {
     const capacitacion = await this.capacitacionRepository.findOne({
       where: { id: capacitacionId },
     });
@@ -115,14 +123,18 @@ export class InscripcionValidatorService {
 
     // Contar inscripciones activas (no abandonadas)
     // Usamos una consulta directa para evitar problemas de dependencia circular
-    const inscripcionesActivas = await this.inscripcionesRepository.findByCapacitacion(
-      capacitacionId,
-      { page: 1, limit: 1000 }, // Límite alto para obtener todas
-    );
+    const inscripcionesActivas =
+      await this.inscripcionesRepository.findByCapacitacion(
+        capacitacionId,
+        { page: 1, limit: 1000 }, // Límite alto para obtener todas
+      );
 
-    const totalActivas = inscripcionesActivas.data?.filter(
-      (inscripcion: any) => inscripcion.estado !== 'abandonado',
-    ).length || inscripcionesActivas.total || 0;
+    const totalActivas =
+      inscripcionesActivas.data?.filter(
+        (inscripcion: any) => inscripcion.estado !== 'abandonado',
+      ).length ||
+      inscripcionesActivas.total ||
+      0;
 
     if (totalActivas >= capacitacion.capacidadMaxima) {
       throw new BadRequestException(
@@ -144,7 +156,50 @@ export class InscripcionValidatorService {
     });
 
     if (!pago) {
-      throw new NotFoundException(`Pago con ID ${pagoId} no encontrado o inactivo`);
+      throw new NotFoundException(
+        `Pago con ID ${pagoId} no encontrado o inactivo`,
+      );
+    }
+  }
+
+  /**
+   * Para cliente institucional: valida que la capacitación esté asignada a su empresa (por admin).
+   */
+  async validateCapacitacionAssignedToEmpresa(
+    capacitacionId: number,
+    empresaId: number,
+  ): Promise<void> {
+    const assigned =
+      await this.empresasCapacitacionesService.isCapacitacionAssignedToEmpresa(
+        capacitacionId,
+        empresaId,
+      );
+    if (!assigned) {
+      throw new BadRequestException(
+        `La capacitación con ID ${capacitacionId} no está asignada a su empresa. Solo puede inscribir usuarios en los cursos que el administrador asignó a su empresa.`,
+      );
+    }
+  }
+
+  /**
+   * Para cliente institucional: valida que el estudiante pertenezca a la empresa del usuario.
+   */
+  async validateEstudianteBelongsToEmpresa(
+    estudianteId: number,
+    empresaId: number,
+  ): Promise<void> {
+    const persona = await this.personaRepository.findOne({
+      where: { id: estudianteId },
+    });
+    if (!persona) {
+      throw new NotFoundException(
+        `Estudiante con ID ${estudianteId} no encontrado`,
+      );
+    }
+    if (persona.empresaId !== empresaId) {
+      throw new BadRequestException(
+        `Solo puede inscribir usuarios de su empresa. El estudiante con ID ${estudianteId} no pertenece a su empresa.`,
+      );
     }
   }
 }

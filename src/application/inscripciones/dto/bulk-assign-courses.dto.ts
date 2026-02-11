@@ -3,18 +3,23 @@ import { ApiProperty } from '@nestjs/swagger';
 
 export class BulkAssignCoursesDto {
   @ApiProperty({
-    description: 'Array de IDs de usuarios (estudiantes) a los que se asignarán los cursos',
+    description:
+      'Array de IDs de Persona (estudiante_id), no de Usuario. Cada valor debe ser el id de la tabla personas del estudiante a inscribir.',
     example: [1, 2, 3],
     type: [Number],
   })
   @IsArray({ message: 'Los IDs de usuarios deben ser un array' })
   @ArrayMinSize(1, { message: 'Debe seleccionar al menos un usuario' })
-  @IsInt({ each: true, message: 'Cada ID de usuario debe ser un número entero' })
+  @IsInt({
+    each: true,
+    message: 'Cada ID de usuario debe ser un número entero',
+  })
   @IsPositive({ each: true, message: 'Cada ID de usuario debe ser positivo' })
   userIds: number[];
 
   @ApiProperty({
-    description: 'Array de IDs de cursos (capacitaciones) que se asignarán a los usuarios',
+    description:
+      'Array de IDs de cursos (capacitaciones) que se asignarán a los usuarios',
     example: [1, 2, 3],
     type: [Number],
   })
@@ -24,4 +29,3 @@ export class BulkAssignCoursesDto {
   @IsPositive({ each: true, message: 'Cada ID de curso debe ser positivo' })
   courseIds: number[];
 }
-

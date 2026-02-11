@@ -279,7 +279,11 @@ export function renderFooter(
 
   // Obtener datos dinámicos para la empresa aliada
   const dynamicData = getDynamicData(config, certificateTypes);
-  const allianceCompany = getAllianceCompany(isAlimentos, isCesaroto, dynamicData);
+  const allianceCompany = getAllianceCompany(
+    isAlimentos,
+    isCesaroto,
+    dynamicData,
+  );
 
   // Construir el texto completo para calcular el ancho y dividir en líneas
   const footerText = `Certificado emitido por FORMAR360 en alianza con ${allianceCompany} La autenticidad de este documento puede verificarse escaneando el código QR.`;
