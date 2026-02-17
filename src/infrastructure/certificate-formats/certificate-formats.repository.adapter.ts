@@ -1,7 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { CertificateFormat, CertificateFormatType } from '@/entities/certificate-formats/certificate-format.entity';
+import {
+  CertificateFormat,
+  CertificateFormatType,
+} from '@/entities/certificate-formats/certificate-format.entity';
 import { CreateCertificateFormatDto } from '@/application/certificate-formats/dto/create-certificate-format.dto';
 import { UpdateCertificateFormatDto } from '@/application/certificate-formats/dto/update-certificate-format.dto';
 
@@ -31,10 +34,12 @@ export class CertificateFormatsRepositoryAdapter {
     });
   }
 
-  async findByType(tipo: CertificateFormatType): Promise<CertificateFormat | null> {
-    return await this.certificateFormatRepository.findOne({
-      where: { tipo, activo: true },
-    });
+  /** Devuelve el formato activo (el tipo se usa en el llamador para elegir config/fondo). */
+
+  async findByType(
+    _tipo: CertificateFormatType,
+  ): Promise<CertificateFormat | null> {
+    return await this.findActive();
   }
 
   async findActive(): Promise<CertificateFormat | null> {
@@ -60,13 +65,10 @@ export class CertificateFormatsRepositoryAdapter {
     tipo: CertificateFormatType,
     path: string,
   ): Promise<CertificateFormat> {
-    // Buscar o crear el formato para este tipo
-    let format = await this.findByType(tipo);
-    
+    let format = await this.findActive();
+
     if (!format) {
-      // Crear nuevo formato si no existe
       const newFormat = this.certificateFormatRepository.create({
-        tipo,
         activo: true,
       });
       format = await this.certificateFormatRepository.save(newFormat);
@@ -89,7 +91,9 @@ export class CertificateFormatsRepositoryAdapter {
     await this.certificateFormatRepository.update(format.id, updateData);
     const updated = await this.findOne(format.id);
     if (!updated) {
-      throw new Error(`CertificateFormat with ID ${format.id} not found after update`);
+      throw new Error(
+        `CertificateFormat with ID ${format.id} not found after update`,
+      );
     }
     return updated;
   }

@@ -123,6 +123,32 @@ export class S3Service {
   }
 
   /**
+   * Sube un archivo a S3 con una key exacta (ej: catalogos/entes/1/logo.png).
+   * Retorna la URL pública (CloudFront o S3).
+   */
+  async uploadWithKey(file: Express.Multer.File, key: string): Promise<string> {
+    const contentType = file.mimetype || 'application/octet-stream';
+    try {
+      const command = new PutObjectCommand({
+        Bucket: this.bucketName,
+        Key: key,
+        Body: file.buffer,
+        ContentType: contentType,
+      });
+      await this.s3Client.send(command);
+      if (this.cloudFrontUrl) {
+        const baseUrl = this.cloudFrontUrl.replace(/\/$/, '');
+        return `${baseUrl}/${key}`;
+      }
+      return `https://${this.bucketName}.s3.${this.region}.amazonaws.com/${key}`;
+    } catch (error) {
+      throw new Error(
+        `Error al subir archivo a S3: ${error instanceof Error ? error.message : 'Error desconocido'}`,
+      );
+    }
+  }
+
+  /**
    * Verifica si un archivo existe en S3
    */
   async fileExists(key: string): Promise<boolean> {

@@ -183,6 +183,7 @@ export class PublicCertificadosController {
         found = true;
         break;
       } catch (e) {
+        console.error('Error accessing file:', e);
         continue;
       }
     }
@@ -250,8 +251,8 @@ export class PublicCertificadosController {
 
       // Extraer solo información pública (RF-34)
       const inscripcion = result.certificado.inscripcion as any;
-      const estudiante = inscripcion?.estudiante as any;
-      const capacitacion = inscripcion?.capacitacion as any;
+      const estudiante = inscripcion?.estudiante;
+      const capacitacion = inscripcion?.capacitacion;
 
       return {
         isValid: result.isValid,

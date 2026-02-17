@@ -25,7 +25,10 @@ import { CertificateFormatsService } from './certificate-formats.service';
 import { CreateCertificateFormatDto } from '@/application/certificate-formats/dto/create-certificate-format.dto';
 import { UpdateCertificateFormatDto } from '@/application/certificate-formats/dto/update-certificate-format.dto';
 import { UploadBackgroundDto } from '@/application/certificate-formats/dto/upload-background.dto';
-import { CertificateFormatType } from '@/entities/certificate-formats/certificate-format.entity';
+import {
+  CertificateFormat,
+  CertificateFormatType,
+} from '@/entities/certificate-formats/certificate-format.entity';
 import { JwtAuthGuard } from '../shared/guards/jwt-auth.guard';
 import { Public } from '../shared/auth/decorators/public.decorator';
 
@@ -62,24 +65,56 @@ export class CertificateFormatsController {
 
   @Get('config')
   @ApiOperation({ summary: 'Obtener configuración activa como PdfConfig' })
-  @ApiResponse({ status: 200, description: 'Configuración en formato PdfConfig' })
+  @ApiResponse({
+    status: 200,
+    description: 'Configuración en formato PdfConfig',
+  })
   @UseGuards(JwtAuthGuard)
-  async getActiveConfig() {
+  async getActiveConfig(): Promise<unknown> {
     return await this.certificateFormatsService.getActiveConfig();
+  }
+
+  @Get('centralized')
+  @ApiOperation({
+    summary: 'Configuración centralizada del certificado (config + fondos)',
+    description:
+      'Una sola fuente de verdad: formato activo con config PDF (alimentos, sustancias, otros) y rutas relativas de fondos para la UI.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Configuración centralizada (sin rutas absolutas)',
+  })
+  async getCentralized(): Promise<unknown> {
+    const data =
+      await this.certificateFormatsService.getCentralizedCertificateConfig();
+    if (!data) return null;
+    const { activeFormatId, activo, config, fondos } = data;
+    return { activeFormatId, activo, config, fondos };
   }
 
   @Get('config/public')
   @Public()
-  @ApiOperation({ summary: 'Obtener configuración activa como PdfConfig (público, solo lectura)' })
-  @ApiResponse({ status: 200, description: 'Configuración en formato PdfConfig' })
-  async getActiveConfigPublic() {
+  @ApiOperation({
+    summary:
+      'Obtener configuración activa como PdfConfig (público, solo lectura)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Configuración en formato PdfConfig',
+  })
+  async getActiveConfigPublic(): Promise<unknown> {
     return await this.certificateFormatsService.getActiveConfig();
   }
 
   @Get('config/:tipo')
   @ApiOperation({ summary: 'Obtener configuración por tipo' })
-  @ApiResponse({ status: 200, description: 'Configuración del tipo especificado' })
-  async getConfigByType(@Param('tipo') tipo: CertificateFormatType) {
+  @ApiResponse({
+    status: 200,
+    description: 'Configuración del tipo especificado',
+  })
+  async getConfigByType(
+    @Param('tipo') tipo: CertificateFormatType,
+  ): Promise<unknown> {
     return await this.certificateFormatsService.getConfigByType(tipo);
   }
 
@@ -87,7 +122,9 @@ export class CertificateFormatsController {
   @ApiOperation({ summary: 'Obtener un formato por ID' })
   @ApiResponse({ status: 200, description: 'Formato encontrado' })
   @ApiResponse({ status: 404, description: 'Formato no encontrado' })
-  async findOne(@Param('id', ParseIntPipe) id: number) {
+  async findOne(
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<CertificateFormat> {
     return await this.certificateFormatsService.findOne(id);
   }
 
@@ -98,7 +135,7 @@ export class CertificateFormatsController {
   async update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateDto: UpdateCertificateFormatDto,
-  ) {
+  ): Promise<CertificateFormat> {
     return await this.certificateFormatsService.update(id, updateDto);
   }
 
@@ -106,7 +143,7 @@ export class CertificateFormatsController {
   @ApiOperation({ summary: 'Eliminar un formato de certificado' })
   @ApiResponse({ status: 200, description: 'Formato eliminado exitosamente' })
   @ApiResponse({ status: 404, description: 'Formato no encontrado' })
-  async remove(@Param('id', ParseIntPipe) id: number) {
+  async remove(@Param('id', ParseIntPipe) id: number): Promise<void> {
     await this.certificateFormatsService.remove(id);
     return { message: 'Formato eliminado exitosamente' };
   }
@@ -134,7 +171,10 @@ export class CertificateFormatsController {
     },
   })
   @ApiResponse({ status: 201, description: 'Archivo subido exitosamente' })
-  @ApiResponse({ status: 400, description: 'Archivo inválido o tipo incorrecto' })
+  @ApiResponse({
+    status: 400,
+    description: 'Archivo inválido o tipo incorrecto',
+  })
   async uploadBackground(
     @UploadedFile() file: Express.Multer.File,
     @Query() query: UploadBackgroundDto,

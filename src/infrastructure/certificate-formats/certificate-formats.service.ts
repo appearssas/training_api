@@ -7,7 +7,10 @@ import { ConfigService } from '@nestjs/config';
 import { existsSync, unlinkSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { CertificateFormatsRepositoryAdapter } from './certificate-formats.repository.adapter';
-import { CertificateFormat, CertificateFormatType } from '@/entities/certificate-formats/certificate-format.entity';
+import {
+  CertificateFormat,
+  CertificateFormatType,
+} from '@/entities/certificate-formats/certificate-format.entity';
 import { CreateCertificateFormatDto } from '@/application/certificate-formats/dto/create-certificate-format.dto';
 import { UpdateCertificateFormatDto } from '@/application/certificate-formats/dto/update-certificate-format.dto';
 import { PUBLIC_ASSETS_PATH } from '../shared/constants/pdf.constants';
@@ -18,7 +21,25 @@ const ACTIVE_CONFIG_CACHE_TTL_MS = 5 * 60 * 1000;
 @Injectable()
 export class CertificateFormatsService {
   private readonly backgroundsPath: string;
-  private activeConfigCache: { config: any; expiresAt: number } | null = null;
+  private activeConfigCache: {
+    config: any;
+    centralized?: {
+      activeFormatId: number;
+      activo: boolean;
+      config: { alimentos: any; sustancias: any; otros: any };
+      fondos: {
+        alimentos: string | null;
+        sustancias: string | null;
+        otros: string | null;
+      };
+      fondosAbsolute: {
+        alimentos: string | null;
+        sustancias: string | null;
+        otros: string | null;
+      };
+    };
+    expiresAt: number;
+  } | null = null;
 
   constructor(
     private readonly repository: CertificateFormatsRepositoryAdapter,
@@ -26,7 +47,7 @@ export class CertificateFormatsService {
   ) {
     // Usar la misma ruta que los assets públicos
     this.backgroundsPath = join(PUBLIC_ASSETS_PATH);
-    
+
     // Asegurar que el directorio existe
     if (!existsSync(this.backgroundsPath)) {
       throw new Error(
@@ -35,7 +56,9 @@ export class CertificateFormatsService {
     }
   }
 
-  async create(createDto: CreateCertificateFormatDto): Promise<CertificateFormat> {
+  async create(
+    createDto: CreateCertificateFormatDto,
+  ): Promise<CertificateFormat> {
     const result = await this.repository.create(createDto);
     this.invalidateActiveConfigCache();
     return result;
@@ -48,12 +71,16 @@ export class CertificateFormatsService {
   async findOne(id: number): Promise<CertificateFormat> {
     const format = await this.repository.findOne(id);
     if (!format) {
-      throw new NotFoundException(`Formato de certificado con ID ${id} no encontrado`);
+      throw new NotFoundException(
+        `Formato de certificado con ID ${id} no encontrado`,
+      );
     }
     return format;
   }
 
-  async findByType(tipo: CertificateFormatType): Promise<CertificateFormat | null> {
+  async findByType(
+    tipo: CertificateFormatType,
+  ): Promise<CertificateFormat | null> {
     return await this.repository.findByType(tipo);
   }
 
@@ -65,7 +92,7 @@ export class CertificateFormatsService {
     id: number,
     updateDto: UpdateCertificateFormatDto,
   ): Promise<CertificateFormat> {
-    const format = await this.findOne(id);
+    await this.findOne(id);
     const result = await this.repository.update(id, updateDto);
     this.invalidateActiveConfigCache();
     return result;
@@ -101,8 +128,10 @@ export class CertificateFormatsService {
       case CertificateFormatType.OTROS:
         fileName = 'fondoGeneral.png';
         break;
-      default:
-        throw new BadRequestException(`Tipo de formato no válido: ${tipo}`);
+      default: {
+        const invalid = tipo as string;
+        throw new BadRequestException(`Tipo de formato no válido: ${invalid}`);
+      }
     }
 
     const filePath = join(this.backgroundsPath, fileName);
@@ -111,7 +140,9 @@ export class CertificateFormatsService {
     if (existsSync(filePath)) {
       try {
         unlinkSync(filePath);
-        console.log(`[CertificateFormats] Archivo anterior eliminado: ${filePath}`);
+        console.log(
+          `[CertificateFormats] Archivo anterior eliminado: ${filePath}`,
+        );
       } catch (error) {
         console.error(
           `[CertificateFormats] Error al eliminar archivo anterior:`,
@@ -131,7 +162,10 @@ export class CertificateFormatsService {
 
     // Actualizar o crear el registro en la base de datos
     const relativePath = join('assets', fileName).replace(/\\/g, '/');
-    const result = await this.repository.updateBackgroundPath(tipo, relativePath);
+    const result = await this.repository.updateBackgroundPath(
+      tipo,
+      relativePath,
+    );
     this.invalidateActiveConfigCache();
     return result;
   }
@@ -141,12 +175,36 @@ export class CertificateFormatsService {
    * Incluye datos de instructor y representante legal que cambian poco.
    */
   async getActiveConfig(): Promise<any> {
+    const centralized = await this.getCentralizedCertificateConfig();
+    return centralized?.config ?? null;
+  }
+
+  /**
+   * Configuración centralizada del certificado: formato activo con config PDF y rutas de fondos.
+   * Una sola fuente de verdad para generación de PDF y para la UI de administración.
+   */
+  async getCentralizedCertificateConfig(): Promise<{
+    activeFormatId: number;
+    activo: boolean;
+    config: { alimentos: any; sustancias: any; otros: any };
+    fondos: {
+      alimentos: string | null;
+      sustancias: string | null;
+      otros: string | null;
+    };
+    fondosAbsolute: {
+      alimentos: string | null;
+      sustancias: string | null;
+      otros: string | null;
+    };
+  } | null> {
     const now = Date.now();
     if (
       this.activeConfigCache &&
-      this.activeConfigCache.expiresAt > now
+      this.activeConfigCache.expiresAt > now &&
+      this.activeConfigCache.centralized
     ) {
-      return this.activeConfigCache.config;
+      return this.activeConfigCache.centralized;
     }
 
     const format = await this.repository.findActive();
@@ -160,11 +218,52 @@ export class CertificateFormatsService {
       sustancias: format.configSustancias,
       otros: format.configOtros,
     };
+
+    const resolvePath = (relative: string | null): string | null => {
+      if (!relative) return null;
+      const full = join(
+        this.backgroundsPath,
+        relative.replace(/^assets\/?/, ''),
+      );
+      return existsSync(full) ? full : null;
+    };
+
+    const fondos = {
+      alimentos: format.fondoAlimentosPath,
+      sustancias: format.fondoSustanciasPath,
+      otros: format.fondoGeneralPath,
+    };
+    const fondosAbsolute = {
+      alimentos: resolvePath(format.fondoAlimentosPath),
+      sustancias: resolvePath(format.fondoSustanciasPath),
+      otros: resolvePath(format.fondoGeneralPath),
+    };
+
+    const centralized = {
+      activeFormatId: format.id,
+      activo: !!format.activo,
+      config,
+      fondos,
+      fondosAbsolute,
+    };
+
     this.activeConfigCache = {
       config,
+      centralized,
       expiresAt: now + ACTIVE_CONFIG_CACHE_TTL_MS,
     };
-    return config;
+    return centralized;
+  }
+
+  /**
+   * Devuelve la ruta absoluta del fondo a usar según el tipo de certificado (alimentos/sustancias/otros).
+   */
+  async getBackgroundPathForCertificateType(
+    tipo: 'alimentos' | 'sustancias' | 'otros',
+  ): Promise<string | null> {
+    const centralized = await this.getCentralizedCertificateConfig();
+    if (!centralized?.fondosAbsolute) return null;
+    return centralized.fondosAbsolute[tipo];
   }
 
   /** Invalida el caché de configuración activa (llamar al actualizar formatos) */

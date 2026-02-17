@@ -7,6 +7,10 @@ import {
 } from '../types/pdf-config.interface';
 import { DEFAULT_VALUES } from '../constants/pdf.constants';
 import { loadImageAsDataUrl } from './image.utils';
+import type {
+  InstructorDetails,
+  RepresentativeDetails,
+} from '../types/pdf-config.interface';
 import {
   getInstructorDetails,
   getRepresentativeDetails,
@@ -62,20 +66,22 @@ function getDefaultSignatureDimensions(
 }
 
 /**
- * Renderiza la firma del instructor
+ * Renderiza la firma del instructor.
+ * Si se pasa instructorOverride (ej. desde el instructor de la capacitación con firma centralizada), se usa en lugar de la config.
  */
 export async function renderInstructorSignature(
   doc: jsPDF,
   pageWidth: number,
   config: PdfConfig | undefined,
   certificateTypes: CertificateTypeFlags,
+  instructorOverride?: InstructorDetails | null,
 ): Promise<void> {
   const { isAlimentos, usarConfigAlimentos, usarConfigSustancias } =
     certificateTypes;
 
-  // Obtener datos dinámicos de la configuración
   const dynamicData = getDynamicData(config, certificateTypes);
-  const instructorSig = getInstructorDetails(isAlimentos, dynamicData);
+  const instructorSig =
+    instructorOverride ?? getInstructorDetails(isAlimentos, dynamicData);
   const firmaConfig = getImageConfig(
     config,
     certificateTypes,
@@ -152,20 +158,20 @@ export async function renderInstructorSignature(
 }
 
 /**
- * Renderiza la firma del representante legal
+ * Renderiza la firma del representante legal.
+ * representativeOverride: datos desde la tabla representantes (ente certificador) si existe.
  */
 export async function renderRepresentativeSignature(
   doc: jsPDF,
   pageWidth: number,
   config: PdfConfig | undefined,
   certificateTypes: CertificateTypeFlags,
+  representativeOverride?: RepresentativeDetails | null,
 ): Promise<void> {
-  const { isAlimentos, usarConfigAlimentos, usarConfigSustancias } =
-    certificateTypes;
+  const { usarConfigAlimentos, usarConfigSustancias } = certificateTypes;
 
-  // Obtener datos dinámicos de la configuración
   const dynamicData = getDynamicData(config, certificateTypes);
-  const repSig = getRepresentativeDetails(isAlimentos, dynamicData);
+  const repSig = getRepresentativeDetails(representativeOverride, dynamicData);
   const representanteFirmaConfig = getImageConfig(
     config,
     certificateTypes,
@@ -238,10 +244,12 @@ export async function renderRepresentativeSignature(
           ? 520
           : 571;
 
+  const roleText: string =
+    (repSig.role && repSig.role.trim()) || 'Representante Legal';
   renderRole(
     doc,
     pageWidth,
-    'Representante Legal',
+    roleText,
     representanteRolConfig,
     representanteRolX,
     DEFAULT_VALUES.POSITIONS.ROLE_Y,
@@ -250,14 +258,30 @@ export async function renderRepresentativeSignature(
 }
 
 /**
- * Renderiza todas las firmas (instructor y representante) en el PDF
+ * Renderiza todas las firmas (instructor y representante) en el PDF.
+ * instructorOverride: instructor de la capacitación con firma centralizada.
+ * representativeOverride: representante del ente certificador (tabla representantes).
  */
 export async function renderSignatures(
   doc: jsPDF,
   pageWidth: number,
   config: PdfConfig | undefined,
   certificateTypes: CertificateTypeFlags,
+  instructorOverride?: InstructorDetails | null,
+  representativeOverride?: RepresentativeDetails | null,
 ): Promise<void> {
-  await renderInstructorSignature(doc, pageWidth, config, certificateTypes);
-  await renderRepresentativeSignature(doc, pageWidth, config, certificateTypes);
+  await renderInstructorSignature(
+    doc,
+    pageWidth,
+    config,
+    certificateTypes,
+    instructorOverride,
+  );
+  await renderRepresentativeSignature(
+    doc,
+    pageWidth,
+    config,
+    certificateTypes,
+    representativeOverride,
+  );
 }

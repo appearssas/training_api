@@ -10,6 +10,9 @@ import {
   BadRequestException,
   UseGuards,
 } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { EnteCertificador } from '@/entities/catalogos/ente-certificador.entity';
 import {
   ApiTags,
   ApiOperation,
@@ -50,6 +53,8 @@ export class CapacitacionesController {
     private readonly removeCapacitacionUseCase: RemoveCapacitacionUseCase,
     private readonly linkEvaluacionUseCase: LinkEvaluacionUseCase,
     private readonly toggleStatusUseCase: ToggleStatusUseCase,
+    @InjectRepository(EnteCertificador)
+    private readonly enteCertificadorRepository: Repository<EnteCertificador>,
   ) {}
 
   @Post()
@@ -79,6 +84,21 @@ export class CapacitacionesController {
   @ApiResponse({ status: 500, description: 'Error interno del servidor' })
   create(@Body() createCapacitacionDto: CreateCapacitacionDto) {
     return this.createCapacitacionUseCase.execute(createCapacitacionDto);
+  }
+
+  @Get('catalog/entes-certificadores')
+  @Roles('ADMIN', 'INSTRUCTOR')
+  @ApiOperation({
+    summary: 'Listar entes certificadores',
+    description:
+      'Catálogo de entes certificadores activos para asignar a capacitaciones.',
+  })
+  @ApiResponse({ status: 200, description: 'Lista de entes certificadores' })
+  async getEntesCertificadores() {
+    return this.enteCertificadorRepository.find({
+      where: { activo: true },
+      order: { nombre: 'ASC' },
+    });
   }
 
   @Post('list')

@@ -1,9 +1,10 @@
-import { Injectable, Inject, forwardRef } from '@nestjs/common';
+import { Injectable, Inject, forwardRef, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Certificado } from '@/entities/certificados/certificado.entity';
 import { existsSync } from 'fs';
 import { loadImageAsDataUrl } from '../utils/image.utils';
 import { QrGeneratorService } from './qr-generator.service';
+import { StorageService } from './storage.service';
 import { jsPDF } from 'jspdf';
 import { CertificateFormatsService } from '../../certificate-formats/certificate-formats.service';
 
@@ -12,6 +13,8 @@ import {
   PdfConfig,
   CertificateData,
   CertificateTypeFlags,
+  InstructorDetails,
+  RepresentativeDetails,
 } from '../types/pdf-config.interface';
 
 // Constants
@@ -36,12 +39,14 @@ import {
   renderQRCode,
   renderFooter,
 } from '../utils/pdf-renderer.utils';
+import { Capacitacion } from '@/entities/capacitacion/capacitacion.entity';
 
 @Injectable()
 export class PdfGeneratorService {
   constructor(
     private readonly configService: ConfigService,
     private readonly qrGeneratorService: QrGeneratorService,
+    @Optional() private readonly storageService?: StorageService,
     @Inject(forwardRef(() => CertificateFormatsService))
     private readonly certificateFormatsService?: CertificateFormatsService,
   ) {}
@@ -83,7 +88,7 @@ export class PdfGeneratorService {
       }
     }
 
-    const capacitacion = inscripcion.capacitacion as any;
+    const capacitacion = inscripcion.capacitacion;
     const certificateTypes = determineCertificateTypes(capacitacion);
 
     console.log('certificateTypes', certificateTypes);
@@ -116,6 +121,9 @@ export class PdfGeneratorService {
     const pageHeight = doc.internal.pageSize.getHeight();
 
     await this.loadBackground(doc, capacitacion, pageWidth, pageHeight);
+
+    // Logo del ente certificador (centralizado en catálogo)
+    await this.renderEnteLogo(doc, capacitacion, pageWidth);
 
     // Configurar fuente
     doc.setFont('helvetica');
@@ -160,12 +168,17 @@ export class PdfGeneratorService {
       certificateTypes,
     );
 
-    // Renderizar firmas
+    // Renderizar firmas (instructor y representante desde BD: capacitación → ente → representantes)
+    const instructorOverride = await this.buildInstructorOverride(capacitacion);
+    const representativeOverride =
+      await this.buildRepresentativeOverride(capacitacion);
     await renderSignatures(
       doc,
       pageWidth,
       configWithDefaults,
       certificateTypes,
+      instructorOverride,
+      representativeOverride,
     );
 
     // Renderizar QR
@@ -178,7 +191,13 @@ export class PdfGeneratorService {
     );
 
     // Renderizar pie de página
-    renderFooter(doc, pageWidth, configWithDefaults, certificateTypes);
+    renderFooter(
+      doc,
+      pageWidth,
+      configWithDefaults,
+      certificateTypes,
+      capacitacion,
+    );
 
     // Retornar PDF como Buffer
     return this.outputPdfAsBuffer(doc);
@@ -199,8 +218,25 @@ export class PdfGeneratorService {
     pageHeight: number,
   ): Promise<void> {
     try {
-      const backgroundPath = getCertificateBackground(capacitacion);
-      if (existsSync(backgroundPath)) {
+      let backgroundPath: string | null = null;
+      if (this.certificateFormatsService) {
+        const centralized =
+          await this.certificateFormatsService.getCentralizedCertificateConfig();
+        const certificateTypes = determineCertificateTypes(capacitacion);
+        if (centralized?.fondosAbsolute) {
+          if (certificateTypes.usarConfigAlimentos) {
+            backgroundPath = centralized.fondosAbsolute.alimentos;
+          } else if (certificateTypes.usarConfigSustancias) {
+            backgroundPath = centralized.fondosAbsolute.sustancias;
+          } else {
+            backgroundPath = centralized.fondosAbsolute.otros;
+          }
+        }
+      }
+      if (!backgroundPath) {
+        backgroundPath = getCertificateBackground(capacitacion);
+      }
+      if (backgroundPath && existsSync(backgroundPath)) {
         const bgImage = await loadImageAsDataUrl(backgroundPath);
         doc.addImage(
           bgImage,
@@ -247,7 +283,7 @@ export class PdfGeneratorService {
         certificado.fechaVencimiento,
       );
 
-    const duration: string = getDuration(cursoNombre);
+    const duration: string = getDuration(capacitacion);
 
     const result: CertificateData = {
       nombreCompleto,
@@ -353,6 +389,87 @@ export class PdfGeneratorService {
       config,
       certificateTypes,
     );
+  }
+
+  /** Dibuja el logo del ente certificador si existe (esquina superior derecha). */
+  private async renderEnteLogo(
+    doc: jsPDF,
+    capacitacion: any,
+    pageWidth: number,
+  ): Promise<void> {
+    const ente = capacitacion?.enteCertificador;
+    if (!ente?.logoPath || !this.storageService) return;
+    const exists = await this.storageService.fileExists(
+      ente.logoPath as string,
+    );
+    if (!exists) return;
+    try {
+      const absPathOrUrl = this.storageService.getFilePath(
+        ente.logoPath as string,
+      );
+      const img = await loadImageAsDataUrl(absPathOrUrl);
+      const w = 100;
+      const h = 45;
+      const x = pageWidth - w - 40;
+      const y = 25;
+      doc.addImage(img, 'PNG', x, y, w, h);
+    } catch {
+      // ignorar si no se puede cargar el logo
+    }
+  }
+
+  /**
+   * Si el ente certificador de la capacitación tiene representantes en BD,
+   * devuelve el primero activo con firma para el PDF.
+   */
+  private async buildRepresentativeOverride(
+    capacitacion: Capacitacion,
+  ): Promise<RepresentativeDetails | undefined> {
+    if (!this.storageService) return undefined;
+    const representantes = capacitacion?.enteCertificador?.representantes;
+    if (!Array.isArray(representantes) || representantes.length === 0) {
+      return undefined;
+    }
+    const rep = representantes.find(
+      (r: { activo?: boolean; firmaPath?: string | null }) =>
+        r.activo !== false && r.firmaPath?.trim(),
+    );
+    if (!rep?.firmaPath) return undefined;
+    const exists = await this.storageService.fileExists(rep.firmaPath);
+    if (!exists) return undefined;
+    return {
+      name: rep.nombre?.trim() ?? '',
+      signatureImage: this.storageService.getFilePath(rep.firmaPath),
+      role: (rep as { cargo?: string | null }).cargo?.trim() ?? '',
+    };
+  }
+
+  /**
+   * Si la capacitación tiene instructor con firma centralizada (firmaPath en BD),
+   * devuelve los datos para el PDF. Si no, undefined y se usa la config del editor.
+   */
+  private async buildInstructorOverride(
+    capacitacion: Capacitacion,
+  ): Promise<InstructorDetails | undefined> {
+    if (!this.storageService) return undefined;
+    const instructorProfile = capacitacion?.instructor?.instructor;
+    const persona = capacitacion?.instructor;
+    if (!instructorProfile?.firmaPath || !persona) return undefined;
+    const exists = await this.storageService.fileExists(
+      instructorProfile.firmaPath as string,
+    );
+    if (!exists) return undefined;
+    const name =
+      [persona.nombres, persona.apellidos].filter(Boolean).join(' ').trim() ||
+      'Instructor';
+    const role = instructorProfile.especialidad?.trim() || 'Instructor';
+    return {
+      name,
+      role,
+      signatureImage: this.storageService.getFilePath(
+        instructorProfile.firmaPath as string,
+      ),
+    };
   }
 
   private outputPdfAsBuffer(doc: jsPDF): Buffer {

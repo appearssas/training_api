@@ -9,6 +9,8 @@ export * from './catalogos/tipo-capacitacion.entity';
 export * from './catalogos/modalidad-capacitacion.entity';
 export * from './catalogos/tipo-pregunta.entity';
 export * from './catalogos/tipo-material.entity';
+export * from './catalogos/ente-certificador.entity';
+export * from './catalogos/representante.entity';
 export * from './capacitacion/capacitacion.entity';
 export * from './materiales/material-capacitacion.entity';
 export * from './secciones/seccion-capacitacion.entity';

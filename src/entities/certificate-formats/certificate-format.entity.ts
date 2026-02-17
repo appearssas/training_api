@@ -4,9 +4,9 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
-  Index,
 } from 'typeorm';
 
+/** Tipo de certificado (alimentos/sustancias/otros). Usado en API y maestra de cursos. */
 export enum CertificateFormatType {
   ALIMENTOS = 'alimentos',
   SUSTANCIAS = 'sustancias',
@@ -17,14 +17,6 @@ export enum CertificateFormatType {
 export class CertificateFormat {
   @PrimaryGeneratedColumn()
   id: number;
-
-  @Index()
-  @Column({
-    type: 'enum',
-    enum: CertificateFormatType,
-    name: 'tipo',
-  })
-  tipo: CertificateFormatType;
 
   @Column({
     type: 'json',

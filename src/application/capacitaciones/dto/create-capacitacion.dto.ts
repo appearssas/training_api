@@ -67,6 +67,14 @@ export class CreateCapacitacionDto {
   instructorId: number;
 
   @ApiPropertyOptional({
+    description: 'ID del ente certificador (ej. ministerio, secretaría de tránsito)',
+    example: 1,
+  })
+  @IsOptional()
+  @IsInt()
+  enteCertificadorId?: number;
+
+  @ApiPropertyOptional({
     description: 'ID del área temática',
     example: 1,
   })
@@ -109,6 +117,15 @@ export class CreateCapacitacionDto {
   @IsNumber()
   @Min(0)
   duracionHoras?: number;
+
+  @ApiPropertyOptional({
+    description: 'Tipo de certificado (formato PDF y fondo: alimentos, sustancias, otros). Si no se envía, se infiere del título.',
+    enum: ['alimentos', 'sustancias', 'otros'],
+    example: 'otros',
+  })
+  @IsOptional()
+  @IsIn(['alimentos', 'sustancias', 'otros'])
+  tipoCertificado?: 'alimentos' | 'sustancias' | 'otros' | null;
 
   @ApiPropertyOptional({
     description: 'Capacidad máxima de estudiantes',

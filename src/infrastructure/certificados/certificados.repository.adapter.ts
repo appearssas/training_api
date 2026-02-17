@@ -65,6 +65,8 @@ export class CertificadosRepositoryAdapter implements ICertificadosRepository {
         .leftJoinAndSelect('inscripcion.capacitacion', 'capacitacion')
         .leftJoinAndSelect('capacitacion.instructor', 'instructor')
         .leftJoinAndSelect('capacitacion.tipoCapacitacion', 'tipoCapacitacion')
+        .leftJoinAndSelect('capacitacion.enteCertificador', 'enteCertificador')
+        .leftJoinAndSelect('enteCertificador.representantes', 'representantes')
         .getOne();
 
       // Log para verificar qué inscripción se cargó
@@ -146,6 +148,8 @@ export class CertificadosRepositoryAdapter implements ICertificadosRepository {
         .leftJoinAndSelect('inscripcion.capacitacion', 'capacitacion')
         .leftJoinAndSelect('capacitacion.instructor', 'instructor')
         .leftJoinAndSelect('capacitacion.tipoCapacitacion', 'tipoCapacitacion')
+        .leftJoinAndSelect('capacitacion.enteCertificador', 'enteCertificador')
+        .leftJoinAndSelect('enteCertificador.representantes', 'representantes')
         .where('certificado.id = :id', { id: saved.id })
         .getOne();
 
@@ -350,6 +354,8 @@ export class CertificadosRepositoryAdapter implements ICertificadosRepository {
         .leftJoinAndSelect('inscripcion.estudiante', 'estudiante')
         .leftJoinAndSelect('inscripcion.capacitacion', 'capacitacion')
         .leftJoinAndSelect('capacitacion.instructor', 'instructor')
+        .leftJoinAndSelect('instructor.instructor', 'instructorProfile')
+        .leftJoinAndSelect('capacitacion.enteCertificador', 'enteCertificador')
         .leftJoinAndSelect('capacitacion.tipoCapacitacion', 'tipoCapacitacion')
         .where('certificado.id = :id', { id })
         .getOne();
@@ -521,6 +527,9 @@ export class CertificadosRepositoryAdapter implements ICertificadosRepository {
         .leftJoinAndSelect('inscripcion.estudiante', 'estudiante')
         .leftJoinAndSelect('inscripcion.capacitacion', 'capacitacion')
         .leftJoinAndSelect('capacitacion.instructor', 'instructor')
+        .leftJoinAndSelect('instructor.instructor', 'instructorProfile')
+        .leftJoinAndSelect('capacitacion.enteCertificador', 'enteCertificador')
+        .leftJoinAndSelect('enteCertificador.representantes', 'representantes')
         .leftJoinAndSelect('capacitacion.tipoCapacitacion', 'tipoCapacitacion')
         .where('certificado.hashVerificacion = :hash', { hash })
         .getOne();

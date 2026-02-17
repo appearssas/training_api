@@ -52,6 +52,10 @@ export class CapacitacionesRepositoryAdapter implements ICapacitacionesRepositor
         } as any,
         modalidad: { id: createCapacitacionDto.modalidadId } as any,
         instructor: { id: createCapacitacionDto.instructorId } as any,
+        enteCertificador:
+          createCapacitacionDto.enteCertificadorId != null
+            ? { id: createCapacitacionDto.enteCertificadorId } as any
+            : undefined,
         usuarioCreacion: createCapacitacionDto.usuarioCreacion || 'system',
       });
 
@@ -219,6 +223,7 @@ export class CapacitacionesRepositoryAdapter implements ICapacitacionesRepositor
         .leftJoinAndSelect('capacitacion.tipoCapacitacion', 'tipoCapacitacion')
         .leftJoinAndSelect('capacitacion.modalidad', 'modalidad')
         .leftJoinAndSelect('capacitacion.instructor', 'instructor')
+        .leftJoinAndSelect('capacitacion.enteCertificador', 'enteCertificador')
         .leftJoinAndSelect('capacitacion.evaluaciones', 'evaluaciones')
         .leftJoinAndSelect('capacitacion.inscripciones', 'inscripciones')
         .leftJoinAndSelect('inscripciones.resenas', 'resenas')
@@ -349,6 +354,7 @@ export class CapacitacionesRepositoryAdapter implements ICapacitacionesRepositor
           'tipoCapacitacion',
           'modalidad',
           'instructor',
+          'enteCertificador',
           'materiales',
           'materiales.tipoMaterial',
           'secciones',
@@ -466,7 +472,7 @@ export class CapacitacionesRepositoryAdapter implements ICapacitacionesRepositor
     try {
       const capacitacion = await this.capacitacionRepository.findOne({
         where: { id },
-        relations: ['tipoCapacitacion', 'modalidad', 'instructor'],
+        relations: ['tipoCapacitacion', 'modalidad', 'instructor', 'enteCertificador'],
       });
 
       if (!capacitacion) {
@@ -539,6 +545,13 @@ export class CapacitacionesRepositoryAdapter implements ICapacitacionesRepositor
         capacitacion.instructor = {
           id: updateCapacitacionDto.instructorId,
         } as any;
+      }
+
+      if (updateCapacitacionDto.enteCertificadorId !== undefined) {
+        capacitacion.enteCertificador =
+          updateCapacitacionDto.enteCertificadorId != null
+            ? ({ id: updateCapacitacionDto.enteCertificadorId } as any)
+            : null;
       }
 
       if (

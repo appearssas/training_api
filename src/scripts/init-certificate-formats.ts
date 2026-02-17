@@ -1,8 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from '../app.module';
 import { CertificateFormatsService } from '../infrastructure/certificate-formats/certificate-formats.service';
-import { CertificateFormatType } from '../entities/certificate-formats/certificate-format.entity';
-
 /**
  * Script para inicializar los valores por defecto de configuración de certificados en la base de datos
  */
@@ -118,7 +116,6 @@ async function bootstrap() {
     } else {
       console.log('📝 Creando nueva configuración...');
       const created = await certificateFormatsService.create({
-        tipo: CertificateFormatType.OTROS,
         configOtros,
       });
       console.log('✅ Configuración creada exitosamente con ID:', created.id);
