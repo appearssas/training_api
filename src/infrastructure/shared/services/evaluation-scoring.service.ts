@@ -1,8 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Pregunta } from '@/entities/evaluaciones/pregunta.entity';
-import { OpcionRespuesta } from '@/entities/evaluaciones/opcion-respuesta.entity';
 import { RespuestaEstudiante } from '@/entities/evaluaciones/respuesta-estudiante.entity';
-import { RespuestaMultiple } from '@/entities/evaluaciones/respuesta-multiple.entity';
 
 /**
  * Servicio para calcular puntajes de evaluaciones

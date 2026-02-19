@@ -292,7 +292,7 @@ export class PdfGeneratorService {
       backgroundPath &&
       (backgroundPath.startsWith('http') || existsSync(backgroundPath));
     if (hasBackground) {
-      const bgImage = await loadImageAsDataUrl(backgroundPath!);
+      const bgImage = await loadImageAsDataUrl(backgroundPath);
       doc.addImage(
         bgImage,
         'PNG',
@@ -392,9 +392,12 @@ export class PdfGeneratorService {
     try {
       let backgroundPath: string | null = null;
       if (this.certificateFormatsService) {
+        const rawId = capacitacion?.enteCertificador?.id;
+        const enteId: number | null =
+          typeof rawId === 'number' && !Number.isNaN(rawId) ? rawId : null;
         const centralized =
           await this.certificateFormatsService.getCentralizedConfigForEnte(
-            capacitacion.enteCertificador?.id ?? null,
+            enteId,
           );
         // Un solo fondo por formato en BD; usamos el del formato del ente.
         if (centralized?.fondosAbsolute) {
@@ -411,7 +414,7 @@ export class PdfGeneratorService {
         backgroundPath &&
         (backgroundPath.startsWith('http') || existsSync(backgroundPath));
       if (hasBackground) {
-        const bgImage = await loadImageAsDataUrl(backgroundPath!);
+        const bgImage = await loadImageAsDataUrl(backgroundPath);
         doc.addImage(
           bgImage,
           'PNG',
@@ -640,8 +643,7 @@ export class PdfGeneratorService {
       [persona.nombres, persona.apellidos].filter(Boolean).join(' ').trim() ||
       'Instructor';
     const parts: string[] = [];
-    const rol =
-      instructor.rol?.trim() || instructor.especialidad?.trim();
+    const rol = instructor.rol?.trim() || instructor.especialidad?.trim();
     if (rol) parts.push(`${rol}`);
     if (instructor.tarjetaProfesional?.trim())
       parts.push(`${instructor.tarjetaProfesional.trim()}`);
@@ -651,13 +653,9 @@ export class PdfGeneratorService {
 
     let signatureImage = '';
     if (instructor.firmaPath?.trim() && this.storageService) {
-      const exists = await this.storageService.fileExists(
-        instructor.firmaPath,
-      );
+      const exists = await this.storageService.fileExists(instructor.firmaPath);
       if (exists) {
-        signatureImage = this.storageService.getFilePath(
-          instructor.firmaPath,
-        );
+        signatureImage = this.storageService.getFilePath(instructor.firmaPath);
       }
     }
 

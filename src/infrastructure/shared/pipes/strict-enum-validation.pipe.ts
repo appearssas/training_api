@@ -15,7 +15,7 @@ import { validate, ValidationError } from 'class-validator';
 export class StrictEnumValidationPipe implements PipeTransform<any> {
   async transform(value: any, { metatype }: ArgumentMetadata) {
     if (!metatype || !this.toValidate(metatype)) {
-      return value;
+      return value as unknown;
     }
 
     const object = plainToInstance(metatype, value);
@@ -38,14 +38,17 @@ export class StrictEnumValidationPipe implements PipeTransform<any> {
     }
 
     // Después de validar, aplicar transformación solo para tipos no-enum
-    return plainToInstance(metatype, value, {
+    const plain: object | object[] = Array.isArray(value)
+      ? (value as object[])
+      : (value as object);
+    return plainToInstance(metatype, plain, {
       enableImplicitConversion: true,
       excludeExtraneousValues: true,
-    });
+    }) as unknown;
   }
 
-  private toValidate(metatype: Function): boolean {
-    const types: Function[] = [String, Boolean, Number, Array, Object];
+  private toValidate(metatype: any): boolean {
+    const types: any[] = [String, Boolean, Number, Array, Object];
     return !types.includes(metatype);
   }
 

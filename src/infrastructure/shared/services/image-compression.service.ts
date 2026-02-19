@@ -1,10 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import sharp from 'sharp';
-import { gzip, gunzip } from 'zlib';
+import { gzip } from 'zlib';
 import { promisify } from 'util';
 
 const gzipAsync = promisify(gzip);
-const gunzipAsync = promisify(gunzip);
 
 @Injectable()
 export class ImageCompressionService {
@@ -105,7 +104,6 @@ export class ImageCompressionService {
 
     // Si después de todos los intentos sigue siendo muy grande, usar compresión más agresiva
     if (maxSizeBytes > 0 && compressedBuffer.length > maxSizeBytes) {
-      const metadata = await sharp(buffer).metadata();
       const finalDimension = aggressive ? 600 : 800;
       const finalQuality = aggressive ? 50 : 75;
       compressedBuffer = await sharp(buffer)
@@ -172,7 +170,7 @@ export class ImageCompressionService {
    * @param buffer Buffer del PDF original
    * @returns Buffer del PDF (por ahora sin compresión adicional)
    */
-  async compressPDF(buffer: Buffer): Promise<Buffer> {
+  compressPDF(buffer: Buffer): Buffer {
     try {
       // Los PDFs ya suelen estar comprimidos internamente
       // Comprimir con gzip no es ideal porque los navegadores esperan PDFs normales
@@ -248,7 +246,6 @@ export class ImageCompressionService {
     compressed: boolean;
   }> {
     const mimetype = file.mimetype?.toLowerCase() || '';
-    const originalName = file.originalname.split('.')[0];
     const extension = file.originalname.split('.').pop()?.toLowerCase() || '';
 
     // Comprimir imágenes
@@ -262,7 +259,7 @@ export class ImageCompressionService {
 
     // Procesar PDFs (por ahora sin compresión adicional, ya están optimizados)
     if (mimetype === 'application/pdf' || extension === 'pdf') {
-      const processedBuffer = await this.compressPDF(file.buffer);
+      const processedBuffer = this.compressPDF(file.buffer);
 
       // Los PDFs generalmente ya están comprimidos, así que no los marcamos como comprimidos
       return {
