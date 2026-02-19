@@ -111,7 +111,9 @@ describe('StorageService', () => {
         return undefined;
       });
 
-      s3Service.uploadFile.mockResolvedValue('https://cdn.example.com/materials/test.jpg');
+      s3Service.uploadFile.mockResolvedValue(
+        'https://cdn.example.com/materials/test.jpg',
+      );
 
       const newModule = await Test.createTestingModule({
         providers: [
@@ -193,7 +195,9 @@ describe('StorageService', () => {
         return undefined;
       });
 
-      s3Service.uploadBuffer.mockResolvedValue('https://cdn.example.com/certificates/test.pdf');
+      s3Service.uploadBuffer.mockResolvedValue(
+        'https://cdn.example.com/certificates/test.pdf',
+      );
 
       const newModule = await Test.createTestingModule({
         providers: [
@@ -211,7 +215,11 @@ describe('StorageService', () => {
       const newService = newModule.get<StorageService>(StorageService);
 
       const buffer = Buffer.from('test content');
-      const url = await newService.saveBuffer(buffer, 'test.pdf', 'certificates');
+      const url = await newService.saveBuffer(
+        buffer,
+        'test.pdf',
+        'certificates',
+      );
 
       expect(url).toBe('https://cdn.example.com/certificates/test.pdf');
       expect(s3Service.uploadBuffer).toHaveBeenCalled();

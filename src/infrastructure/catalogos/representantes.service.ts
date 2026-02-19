@@ -2,7 +2,10 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Representante } from '@/entities/catalogos/representante.entity';
-import { CreateRepresentanteDto, UpdateRepresentanteDto } from '@/application/catalogos/dto';
+import {
+  CreateRepresentanteDto,
+  UpdateRepresentanteDto,
+} from '@/application/catalogos/dto';
 import { StorageService } from '@/infrastructure/shared/services/storage.service';
 import { EntesCertificadoresService } from './entes-certificadores.service';
 
@@ -15,7 +18,10 @@ export class RepresentantesService {
     private readonly entesCertificadoresService: EntesCertificadoresService,
   ) {}
 
-  async findAllByEnte(enteId: number, activoOnly = true): Promise<Representante[]> {
+  async findAllByEnte(
+    enteId: number,
+    activoOnly = true,
+  ): Promise<Representante[]> {
     return this.repo.find({
       where: {
         enteCertificadorId: enteId,
@@ -37,7 +43,10 @@ export class RepresentantesService {
     return rep;
   }
 
-  async create(enteId: number, dto: CreateRepresentanteDto): Promise<Representante> {
+  async create(
+    enteId: number,
+    dto: CreateRepresentanteDto,
+  ): Promise<Representante> {
     await this.entesCertificadoresService.findOne(enteId);
     const rep = this.repo.create({
       enteCertificadorId: enteId,
@@ -71,7 +80,10 @@ export class RepresentantesService {
     file: Express.Multer.File,
   ): Promise<Representante> {
     const rep = await this.findOneByEnte(enteId, repId);
-    rep.firmaPath = await this.storageService.saveCatalogFirmaRepresentante(repId, file);
+    rep.firmaPath = await this.storageService.saveCatalogFirmaRepresentante(
+      repId,
+      file,
+    );
     return this.repo.save(rep);
   }
 }

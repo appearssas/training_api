@@ -3,7 +3,9 @@ import { ImageCompressionService } from '@/infrastructure/shared/services/image-
 
 // Mock sharp - simplificado para pruebas básicas
 const mockSharpInstance = {
-  metadata: jest.fn().mockResolvedValue({ format: 'jpeg', width: 1000, height: 1000 }),
+  metadata: jest
+    .fn()
+    .mockResolvedValue({ format: 'jpeg', width: 1000, height: 1000 }),
   resize: jest.fn().mockReturnThis(),
   jpeg: jest.fn().mockReturnThis(),
   png: jest.fn().mockReturnThis(),
@@ -24,10 +26,14 @@ describe('ImageCompressionService', () => {
     }).compile();
 
     service = module.get<ImageCompressionService>(ImageCompressionService);
-    
+
     // Reset mocks
     jest.clearAllMocks();
-    mockSharpInstance.metadata.mockResolvedValue({ format: 'jpeg', width: 1000, height: 1000 });
+    mockSharpInstance.metadata.mockResolvedValue({
+      format: 'jpeg',
+      width: 1000,
+      height: 1000,
+    });
     mockSharpInstance.toBuffer.mockResolvedValue(Buffer.alloc(100));
   });
 
@@ -93,7 +99,9 @@ describe('ImageCompressionService', () => {
     });
 
     it('should compress text files', async () => {
-      const buffer = Buffer.from('This is a test text file content that should be compressible');
+      const buffer = Buffer.from(
+        'This is a test text file content that should be compressible',
+      );
       const result = await service.compressGenericFile(buffer, 'text/plain');
       // Compression should work for text files
       expect(result).toBeDefined();

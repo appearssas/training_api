@@ -5,9 +5,12 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   OneToMany,
+  ManyToOne,
+  JoinColumn,
 } from 'typeorm';
 import { Capacitacion } from '../capacitacion/capacitacion.entity';
 import { Representante } from './representante.entity';
+import { CertificateFormat } from '../certificate-formats/certificate-format.entity';
 
 /**
  * Catálogo de entes certificadores (ej. ministerio, secretaría de tránsito).
@@ -27,7 +30,12 @@ export class EnteCertificador {
   @Column({ type: 'text', nullable: true })
   descripcion: string;
 
-  @Column({ type: 'varchar', length: 500, nullable: true, name: 'informacion_contacto' })
+  @Column({
+    type: 'varchar',
+    length: 500,
+    nullable: true,
+    name: 'informacion_contacto',
+  })
   informacionContacto: string;
 
   /** Ruta del logo (ej: catalogos/entes/1/logo.png). Servido bajo /storage/... */
@@ -36,6 +44,14 @@ export class EnteCertificador {
 
   @Column({ type: 'tinyint', default: 1 })
   activo: boolean;
+
+  /** Formato de certificado asignado a este ente (layout y fondos). Si es null, se usa el formato activo global. */
+  @Column({ type: 'int', nullable: true, name: 'certificate_format_id' })
+  certificateFormatId: number | null;
+
+  @ManyToOne(() => CertificateFormat, { onDelete: 'SET NULL', nullable: true })
+  @JoinColumn({ name: 'certificate_format_id' })
+  certificateFormat: CertificateFormat | null;
 
   @CreateDateColumn({ name: 'fecha_creacion' })
   fechaCreacion: Date;

@@ -4,10 +4,7 @@ import { QrGeneratorService } from '../services/qr-generator.service';
 /** TTL del caché de imágenes (1 hora) - fondos y firmas cambian poco */
 const IMAGE_CACHE_TTL_MS = 60 * 60 * 1000;
 
-const imageCache = new Map<
-  string,
-  { dataUrl: string; expiresAt: number }
->();
+const imageCache = new Map<string, { dataUrl: string; expiresAt: number }>();
 
 /**
  * Carga una imagen y retorna su Data URL (con caché para fondos y firmas).
@@ -21,20 +18,27 @@ export async function loadImageAsDataUrl(imagePath: string): Promise<string> {
   }
 
   try {
-    const isUrl = imagePath.startsWith('http://') || imagePath.startsWith('https://');
+    const isUrl =
+      imagePath.startsWith('http://') || imagePath.startsWith('https://');
     let imageBuffer: Buffer;
     let mimeType = 'image/png';
 
     if (isUrl) {
       const res = await fetch(imagePath);
-      if (!res.ok) throw new Error(`Image fetch failed: ${res.status} ${imagePath}`);
+      if (!res.ok)
+        throw new Error(`Image fetch failed: ${res.status} ${imagePath}`);
       const arrayBuffer = await res.arrayBuffer();
       imageBuffer = Buffer.from(arrayBuffer);
       const contentType = res.headers.get('content-type');
       if (contentType?.startsWith('image/')) mimeType = contentType;
       else {
         const ext = new URL(imagePath).pathname.toLowerCase().split('.').pop();
-        mimeType = ext === 'png' ? 'image/png' : ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg' : 'image/png';
+        mimeType =
+          ext === 'png'
+            ? 'image/png'
+            : ext === 'jpg' || ext === 'jpeg'
+              ? 'image/jpeg'
+              : 'image/png';
       }
     } else {
       if (!existsSync(imagePath)) {
@@ -43,7 +47,11 @@ export async function loadImageAsDataUrl(imagePath: string): Promise<string> {
       imageBuffer = readFileSync(imagePath);
       const ext = imagePath.toLowerCase().split('.').pop();
       mimeType =
-        ext === 'png' ? 'image/png' : ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg' : 'image/png';
+        ext === 'png'
+          ? 'image/png'
+          : ext === 'jpg' || ext === 'jpeg'
+            ? 'image/jpeg'
+            : 'image/png';
     }
 
     const base64 = imageBuffer.toString('base64');

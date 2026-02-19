@@ -1,4 +1,10 @@
-import { Injectable, Inject, BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  Inject,
+  BadRequestException,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { ICertificadosRepository } from '@/domain/certificados/ports/certificados.repository.port';
 import { UpdateCertificadoDto } from '@/application/certificados/dto/update-certificado.dto';
 import { Certificado } from '@/entities/certificados/certificado.entity';
@@ -68,7 +74,8 @@ export class UpdateCertificadoRetroactivoUseCase {
     // Registrar en auditoría ANTES de actualizar (RF-29)
     const auditoria = this.auditoriaRepository.create({
       certificado: certificado,
-      fechaAprobacionReal: certificado.fechaAprobacionReal || certificado.fechaEmision,
+      fechaAprobacionReal:
+        certificado.fechaAprobacionReal || certificado.fechaEmision,
       fechaRetroactiva: fechaRetroactiva,
       justificacion: updateDto.justificacionRetroactiva,
       emitidoPor: { id: usuarioId } as any,
@@ -77,12 +84,14 @@ export class UpdateCertificadoRetroactivoUseCase {
     await this.auditoriaRepository.save(auditoria);
 
     // Actualizar certificado
-    const certificadoActualizado = await this.certificadosRepository.update(id, {
-      ...updateDto,
-      emitidoPor: usuarioId,
-    });
+    const certificadoActualizado = await this.certificadosRepository.update(
+      id,
+      {
+        ...updateDto,
+        emitidoPor: usuarioId,
+      },
+    );
 
     return certificadoActualizado;
   }
 }
-

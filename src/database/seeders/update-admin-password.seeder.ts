@@ -41,4 +41,3 @@ export class UpdateAdminPasswordSeeder extends BaseSeeder {
     );
   }
 }
-

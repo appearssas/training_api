@@ -1,6 +1,10 @@
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
-import { PUBLIC_ASSETS_PATH, STABLE_TEXT_STYLE, PDF_CONFIG } from '../constants/pdf.constants';
+import {
+  PUBLIC_ASSETS_PATH,
+  STABLE_TEXT_STYLE,
+  PDF_CONFIG,
+} from '../constants/pdf.constants';
 
 const sharp = require('sharp');
 

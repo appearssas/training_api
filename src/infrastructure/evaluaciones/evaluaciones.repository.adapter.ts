@@ -10,7 +10,11 @@ import { IEvaluacionesRepository } from '@/domain/evaluaciones/ports/evaluacione
 import { Evaluacion } from '@/entities/evaluaciones/evaluacion.entity';
 import { Pregunta } from '@/entities/evaluaciones/pregunta.entity';
 import { OpcionRespuesta } from '@/entities/evaluaciones/opcion-respuesta.entity';
-import { UpdateEvaluacionDto, UpdatePreguntaDto, UpdateOpcionRespuestaDto } from '@/application/evaluaciones/dto';
+import {
+  UpdateEvaluacionDto,
+  UpdatePreguntaDto,
+  UpdateOpcionRespuestaDto,
+} from '@/application/evaluaciones/dto';
 
 /**
  * Adaptador del repositorio de Evaluaciones
@@ -90,27 +94,33 @@ export class EvaluacionesRepositoryAdapter implements IEvaluacionesRepository {
         existingEvaluacion.descripcion = updateEvaluacionDto.descripcion;
       }
       if (updateEvaluacionDto.tiempoLimiteMinutos !== undefined) {
-        existingEvaluacion.tiempoLimiteMinutos = updateEvaluacionDto.tiempoLimiteMinutos;
+        existingEvaluacion.tiempoLimiteMinutos =
+          updateEvaluacionDto.tiempoLimiteMinutos;
       }
       if (updateEvaluacionDto.intentosPermitidos !== undefined) {
-        existingEvaluacion.intentosPermitidos = updateEvaluacionDto.intentosPermitidos;
+        existingEvaluacion.intentosPermitidos =
+          updateEvaluacionDto.intentosPermitidos;
       }
       if (updateEvaluacionDto.mostrarResultados !== undefined) {
-        existingEvaluacion.mostrarResultados = updateEvaluacionDto.mostrarResultados;
+        existingEvaluacion.mostrarResultados =
+          updateEvaluacionDto.mostrarResultados;
       }
       if (updateEvaluacionDto.mostrarRespuestasCorrectas !== undefined) {
-        existingEvaluacion.mostrarRespuestasCorrectas = updateEvaluacionDto.mostrarRespuestasCorrectas;
+        existingEvaluacion.mostrarRespuestasCorrectas =
+          updateEvaluacionDto.mostrarRespuestasCorrectas;
       }
       // El puntajeTotal se calculará automáticamente después de sincronizar las preguntas
       // No se actualiza manualmente aquí para mantener consistencia
       if (updateEvaluacionDto.minimoAprobacion !== undefined) {
-        existingEvaluacion.minimoAprobacion = updateEvaluacionDto.minimoAprobacion;
+        existingEvaluacion.minimoAprobacion =
+          updateEvaluacionDto.minimoAprobacion;
       }
       if (updateEvaluacionDto.orden !== undefined) {
         existingEvaluacion.orden = updateEvaluacionDto.orden;
       }
 
-      const savedEvaluacion = await queryRunner.manager.save(existingEvaluacion);
+      const savedEvaluacion =
+        await queryRunner.manager.save(existingEvaluacion);
 
       // Sincronizar preguntas si se proporcionan
       if (updateEvaluacionDto.preguntas !== undefined) {
@@ -128,7 +138,7 @@ export class EvaluacionesRepositoryAdapter implements IEvaluacionesRepository {
 
         const puntajeTotalCalculado = updatedPreguntas.reduce(
           (sum, pregunta) => sum + Number(pregunta.puntaje || 0),
-          0
+          0,
         );
 
         savedEvaluacion.puntajeTotal = puntajeTotalCalculado;
@@ -140,7 +150,9 @@ export class EvaluacionesRepositoryAdapter implements IEvaluacionesRepository {
       // Retornar evaluación actualizada con relaciones
       const updatedEvaluacion = await this.findOne(id);
       if (!updatedEvaluacion) {
-        throw new InternalServerErrorException('Error al recuperar la evaluación actualizada');
+        throw new InternalServerErrorException(
+          'Error al recuperar la evaluación actualizada',
+        );
       }
 
       return updatedEvaluacion;
@@ -160,7 +172,9 @@ export class EvaluacionesRepositoryAdapter implements IEvaluacionesRepository {
       }
 
       console.error('Error al actualizar evaluación:', error);
-      throw new InternalServerErrorException('Error al actualizar la evaluación');
+      throw new InternalServerErrorException(
+        'Error al actualizar la evaluación',
+      );
     } finally {
       await queryRunner.release();
     }
@@ -189,13 +203,13 @@ export class EvaluacionesRepositoryAdapter implements IEvaluacionesRepository {
     // IDs de preguntas nuevas (las que tienen id son existentes)
     const newPreguntaIds = new Set(
       newPreguntas
-        .filter((p) => p.id !== undefined && p.id !== null)
-        .map((p) => p.id!),
+        .filter(p => p.id !== undefined && p.id !== null)
+        .map(p => p.id!),
     );
 
     // Eliminar preguntas que ya no están en la lista
     const preguntasToDelete = existingPreguntas.filter(
-      (p) => !newPreguntaIds.has(p.id),
+      p => !newPreguntaIds.has(p.id),
     );
     for (const pregunta of preguntasToDelete) {
       await queryRunner.manager.remove(pregunta);
@@ -215,7 +229,7 @@ export class EvaluacionesRepositoryAdapter implements IEvaluacionesRepository {
 
       // Validar que tenga al menos una opción correcta
       const tieneOpcionCorrecta = preguntaData.opciones.some(
-        (opcion) => opcion.esCorrecta,
+        opcion => opcion.esCorrecta,
       );
       if (!tieneOpcionCorrecta) {
         throw new BadRequestException(
@@ -227,9 +241,13 @@ export class EvaluacionesRepositoryAdapter implements IEvaluacionesRepository {
 
       if (preguntaId) {
         // Actualizar pregunta existente
-        const existingPregunta = existingPreguntas.find((p) => p.id === preguntaId);
+        const existingPregunta = existingPreguntas.find(
+          p => p.id === preguntaId,
+        );
         if (!existingPregunta) {
-          throw new NotFoundException(`Pregunta con ID ${preguntaId} no encontrada`);
+          throw new NotFoundException(
+            `Pregunta con ID ${preguntaId} no encontrada`,
+          );
         }
 
         // Actualizar solo los campos que están definidos
@@ -266,7 +284,9 @@ export class EvaluacionesRepositoryAdapter implements IEvaluacionesRepository {
       } else {
         // Crear nueva pregunta - validar campos requeridos
         if (!preguntaData.enunciado) {
-          throw new BadRequestException('El enunciado de la pregunta es requerido');
+          throw new BadRequestException(
+            'El enunciado de la pregunta es requerido',
+          );
         }
         if (!preguntaData.tipoPreguntaId) {
           throw new BadRequestException('El tipo de pregunta es requerido');
@@ -291,10 +311,14 @@ export class EvaluacionesRepositoryAdapter implements IEvaluacionesRepository {
 
           // Validar campos requeridos
           if (!opcionData.texto) {
-            throw new BadRequestException(`El texto de la opción ${j + 1} es requerido`);
+            throw new BadRequestException(
+              `El texto de la opción ${j + 1} es requerido`,
+            );
           }
           if (opcionData.esCorrecta === undefined) {
-            throw new BadRequestException(`El campo esCorrecta de la opción ${j + 1} es requerido`);
+            throw new BadRequestException(
+              `El campo esCorrecta de la opción ${j + 1} es requerido`,
+            );
           }
 
           const newOpcion = this.opcionRespuestaRepository.create({
@@ -326,13 +350,13 @@ export class EvaluacionesRepositoryAdapter implements IEvaluacionesRepository {
     // IDs de opciones nuevas (las que tienen id son existentes)
     const newOpcionIds = new Set(
       newOpciones
-        .filter((o) => o.id !== undefined && o.id !== null)
-        .map((o) => o.id!),
+        .filter(o => o.id !== undefined && o.id !== null)
+        .map(o => o.id!),
     );
 
     // Eliminar opciones que ya no están en la lista
     const opcionesToDelete = existingOpciones.filter(
-      (o) => !newOpcionIds.has(o.id),
+      o => !newOpcionIds.has(o.id),
     );
     for (const opcion of opcionesToDelete) {
       await queryRunner.manager.remove(opcion);
@@ -345,9 +369,11 @@ export class EvaluacionesRepositoryAdapter implements IEvaluacionesRepository {
 
       if (opcionId) {
         // Actualizar opción existente
-        const existingOpcion = existingOpciones.find((o) => o.id === opcionId);
+        const existingOpcion = existingOpciones.find(o => o.id === opcionId);
         if (!existingOpcion) {
-          throw new NotFoundException(`Opción con ID ${opcionId} no encontrada`);
+          throw new NotFoundException(
+            `Opción con ID ${opcionId} no encontrada`,
+          );
         }
 
         // Actualizar solo los campos que están definidos
@@ -371,10 +397,14 @@ export class EvaluacionesRepositoryAdapter implements IEvaluacionesRepository {
       } else {
         // Crear nueva opción - validar campos requeridos
         if (!opcionData.texto) {
-          throw new BadRequestException(`El texto de la opción ${j + 1} es requerido`);
+          throw new BadRequestException(
+            `El texto de la opción ${j + 1} es requerido`,
+          );
         }
         if (opcionData.esCorrecta === undefined) {
-          throw new BadRequestException(`El campo esCorrecta de la opción ${j + 1} es requerido`);
+          throw new BadRequestException(
+            `El campo esCorrecta de la opción ${j + 1} es requerido`,
+          );
         }
 
         const newOpcion = this.opcionRespuestaRepository.create({
@@ -391,4 +421,3 @@ export class EvaluacionesRepositoryAdapter implements IEvaluacionesRepository {
     }
   }
 }
-

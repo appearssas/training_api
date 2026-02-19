@@ -35,7 +35,7 @@ export class VideoUrlValidatorService {
       /^https?:\/\/www\.youtube\.com\/embed\/[\w-]+/i,
     ];
 
-    return youtubePatterns.some((pattern) => pattern.test(url));
+    return youtubePatterns.some(pattern => pattern.test(url));
   }
 
   /**
@@ -49,7 +49,7 @@ export class VideoUrlValidatorService {
       /^https?:\/\/docs\.google\.com\/file\/d\/[\w-]+\/edit/i,
     ];
 
-    return googleDrivePatterns.some((pattern) => pattern.test(url));
+    return googleDrivePatterns.some(pattern => pattern.test(url));
   }
 
   /**
@@ -63,7 +63,7 @@ export class VideoUrlValidatorService {
       /^https?:\/\/(.*\.)?sharepoint\.com\/.+$/i,
     ];
 
-    return oneDrivePatterns.some((pattern) => pattern.test(url));
+    return oneDrivePatterns.some(pattern => pattern.test(url));
   }
 
   /**
@@ -94,7 +94,9 @@ export class VideoUrlValidatorService {
     }
 
     if (!videoId) {
-      throw new BadRequestException('No se pudo extraer el ID del video de YouTube');
+      throw new BadRequestException(
+        'No se pudo extraer el ID del video de YouTube',
+      );
     }
 
     return `https://www.youtube.com/embed/${videoId}`;
@@ -111,7 +113,9 @@ export class VideoUrlValidatorService {
       return `https://drive.google.com/file/d/${fileId}/preview`;
     }
 
-    throw new BadRequestException('No se pudo extraer el ID del archivo de Google Drive');
+    throw new BadRequestException(
+      'No se pudo extraer el ID del archivo de Google Drive',
+    );
   }
 
   /**
@@ -159,4 +163,3 @@ export class VideoUrlValidatorService {
     throw new BadRequestException('Tipo de servicio de video no soportado');
   }
 }
-

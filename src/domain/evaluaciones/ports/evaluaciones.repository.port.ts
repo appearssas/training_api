@@ -22,4 +22,3 @@ export interface IEvaluacionesRepository {
     updateEvaluacionDto: UpdateEvaluacionDto,
   ): Promise<Evaluacion>;
 }
-

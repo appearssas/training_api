@@ -117,13 +117,18 @@ export function getRepresentativeDetails(
 
   if (dynamicData?.representante) {
     const { nombre, firmaImagen } = dynamicData.representante;
+    const nameFromConfig =
+      nombre != null && String(nombre).trim() !== ''
+        ? String(nombre).trim()
+        : fromDb?.name ?? '';
+    const firmaFromConfig =
+      firmaImagen != null && String(firmaImagen).trim() !== '';
 
     return {
-      name: nombre ?? fromDb?.name ?? '',
-      signatureImage:
-        firmaImagen != null && firmaImagen !== ''
-          ? join(PUBLIC_ASSETS_PATH, firmaImagen)
-          : (fromDb?.signatureImage ?? ''),
+      name: nameFromConfig,
+      signatureImage: firmaFromConfig
+        ? join(PUBLIC_ASSETS_PATH, firmaImagen!)
+        : (fromDb?.signatureImage ?? ''),
       role: fromDb?.role ?? '',
     };
   }

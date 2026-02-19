@@ -13,9 +13,7 @@ import { ConfiguracionSesion } from '@/entities/sesion/configuracion-sesion.enti
 import { Usuario } from '@/entities/usuarios/usuario.entity';
 
 @Injectable()
-export class ConfiguracionSesionRepositoryAdapter
-  implements IConfiguracionSesionRepository
-{
+export class ConfiguracionSesionRepositoryAdapter implements IConfiguracionSesionRepository {
   constructor(
     @InjectRepository(ConfiguracionSesion)
     private readonly configuracionSesionRepository: Repository<ConfiguracionSesion>,

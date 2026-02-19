@@ -21,6 +21,6 @@ export class TipoPregunta {
   @Column({ type: 'tinyint', default: 1 })
   activo: boolean;
 
-  @OneToMany(() => Pregunta, (pregunta) => pregunta.tipoPregunta)
+  @OneToMany(() => Pregunta, pregunta => pregunta.tipoPregunta)
   preguntas: Pregunta[];
 }

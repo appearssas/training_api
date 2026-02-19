@@ -157,9 +157,7 @@ describe('EvaluationScoringService', () => {
         // pero como hay 1 correcta de 1 total, da el puntaje completo
         // Para que retorne 0, solo debemos seleccionar opciones incorrectas
         const respuesta = createRespuestaEstudiante({
-          respuestasMultiples: [
-            { opcionRespuesta: incorrect },
-          ],
+          respuestasMultiples: [{ opcionRespuesta: incorrect }],
         });
 
         const score = service.calculateQuestionScore(pregunta, respuesta);

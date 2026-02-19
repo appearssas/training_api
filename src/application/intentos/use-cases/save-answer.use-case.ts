@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, BadRequestException, Inject } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  Inject,
+} from '@nestjs/common';
 import { IIntentosRepository } from '@/domain/intentos/ports/intentos.repository.port';
 import { SubmitAnswerDto } from '../dto/submit-answer.dto';
 
@@ -31,4 +36,3 @@ export class SaveAnswerUseCase {
     await this.intentosRepository.saveAnswer(intentoId, dto);
   }
 }
-

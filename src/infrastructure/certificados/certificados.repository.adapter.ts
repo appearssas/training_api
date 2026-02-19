@@ -12,6 +12,8 @@ import {
 } from '@/domain/certificados/ports/certificados.repository.port';
 import { Certificado } from '@/entities/certificados/certificado.entity';
 import { Inscripcion } from '@/entities/inscripcion/inscripcion.entity';
+import { Representante } from '@/entities/catalogos/representante.entity';
+import { Instructor } from '@/entities/instructores/instructor.entity';
 import { CreateCertificadoDto } from '@/application/certificados/dto/create-certificado.dto';
 import { UpdateCertificadoDto } from '@/application/certificados/dto/update-certificado.dto';
 import { PaginationDto } from '@/application/shared/dto/pagination.dto';
@@ -41,7 +43,41 @@ export class CertificadosRepositoryAdapter implements ICertificadosRepository {
     private readonly certificadoRepository: Repository<Certificado>,
     @InjectRepository(Inscripcion)
     private readonly inscripcionRepository: Repository<Inscripcion>,
+    @InjectRepository(Representante)
+    private readonly representanteRepository: Repository<Representante>,
+    @InjectRepository(Instructor)
+    private readonly instructorRepository: Repository<Instructor>,
   ) {}
+
+  /**
+   * Asegura que el certificado tenga instructor.persona y enteCertificador.representantes
+   * cargados desde BD para que el PDF pueda mostrar instructor y representante legal.
+   */
+  private async ensureInstructorAndRepresentantesLoaded(
+    certificado: Certificado | null,
+  ): Promise<void> {
+    if (!certificado?.inscripcion?.capacitacion) return;
+    const cap = certificado.inscripcion.capacitacion;
+    if (cap.instructor && !cap.instructor.persona) {
+      const loaded = await this.instructorRepository.findOne({
+        where: { id: cap.instructor.id },
+        relations: ['persona'],
+      });
+      if (loaded) cap.instructor.persona = loaded.persona;
+    }
+    if (cap.enteCertificador) {
+      const ente = cap.enteCertificador;
+      const hasRepresentantes =
+        Array.isArray(ente.representantes) && ente.representantes.length > 0;
+      if (!hasRepresentantes) {
+        const representantes = await this.representanteRepository.find({
+          where: { enteCertificadorId: ente.id, activo: true },
+          order: { id: 'ASC' },
+        });
+        ente.representantes = representantes;
+      }
+    }
+  }
 
   async create(
     createCertificadoDto: CreateCertificadoDto,
@@ -64,6 +100,7 @@ export class CertificadosRepositoryAdapter implements ICertificadosRepository {
         .leftJoinAndSelect('inscripcion.estudiante', 'estudiante')
         .leftJoinAndSelect('inscripcion.capacitacion', 'capacitacion')
         .leftJoinAndSelect('capacitacion.instructor', 'instructor')
+        .leftJoinAndSelect('instructor.persona', 'instructorPersona')
         .leftJoinAndSelect('capacitacion.tipoCapacitacion', 'tipoCapacitacion')
         .leftJoinAndSelect('capacitacion.enteCertificador', 'enteCertificador')
         .leftJoinAndSelect('enteCertificador.representantes', 'representantes')
@@ -147,6 +184,7 @@ export class CertificadosRepositoryAdapter implements ICertificadosRepository {
         .leftJoinAndSelect('inscripcion.estudiante', 'estudiante')
         .leftJoinAndSelect('inscripcion.capacitacion', 'capacitacion')
         .leftJoinAndSelect('capacitacion.instructor', 'instructor')
+        .leftJoinAndSelect('instructor.persona', 'instructorPersona')
         .leftJoinAndSelect('capacitacion.tipoCapacitacion', 'tipoCapacitacion')
         .leftJoinAndSelect('capacitacion.enteCertificador', 'enteCertificador')
         .leftJoinAndSelect('enteCertificador.representantes', 'representantes')
@@ -208,6 +246,7 @@ export class CertificadosRepositoryAdapter implements ICertificadosRepository {
         .leftJoinAndSelect('inscripcion.estudiante', 'estudiante')
         .leftJoinAndSelect('inscripcion.capacitacion', 'capacitacion')
         .leftJoinAndSelect('capacitacion.instructor', 'instructor')
+        .leftJoinAndSelect('instructor.persona', 'instructorPersona')
         .leftJoinAndSelect('capacitacion.tipoCapacitacion', 'tipoCapacitacion');
 
       // Control de visibilidad por rol: ADMIN ve todos; INSTRUCTOR solo sus cursos; ALUMNO solo los propios; CLIENTE/OPERADOR por empresa
@@ -216,7 +255,7 @@ export class CertificadosRepositoryAdapter implements ICertificadosRepository {
       const empresaId = userContext?.empresaId ?? null;
       if (rol !== 'ADMIN' && personaId != null) {
         if (rol === 'INSTRUCTOR') {
-          queryBuilder.andWhere('instructor.id = :personaId', { personaId });
+          queryBuilder.andWhere('instructorPersona.id = :personaId', { personaId });
           console.log(
             `🔐 [findAll] Filtro INSTRUCTOR: instructor.id = ${personaId}`,
           );
@@ -354,11 +393,14 @@ export class CertificadosRepositoryAdapter implements ICertificadosRepository {
         .leftJoinAndSelect('inscripcion.estudiante', 'estudiante')
         .leftJoinAndSelect('inscripcion.capacitacion', 'capacitacion')
         .leftJoinAndSelect('capacitacion.instructor', 'instructor')
-        .leftJoinAndSelect('instructor.instructor', 'instructorProfile')
+        .leftJoinAndSelect('instructor.persona', 'instructorPersona')
         .leftJoinAndSelect('capacitacion.enteCertificador', 'enteCertificador')
+        .leftJoinAndSelect('enteCertificador.representantes', 'representantes')
         .leftJoinAndSelect('capacitacion.tipoCapacitacion', 'tipoCapacitacion')
         .where('certificado.id = :id', { id })
         .getOne();
+
+      await this.ensureInstructorAndRepresentantesLoaded(certificado);
 
       // Log para verificar que la capacitación se cargó correctamente
       if (certificado) {
@@ -387,6 +429,7 @@ export class CertificadosRepositoryAdapter implements ICertificadosRepository {
         .leftJoinAndSelect('inscripcion.estudiante', 'estudiante')
         .leftJoinAndSelect('inscripcion.capacitacion', 'capacitacion')
         .leftJoinAndSelect('capacitacion.instructor', 'instructor')
+        .leftJoinAndSelect('instructor.persona', 'instructorPersona')
         .leftJoinAndSelect('capacitacion.tipoCapacitacion', 'tipoCapacitacion')
         .where('inscripcion.id = :inscripcionId', { inscripcionId })
         .orderBy('certificado.fechaEmision', 'DESC')
@@ -527,12 +570,14 @@ export class CertificadosRepositoryAdapter implements ICertificadosRepository {
         .leftJoinAndSelect('inscripcion.estudiante', 'estudiante')
         .leftJoinAndSelect('inscripcion.capacitacion', 'capacitacion')
         .leftJoinAndSelect('capacitacion.instructor', 'instructor')
-        .leftJoinAndSelect('instructor.instructor', 'instructorProfile')
+        .leftJoinAndSelect('instructor.persona', 'instructorPersona')
         .leftJoinAndSelect('capacitacion.enteCertificador', 'enteCertificador')
         .leftJoinAndSelect('enteCertificador.representantes', 'representantes')
         .leftJoinAndSelect('capacitacion.tipoCapacitacion', 'tipoCapacitacion')
         .where('certificado.hashVerificacion = :hash', { hash })
         .getOne();
+
+      await this.ensureInstructorAndRepresentantesLoaded(certificado);
 
       return certificado ?? null;
     } catch (error) {
@@ -598,6 +643,7 @@ export class CertificadosRepositoryAdapter implements ICertificadosRepository {
         .leftJoinAndSelect('inscripcion.estudiante', 'estudiante')
         .leftJoinAndSelect('inscripcion.capacitacion', 'capacitacion')
         .leftJoinAndSelect('capacitacion.instructor', 'instructor')
+        .leftJoinAndSelect('instructor.persona', 'instructorPersona')
         .leftJoinAndSelect('capacitacion.tipoCapacitacion', 'tipoCapacitacion')
         .where('certificado.id = :id', { id })
         .getOne();

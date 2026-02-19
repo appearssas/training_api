@@ -21,7 +21,7 @@ export class ImageCompressionService {
     aggressive: boolean = false,
   ): Promise<Buffer> {
     const maxSizeBytes = maxSizeKB > 0 ? maxSizeKB * 1024 : 0;
-    
+
     // Si la imagen ya es menor al tamaño máximo y no es compresión agresiva, retornarla sin comprimir
     if (!aggressive && maxSizeBytes > 0 && buffer.length <= maxSizeBytes) {
       return buffer;
@@ -66,9 +66,7 @@ export class ImageCompressionService {
           .png({ quality, compressionLevel: 9 })
           .toBuffer();
       } else if (format === 'webp') {
-        compressedBuffer = await sharpInstance
-          .webp({ quality })
-          .toBuffer();
+        compressedBuffer = await sharpInstance.webp({ quality }).toBuffer();
       } else {
         // Convertir a JPEG si es otro formato
         compressedBuffer = await sharpInstance
@@ -83,16 +81,19 @@ export class ImageCompressionService {
           // Si la calidad es muy baja, reducir dimensiones
           const currentMetadata = await sharp(compressedBuffer).metadata();
           const targetDimension = aggressive ? 600 : 800;
-          if (currentMetadata.width && currentMetadata.width > targetDimension) {
+          if (
+            currentMetadata.width &&
+            currentMetadata.width > targetDimension
+          ) {
             compressedBuffer = await sharp(buffer)
               .resize(targetDimension, null, {
                 withoutEnlargement: true,
                 fit: 'inside',
               })
-              .jpeg({ 
-                quality: aggressive ? 60 : 80, 
-                progressive: true, 
-                mozjpeg: true 
+              .jpeg({
+                quality: aggressive ? 60 : 80,
+                progressive: true,
+                mozjpeg: true,
               })
               .toBuffer();
           }
@@ -136,12 +137,16 @@ export class ImageCompressionService {
         'El archivo no tiene buffer disponible. Asegúrate de usar memoryStorage() en Multer.',
       );
     }
-    const compressedBuffer = await this.compressImage(file.buffer, maxSizeKB, aggressive);
-    
+    const compressedBuffer = await this.compressImage(
+      file.buffer,
+      maxSizeKB,
+      aggressive,
+    );
+
     // Generar nombre de archivo con extensión .jpg (ya que comprimimos a JPEG)
     const originalName = file.originalname.split('.')[0];
     const filename = `${originalName}.jpg`;
-    
+
     return {
       buffer: compressedBuffer,
       filename,
@@ -175,7 +180,7 @@ export class ImageCompressionService {
       // - Eliminar metadatos innecesarios
       // - Optimizar imágenes embebidas
       // - Comprimir streams de contenido
-      
+
       // Por ahora, retornamos el original
       // TODO: Implementar optimización real con pdf-lib si es necesario
       return buffer;
@@ -204,8 +209,10 @@ export class ImageCompressionService {
         'application/rss+xml',
       ];
 
-      const shouldCompress = compressibleTypes.some(type => mimetype.startsWith(type));
-      
+      const shouldCompress = compressibleTypes.some(type =>
+        mimetype.startsWith(type),
+      );
+
       if (!shouldCompress) {
         // Para archivos binarios que no son comprimibles, retornar original
         return buffer;
@@ -213,15 +220,18 @@ export class ImageCompressionService {
 
       // Comprimir con gzip nivel máximo
       const compressed = await gzipAsync(buffer, { level: 9 });
-      
+
       // Solo retornar comprimido si realmente reduce el tamaño
       if (compressed.length < buffer.length * 0.9) {
         return compressed;
       }
-      
+
       return buffer;
     } catch (error) {
-      console.warn('Error al comprimir archivo genérico, retornando original:', error);
+      console.warn(
+        'Error al comprimir archivo genérico, retornando original:',
+        error,
+      );
       return buffer;
     }
   }
@@ -231,9 +241,12 @@ export class ImageCompressionService {
    * @param file Archivo de Multer
    * @returns Buffer comprimido, nombre de archivo y tipo MIME
    */
-  async compressFile(
-    file: Express.Multer.File,
-  ): Promise<{ buffer: Buffer; filename: string; mimetype: string; compressed: boolean }> {
+  async compressFile(file: Express.Multer.File): Promise<{
+    buffer: Buffer;
+    filename: string;
+    mimetype: string;
+    compressed: boolean;
+  }> {
     const mimetype = file.mimetype?.toLowerCase() || '';
     const originalName = file.originalname.split('.')[0];
     const extension = file.originalname.split('.').pop()?.toLowerCase() || '';
@@ -250,7 +263,7 @@ export class ImageCompressionService {
     // Procesar PDFs (por ahora sin compresión adicional, ya están optimizados)
     if (mimetype === 'application/pdf' || extension === 'pdf') {
       const processedBuffer = await this.compressPDF(file.buffer);
-      
+
       // Los PDFs generalmente ya están comprimidos, así que no los marcamos como comprimidos
       return {
         buffer: processedBuffer,
@@ -261,9 +274,12 @@ export class ImageCompressionService {
     }
 
     // Comprimir otros archivos comprimibles
-    const compressedBuffer = await this.compressGenericFile(file.buffer, mimetype);
+    const compressedBuffer = await this.compressGenericFile(
+      file.buffer,
+      mimetype,
+    );
     const wasCompressed = compressedBuffer.length < file.buffer.length;
-    
+
     return {
       buffer: compressedBuffer,
       filename: wasCompressed ? `${file.originalname}.gz` : file.originalname,
@@ -272,4 +288,3 @@ export class ImageCompressionService {
     };
   }
 }
-

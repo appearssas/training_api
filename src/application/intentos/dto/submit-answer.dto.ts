@@ -1,4 +1,11 @@
-import { IsInt, IsOptional, IsArray, ArrayMinSize, ValidateIf, Min } from 'class-validator';
+import {
+  IsInt,
+  IsOptional,
+  IsArray,
+  ArrayMinSize,
+  ValidateIf,
+  Min,
+} from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 /**
@@ -19,18 +26,20 @@ export class SubmitAnswerDto {
   preguntaId: number;
 
   @ApiPropertyOptional({
-    description: 'ID de la opción seleccionada (para preguntas de única respuesta)',
+    description:
+      'ID de la opción seleccionada (para preguntas de única respuesta)',
     example: 1,
     minimum: 1,
   })
   @IsOptional()
   @IsInt()
   @Min(1)
-  @ValidateIf((o) => !o.opcionRespuestaIds && !o.textoRespuesta)
+  @ValidateIf(o => !o.opcionRespuestaIds && !o.textoRespuesta)
   opcionRespuestaId?: number;
 
   @ApiPropertyOptional({
-    description: 'IDs de las opciones seleccionadas (para preguntas de múltiple respuesta)',
+    description:
+      'IDs de las opciones seleccionadas (para preguntas de múltiple respuesta)',
     example: [1, 3, 5],
     type: [Number],
     minItems: 1,
@@ -39,7 +48,7 @@ export class SubmitAnswerDto {
   @IsArray()
   @IsInt({ each: true })
   @ArrayMinSize(1)
-  @ValidateIf((o) => !o.opcionRespuestaId && !o.textoRespuesta)
+  @ValidateIf(o => !o.opcionRespuestaId && !o.textoRespuesta)
   opcionRespuestaIds?: number[];
 
   @ApiPropertyOptional({
@@ -48,7 +57,6 @@ export class SubmitAnswerDto {
     maxLength: 5000,
   })
   @IsOptional()
-  @ValidateIf((o) => !o.opcionRespuestaId && !o.opcionRespuestaIds)
+  @ValidateIf(o => !o.opcionRespuestaId && !o.opcionRespuestaIds)
   textoRespuesta?: string;
 }
-

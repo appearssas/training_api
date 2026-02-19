@@ -31,12 +31,18 @@ export interface IConfiguracionSesionRepository {
   /**
    * Crea una nueva configuración de sesión
    */
-  create(dto: CreateConfiguracionSesionDto, creadoPorId: number): Promise<ConfiguracionSesion>;
+  create(
+    dto: CreateConfiguracionSesionDto,
+    creadoPorId: number,
+  ): Promise<ConfiguracionSesion>;
 
   /**
    * Actualiza una configuración de sesión
    */
-  update(id: number, dto: UpdateConfiguracionSesionDto): Promise<ConfiguracionSesion>;
+  update(
+    id: number,
+    dto: UpdateConfiguracionSesionDto,
+  ): Promise<ConfiguracionSesion>;
 
   /**
    * Elimina una configuración de sesión

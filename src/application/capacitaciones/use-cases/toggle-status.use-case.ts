@@ -1,4 +1,9 @@
-import { Injectable, Inject, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  Inject,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { ICapacitacionesRepository } from '@/domain/capacitaciones/ports/capacitaciones.repository.port';
 import { Capacitacion } from '@/entities/capacitacion/capacitacion.entity';
 import { EstadoCapacitacion } from '@/entities/capacitacion/types';
@@ -36,9 +41,8 @@ export class ToggleStatusUseCase {
     }
 
     // Validar certificados existentes (RF-10: no deben afectarse)
-    const certificadosInfo = await this.certificadoValidator.validateEstadoChange(
-      id,
-    );
+    const certificadosInfo =
+      await this.certificadoValidator.validateEstadoChange(id);
 
     // Si se intenta publicar, validar que tenga evaluación (RF-09)
     if (nuevoEstado === EstadoCapacitacion.PUBLICADA) {
@@ -93,4 +97,3 @@ export class ToggleStatusUseCase {
     return this.execute(id, nuevoEstado);
   }
 }
-

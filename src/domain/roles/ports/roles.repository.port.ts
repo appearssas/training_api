@@ -19,4 +19,3 @@ export interface IRolesRepository {
    */
   findById(id: number): Promise<Rol | null>;
 }
-

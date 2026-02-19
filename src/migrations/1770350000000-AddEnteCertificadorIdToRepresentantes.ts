@@ -16,6 +16,8 @@ export class AddEnteCertificadorIdToRepresentantes1770350000000 implements Migra
     await queryRunner.query(
       'ALTER TABLE `representantes` DROP FOREIGN KEY `fk_representantes_ente_certificador`',
     );
-    await queryRunner.query('ALTER TABLE `representantes` DROP COLUMN `ente_certificador_id`');
+    await queryRunner.query(
+      'ALTER TABLE `representantes` DROP COLUMN `ente_certificador_id`',
+    );
   }
 }

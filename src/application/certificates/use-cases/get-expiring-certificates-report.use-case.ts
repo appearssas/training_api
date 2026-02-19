@@ -95,19 +95,16 @@ export class GetExpiringCertificatesReportUseCase {
       .getManyAndCount();
 
     // Calcular días restantes y filtrar por estado si es necesario
-    let certificadosConDias: CertificadoConDias[] = certificados.map(
-      (cert) => ({
-        ...cert,
-        diasRestantes:
-          this.vigencyHelper.calculateDaysUntilExpiration(
-            cert.fechaVencimiento,
-          ),
-      }),
-    );
+    let certificadosConDias: CertificadoConDias[] = certificados.map(cert => ({
+      ...cert,
+      diasRestantes: this.vigencyHelper.calculateDaysUntilExpiration(
+        cert.fechaVencimiento,
+      ),
+    }));
 
     // Filtrar por estado
     if (estado) {
-      certificadosConDias = certificadosConDias.filter((cert) => {
+      certificadosConDias = certificadosConDias.filter(cert => {
         if (estado === CertificateExpirationStatus.EXPIRED) {
           return cert.diasRestantes < 0;
         } else if (estado === CertificateExpirationStatus.EXPIRING_SOON) {

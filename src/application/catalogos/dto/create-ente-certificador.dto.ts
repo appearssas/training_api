@@ -1,14 +1,29 @@
-import { IsString, IsNotEmpty, IsOptional, IsBoolean, MaxLength } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsOptional,
+  IsBoolean,
+  IsInt,
+  MaxLength,
+} from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateEnteCertificadorDto {
-  @ApiProperty({ description: 'Nombre del ente certificador', example: 'Ministerio de Transporte', maxLength: 200 })
+  @ApiProperty({
+    description: 'Nombre del ente certificador',
+    example: 'Ministerio de Transporte',
+    maxLength: 200,
+  })
   @IsString()
   @IsNotEmpty()
   @MaxLength(200)
   nombre: string;
 
-  @ApiProperty({ description: 'Código único', example: 'MINTRA', maxLength: 50 })
+  @ApiProperty({
+    description: 'Código único',
+    example: 'MINTRA',
+    maxLength: 50,
+  })
   @IsString()
   @IsNotEmpty()
   @MaxLength(50)
@@ -20,7 +35,10 @@ export class CreateEnteCertificadorDto {
   @MaxLength(1000)
   descripcion?: string;
 
-  @ApiPropertyOptional({ description: 'Información de contacto', maxLength: 500 })
+  @ApiPropertyOptional({
+    description: 'Información de contacto',
+    maxLength: 500,
+  })
   @IsOptional()
   @IsString()
   @MaxLength(500)
@@ -30,4 +48,12 @@ export class CreateEnteCertificadorDto {
   @IsOptional()
   @IsBoolean()
   activo?: boolean;
+
+  @ApiPropertyOptional({
+    description: 'ID del formato de certificado asignado a este ente',
+    example: 1,
+  })
+  @IsOptional()
+  @IsInt()
+  certificateFormatId?: number | null;
 }

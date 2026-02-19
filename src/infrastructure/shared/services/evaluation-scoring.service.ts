@@ -27,7 +27,10 @@ export class EvaluationScoringService {
     // Por defecto, si tiene respuesta, se otorga el puntaje completo
     // En el futuro se podría implementar calificación manual o automática con IA
     if (tipoPregunta === 'OPEN_TEXT') {
-      if (!respuestaEstudiante.textoRespuesta || respuestaEstudiante.textoRespuesta.trim() === '') {
+      if (
+        !respuestaEstudiante.textoRespuesta ||
+        respuestaEstudiante.textoRespuesta.trim() === ''
+      ) {
         return 0;
       }
       // Si tiene respuesta válida, otorgar el puntaje completo
@@ -39,7 +42,10 @@ export class EvaluationScoringService {
     // Pregunta de completar espacios (FILL_BLANKS)
     // Similar a OPEN_TEXT, requiere respuesta de texto
     if (tipoPregunta === 'FILL_BLANKS') {
-      if (!respuestaEstudiante.textoRespuesta || respuestaEstudiante.textoRespuesta.trim() === '') {
+      if (
+        !respuestaEstudiante.textoRespuesta ||
+        respuestaEstudiante.textoRespuesta.trim() === ''
+      ) {
         return 0;
       }
       // Por ahora, otorgar puntaje completo si hay respuesta
@@ -49,13 +55,20 @@ export class EvaluationScoringService {
 
     // Si la pregunta no tiene opciones y no es OPEN_TEXT ni FILL_BLANKS, retornar 0
     if (!pregunta.opciones || pregunta.opciones.length === 0) {
-      console.warn(`Pregunta ${pregunta.id} no tiene opciones y no es OPEN_TEXT ni FILL_BLANKS`);
+      console.warn(
+        `Pregunta ${pregunta.id} no tiene opciones y no es OPEN_TEXT ni FILL_BLANKS`,
+      );
       return 0;
     }
 
     // Pregunta de única respuesta (SINGLE_CHOICE, TRUE_FALSE, YES_NO, SELECT_IMAGE)
     // CORRECCIÓN: Cambiar IMAGE_SELECTION por SELECT_IMAGE (código correcto en BD)
-    if (tipoPregunta === 'SINGLE_CHOICE' || tipoPregunta === 'TRUE_FALSE' || tipoPregunta === 'YES_NO' || tipoPregunta === 'SELECT_IMAGE') {
+    if (
+      tipoPregunta === 'SINGLE_CHOICE' ||
+      tipoPregunta === 'TRUE_FALSE' ||
+      tipoPregunta === 'YES_NO' ||
+      tipoPregunta === 'SELECT_IMAGE'
+    ) {
       if (!respuestaEstudiante.opcionRespuesta) {
         return 0;
       }
@@ -75,22 +88,25 @@ export class EvaluationScoringService {
 
     // Pregunta de múltiple respuesta (MULTIPLE_CHOICE, MATCHING)
     if (tipoPregunta === 'MULTIPLE_CHOICE' || tipoPregunta === 'MATCHING') {
-      if (!respuestaEstudiante.respuestasMultiples || respuestaEstudiante.respuestasMultiples.length === 0) {
+      if (
+        !respuestaEstudiante.respuestasMultiples ||
+        respuestaEstudiante.respuestasMultiples.length === 0
+      ) {
         return 0;
       }
 
-      const opcionesCorrectas = pregunta.opciones.filter((op) => op.esCorrecta);
+      const opcionesCorrectas = pregunta.opciones.filter(op => op.esCorrecta);
       const opcionesSeleccionadas = respuestaEstudiante.respuestasMultiples.map(
-        (rm) => rm.opcionRespuesta,
+        rm => rm.opcionRespuesta,
       );
 
       // Verificar que todas las correctas estén seleccionadas y ninguna incorrecta
-      const todasCorrectasSeleccionadas = opcionesCorrectas.every((correcta) =>
-        opcionesSeleccionadas.some((sel) => sel.id === correcta.id),
+      const todasCorrectasSeleccionadas = opcionesCorrectas.every(correcta =>
+        opcionesSeleccionadas.some(sel => sel.id === correcta.id),
       );
 
-      const ningunaIncorrectaSeleccionada = opcionesSeleccionadas.every((sel) =>
-        opcionesCorrectas.some((correcta) => correcta.id === sel.id),
+      const ningunaIncorrectaSeleccionada = opcionesSeleccionadas.every(sel =>
+        opcionesCorrectas.some(correcta => correcta.id === sel.id),
       );
 
       if (todasCorrectasSeleccionadas && ningunaIncorrectaSeleccionada) {
@@ -100,7 +116,7 @@ export class EvaluationScoringService {
 
       // Calcular puntaje parcial basado en opciones correctas seleccionadas
       let puntajeParcial = 0;
-      opcionesSeleccionadas.forEach((opcion) => {
+      opcionesSeleccionadas.forEach(opcion => {
         if (opcion.esCorrecta && opcion.puntajeParcial > 0) {
           puntajeParcial += Number(opcion.puntajeParcial);
         }
@@ -108,19 +124,23 @@ export class EvaluationScoringService {
 
       // Si no hay puntaje parcial definido, calcular proporcionalmente
       if (puntajeParcial === 0) {
-        const correctasSeleccionadas = opcionesSeleccionadas.filter((sel) =>
-          opcionesCorrectas.some((correcta) => correcta.id === sel.id),
+        const correctasSeleccionadas = opcionesSeleccionadas.filter(sel =>
+          opcionesCorrectas.some(correcta => correcta.id === sel.id),
         ).length;
         const totalCorrectas = opcionesCorrectas.length;
         if (totalCorrectas > 0) {
-          puntajeParcial = (correctasSeleccionadas / totalCorrectas) * Number(pregunta.puntaje);
+          puntajeParcial =
+            (correctasSeleccionadas / totalCorrectas) *
+            Number(pregunta.puntaje);
         }
       }
 
       return puntajeParcial;
     }
 
-    console.warn(`Pregunta ${pregunta.id}: Tipo de pregunta no reconocido: ${tipoPregunta}`);
+    console.warn(
+      `Pregunta ${pregunta.id}: Tipo de pregunta no reconocido: ${tipoPregunta}`,
+    );
     return 0;
   }
 
@@ -138,13 +158,18 @@ export class EvaluationScoringService {
 
     // CORRECCIÓN: Filtrar solo preguntas activas para el cálculo
     // Esto asegura que solo se evalúen las preguntas que realmente están activas
-    const preguntasActivas = preguntas.filter((p) => p.activo !== false);
+    const preguntasActivas = preguntas.filter(p => p.activo !== false);
 
-    respuestasEstudiante.forEach((respuesta) => {
+    respuestasEstudiante.forEach(respuesta => {
       // Buscar la pregunta solo entre las activas
-      const pregunta = preguntasActivas.find((p) => p.id === respuesta.pregunta.id);
+      const pregunta = preguntasActivas.find(
+        p => p.id === respuesta.pregunta.id,
+      );
       if (pregunta) {
-        const puntajePregunta = this.calculateQuestionScore(pregunta, respuesta);
+        const puntajePregunta = this.calculateQuestionScore(
+          pregunta,
+          respuesta,
+        );
         puntajeTotal += puntajePregunta;
       }
     });
@@ -173,4 +198,3 @@ export class EvaluationScoringService {
     return porcentaje >= minimoAprobacion;
   }
 }
-

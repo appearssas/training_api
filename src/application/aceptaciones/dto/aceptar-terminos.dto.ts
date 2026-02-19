@@ -23,4 +23,3 @@ export class AceptarTerminosDto {
   @IsNotEmpty()
   documentosIds: number[];
 }
-

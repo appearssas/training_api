@@ -73,8 +73,8 @@ export class ChangePasswordUseCase {
     );
 
     return {
-      message: 'Contraseña cambiada exitosamente. Ya puede iniciar sesión con su nueva contraseña.',
+      message:
+        'Contraseña cambiada exitosamente. Ya puede iniciar sesión con su nueva contraseña.',
     };
   }
 }
-

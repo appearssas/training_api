@@ -14,15 +14,16 @@ export class AceptacionResponseDto {
   documentoLegalId: number;
 
   @ApiProperty({
-    description: 'Versión del documento que fue aceptada. Útil para rastrear cambios en documentos legales.',
+    description:
+      'Versión del documento que fue aceptada. Útil para rastrear cambios en documentos legales.',
     example: '1.0',
   })
   version: string;
 
   @ApiProperty({
-    description: 'Fecha y hora en que el usuario aceptó el documento. Se registra automáticamente.',
+    description:
+      'Fecha y hora en que el usuario aceptó el documento. Se registra automáticamente.',
     example: '2025-01-15T10:30:00.000Z',
   })
   fechaAceptacion: Date;
 }
-

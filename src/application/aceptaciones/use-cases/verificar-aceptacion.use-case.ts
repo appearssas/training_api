@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  Inject,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { Injectable, Inject, UnauthorizedException } from '@nestjs/common';
 import { IAceptacionesRepository } from '@/domain/aceptaciones/ports/aceptaciones.repository.port';
 import { Usuario } from '@/entities/usuarios/usuario.entity';
 
@@ -25,4 +21,3 @@ export class VerificarAceptacionUseCase {
     }
   }
 }
-

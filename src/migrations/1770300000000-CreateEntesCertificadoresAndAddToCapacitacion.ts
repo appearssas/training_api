@@ -1,8 +1,6 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class CreateEntesCertificadoresAndAddToCapacitacion1770300000000
-  implements MigrationInterface
-{
+export class CreateEntesCertificadoresAndAddToCapacitacion1770300000000 implements MigrationInterface {
   name = 'CreateEntesCertificadoresAndAddToCapacitacion1770300000000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {

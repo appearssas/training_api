@@ -393,8 +393,43 @@ export class StorageService {
   }
 
   /**
+   * Guarda el PNG de fondo de un formato de certificado.
+   * Ruta: certificates/fondo{slug}.png (local: storage/certificates/...; S3: key certificates/...).
+   * @param file Archivo PNG
+   * @param fileNameWithoutExt Nombre sin extensión (ej. fondoAndarDelLlano)
+   * @returns Ruta para guardar en BD: /storage/certificates/... (local) o URL (S3)
+   */
+  async saveCertificateFormatFondo(
+    file: Express.Multer.File,
+    fileNameWithoutExt: string,
+  ): Promise<string> {
+    if (file.size > this.maxFileSize) {
+      throw new BadRequestException(
+        `El archivo excede el tamaño máximo de ${this.maxFileSize / 1024 / 1024}MB`,
+      );
+    }
+    if (!this.validateFileType(file.mimetype, this.allowedImageTypes)) {
+      throw new BadRequestException(
+        'Solo se permiten imágenes (JPEG, PNG, GIF, WebP)',
+      );
+    }
+    const key = `certificates/${fileNameWithoutExt}.png`;
+
+    if (this.useS3 && this.s3Service) {
+      const url = await this.s3Service.uploadWithKey(file, key);
+      return url;
+    }
+
+    const dir = this.certificatesPath;
+    if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+    const filePath = join(dir, `${fileNameWithoutExt}.png`);
+    writeFileSync(filePath, file.buffer);
+    return `/storage/certificates/${fileNameWithoutExt}.png`;
+  }
+
+  /**
    * Obtiene la ruta completa del archivo (para lectura en disco) o la URL si es S3.
-   * Acepta: URL (http/https) → se devuelve tal cual; ruta relativa (catalogos/...) con useS3 → URL S3/CloudFront; sino → join(storagePath, path).
+   * Acepta: URL (http/https) → se devuelve tal cual; ruta relativa (catalogos/ o certificates/) con useS3 → URL S3/CloudFront; sino → join(storagePath, path).
    */
   getFilePath(relativePath: string): string {
     const trimmed = relativePath?.trim() || '';
@@ -404,13 +439,12 @@ export class StorageService {
     const cleanPath = trimmed.startsWith('/storage/')
       ? trimmed.replace('/storage/', '')
       : trimmed;
-    if (
-      this.useS3 &&
-      this.s3Service &&
-      (cleanPath.startsWith('catalogos/') ||
-        cleanPath.startsWith('catalogos\\'))
-    ) {
-      const key = cleanPath.replace(/\\/g, '/');
+    const key = cleanPath.replace(/\\/g, '/');
+    const isCatalogos =
+      key.startsWith('catalogos/') || key.startsWith('catalogos\\');
+    const isCertificates =
+      key.startsWith('certificates/') || key.startsWith('certificates\\');
+    if (this.useS3 && this.s3Service && (isCatalogos || isCertificates)) {
       const cloudFrontUrl = this.configService
         .get<string>('AWS_CLOUDFRONT_URL')
         ?.replace(/\/$/, '');

@@ -62,37 +62,40 @@ export class CertificateFormatsRepositoryAdapter {
   }
 
   async updateBackgroundPath(
-    tipo: CertificateFormatType,
+    _tipo: CertificateFormatType,
     path: string,
   ): Promise<CertificateFormat> {
     let format = await this.findActive();
-
     if (!format) {
       const newFormat = this.certificateFormatRepository.create({
         activo: true,
       });
       format = await this.certificateFormatRepository.save(newFormat);
     }
-
-    // Actualizar la ruta correspondiente según el tipo
-    const updateData: Partial<CertificateFormat> = {};
-    switch (tipo) {
-      case CertificateFormatType.ALIMENTOS:
-        updateData.fondoAlimentosPath = path;
-        break;
-      case CertificateFormatType.SUSTANCIAS:
-        updateData.fondoSustanciasPath = path;
-        break;
-      case CertificateFormatType.OTROS:
-        updateData.fondoGeneralPath = path;
-        break;
-    }
-
-    await this.certificateFormatRepository.update(format.id, updateData);
+    await this.certificateFormatRepository.update(format.id, {
+      fondoPath: path,
+    });
     const updated = await this.findOne(format.id);
     if (!updated) {
       throw new Error(
         `CertificateFormat with ID ${format.id} not found after update`,
+      );
+    }
+    return updated;
+  }
+
+  /**
+   * Actualiza la ruta/URL del fondo de un formato por ID (un solo fondo por formato).
+   */
+  async updateFondoPathByFormatId(
+    formatId: number,
+    path: string,
+  ): Promise<CertificateFormat> {
+    await this.certificateFormatRepository.update(formatId, { fondoPath: path });
+    const updated = await this.findOne(formatId);
+    if (!updated) {
+      throw new Error(
+        `CertificateFormat with ID ${formatId} not found after update`,
       );
     }
     return updated;

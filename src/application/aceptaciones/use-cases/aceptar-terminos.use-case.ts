@@ -25,11 +25,11 @@ export class AceptarTerminosUseCase {
     // Verificar que todos los documentos existen y están activos
     const documentosActivos =
       await this.aceptacionesRepository.findDocumentosActivos();
-    const documentosActivosIds = documentosActivos.map((doc) => doc.id);
+    const documentosActivosIds = documentosActivos.map(doc => doc.id);
 
     // Verificar que todos los IDs proporcionados corresponden a documentos activos
     const documentosInvalidos = aceptarTerminosDto.documentosIds.filter(
-      (id) => !documentosActivosIds.includes(id),
+      id => !documentosActivosIds.includes(id),
     );
 
     if (documentosInvalidos.length > 0) {
@@ -40,7 +40,7 @@ export class AceptarTerminosUseCase {
 
     // Verificar que se aceptan todos los documentos activos
     const documentosFaltantes = documentosActivosIds.filter(
-      (id) => !aceptarTerminosDto.documentosIds.includes(id),
+      id => !aceptarTerminosDto.documentosIds.includes(id),
     );
 
     if (documentosFaltantes.length > 0) {
@@ -61,18 +61,16 @@ export class AceptarTerminosUseCase {
 
       if (yaAceptado) {
         // Si ya fue aceptado, obtener el documento para la versión
-        const documento = await this.aceptacionesRepository.findDocumentoById(
-          documentoId,
-        );
+        const documento =
+          await this.aceptacionesRepository.findDocumentoById(documentoId);
         if (documento) {
           // Actualizar la aceptación existente (o crear una nueva para la nueva versión)
           // Por ahora, creamos una nueva aceptación para mantener historial
         }
       }
 
-      const documento = await this.aceptacionesRepository.findDocumentoById(
-        documentoId,
-      );
+      const documento =
+        await this.aceptacionesRepository.findDocumentoById(documentoId);
 
       if (!documento) {
         throw new NotFoundException(
@@ -100,4 +98,3 @@ export class AceptarTerminosUseCase {
     return aceptaciones;
   }
 }
-

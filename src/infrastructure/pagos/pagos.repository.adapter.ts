@@ -37,4 +37,3 @@ export class PagosRepositoryAdapter implements IPagosRepository {
     });
   }
 }
-

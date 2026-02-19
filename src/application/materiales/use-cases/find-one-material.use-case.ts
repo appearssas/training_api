@@ -17,4 +17,3 @@ export class FindOneMaterialUseCase {
     return material;
   }
 }
-

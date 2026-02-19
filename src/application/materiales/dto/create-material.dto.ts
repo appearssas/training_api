@@ -36,16 +36,19 @@ export class CreateMaterialDto {
   nombre: string;
 
   @ApiProperty({
-    description: 'URL del material (archivo o enlace externo). Puede ser relativa (/storage/materials/archivo.pdf) o absoluta (https://example.com/material.pdf)',
+    description:
+      'URL del material (archivo o enlace externo). Puede ser relativa (/storage/materials/archivo.pdf) o absoluta (https://example.com/material.pdf)',
     example: 'https://example.com/material.pdf',
     maxLength: 1000,
   })
   @IsString()
   @Length(1, 1000)
-  @ValidateIf((o) => {
+  @ValidateIf(o => {
     // Si es una URL absoluta, validar con IsUrl
     // Si es una ruta relativa (empieza con /), solo validar que sea string
-    return o.url && (o.url.startsWith('http://') || o.url.startsWith('https://'));
+    return (
+      o.url && (o.url.startsWith('http://') || o.url.startsWith('https://'))
+    );
   })
   @IsUrl({}, { message: 'La URL absoluta debe ser válida' })
   url: string;
@@ -71,4 +74,3 @@ export class CreateMaterialDto {
   @Min(0)
   orden?: number;
 }
-

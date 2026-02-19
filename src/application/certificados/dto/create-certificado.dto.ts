@@ -56,11 +56,11 @@ export class CreateCertificadoDto {
   justificacionRetroactiva?: string;
 
   @ApiPropertyOptional({
-    description: 'ID del usuario administrador que emite el certificado (para auditoría)',
+    description:
+      'ID del usuario administrador que emite el certificado (para auditoría)',
     example: 1,
   })
   @IsOptional()
   @IsInt()
   emitidoPor?: number;
 }
-

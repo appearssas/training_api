@@ -1,6 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { S3Client, PutObjectCommand, GetObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3';
+import {
+  S3Client,
+  PutObjectCommand,
+  GetObjectCommand,
+  HeadObjectCommand,
+} from '@aws-sdk/client-s3';
 import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
@@ -14,8 +19,10 @@ export class S3Service {
 
   constructor(private readonly configService: ConfigService) {
     this.region = this.configService.get<string>('AWS_REGION') || 'us-east-1';
-    this.bucketName = this.configService.get<string>('AWS_S3_BUCKET_NAME') || '';
-    this.cloudFrontUrl = this.configService.get<string>('AWS_CLOUDFRONT_URL') || '';
+    this.bucketName =
+      this.configService.get<string>('AWS_S3_BUCKET_NAME') || '';
+    this.cloudFrontUrl =
+      this.configService.get<string>('AWS_CLOUDFRONT_URL') || '';
 
     if (!this.bucketName) {
       throw new Error('AWS_S3_BUCKET_NAME debe estar configurado');
@@ -25,7 +32,8 @@ export class S3Service {
       region: this.region,
       credentials: {
         accessKeyId: this.configService.get<string>('AWS_ACCESS_KEY_ID') || '',
-        secretAccessKey: this.configService.get<string>('AWS_SECRET_ACCESS_KEY') || '',
+        secretAccessKey:
+          this.configService.get<string>('AWS_SECRET_ACCESS_KEY') || '',
       },
     });
   }
@@ -161,7 +169,10 @@ export class S3Service {
       await this.s3Client.send(command);
       return true;
     } catch (error: any) {
-      if (error.name === 'NotFound' || error.$metadata?.httpStatusCode === 404) {
+      if (
+        error.name === 'NotFound' ||
+        error.$metadata?.httpStatusCode === 404
+      ) {
         return false;
       }
       throw error;
@@ -179,7 +190,7 @@ export class S3Service {
       });
 
       const response = await this.s3Client.send(command);
-      
+
       if (!response.Body) {
         throw new Error('El archivo está vacío');
       }
@@ -189,7 +200,7 @@ export class S3Service {
       for await (const chunk of response.Body as any) {
         chunks.push(chunk);
       }
-      
+
       return Buffer.concat(chunks);
     } catch (error) {
       throw new Error(
@@ -198,4 +209,3 @@ export class S3Service {
     }
   }
 }
-

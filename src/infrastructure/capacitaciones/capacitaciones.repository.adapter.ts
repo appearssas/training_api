@@ -54,7 +54,7 @@ export class CapacitacionesRepositoryAdapter implements ICapacitacionesRepositor
         instructor: { id: createCapacitacionDto.instructorId } as any,
         enteCertificador:
           createCapacitacionDto.enteCertificadorId != null
-            ? { id: createCapacitacionDto.enteCertificadorId } as any
+            ? ({ id: createCapacitacionDto.enteCertificadorId } as any)
             : undefined,
         usuarioCreacion: createCapacitacionDto.usuarioCreacion || 'system',
       });
@@ -223,6 +223,7 @@ export class CapacitacionesRepositoryAdapter implements ICapacitacionesRepositor
         .leftJoinAndSelect('capacitacion.tipoCapacitacion', 'tipoCapacitacion')
         .leftJoinAndSelect('capacitacion.modalidad', 'modalidad')
         .leftJoinAndSelect('capacitacion.instructor', 'instructor')
+        .leftJoinAndSelect('instructor.persona', 'instructorPersona')
         .leftJoinAndSelect('capacitacion.enteCertificador', 'enteCertificador')
         .leftJoinAndSelect('capacitacion.evaluaciones', 'evaluaciones')
         .leftJoinAndSelect('capacitacion.inscripciones', 'inscripciones')
@@ -354,6 +355,7 @@ export class CapacitacionesRepositoryAdapter implements ICapacitacionesRepositor
           'tipoCapacitacion',
           'modalidad',
           'instructor',
+          'instructor.persona',
           'enteCertificador',
           'materiales',
           'materiales.tipoMaterial',
@@ -470,9 +472,15 @@ export class CapacitacionesRepositoryAdapter implements ICapacitacionesRepositor
     updateCapacitacionDto: UpdateCapacitacionDto,
   ): Promise<Capacitacion> {
     try {
+      // No cargar 'instructor' en relations para que TypeORM persista el cambio
+      // al asignar instructor = { id }; si viene cargado (eager), save() a veces no actualiza la FK
       const capacitacion = await this.capacitacionRepository.findOne({
         where: { id },
-        relations: ['tipoCapacitacion', 'modalidad', 'instructor', 'enteCertificador'],
+        relations: [
+          'tipoCapacitacion',
+          'modalidad',
+          'enteCertificador',
+        ],
       });
 
       if (!capacitacion) {
@@ -563,6 +571,19 @@ export class CapacitacionesRepositoryAdapter implements ICapacitacionesRepositor
 
       const savedCapacitacion =
         await this.capacitacionRepository.save(capacitacion);
+
+      // Forzar instructor_id en BD con UPDATE directo (TypeORM save/relation a veces no persiste la FK)
+      const instructorId =
+        updateCapacitacionDto.instructorId !== undefined &&
+        updateCapacitacionDto.instructorId !== null
+          ? Number(updateCapacitacionDto.instructorId)
+          : null;
+      if (instructorId !== null) {
+        await this.dataSource.query(
+          'UPDATE capacitaciones SET instructor_id = ? WHERE id = ?',
+          [instructorId, id],
+        );
+      }
 
       // Retornar la capacitación completa con relaciones
       const capacitacionCompleta = await this.findOne(savedCapacitacion.id);

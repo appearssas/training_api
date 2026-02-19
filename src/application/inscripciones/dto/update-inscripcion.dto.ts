@@ -32,7 +32,10 @@ export class UpdateInscripcionDto extends PartialType(CreateInscripcionDto) {
     maximum: 100,
   })
   @IsOptional()
-  @IsDecimal({ decimal_digits: '0,2' }, { message: 'El progreso debe ser un número decimal' })
+  @IsDecimal(
+    { decimal_digits: '0,2' },
+    { message: 'El progreso debe ser un número decimal' },
+  )
   @Min(0, { message: 'El progreso no puede ser menor a 0' })
   @Max(100, { message: 'El progreso no puede ser mayor a 100' })
   progresoPorcentaje?: number;
@@ -44,7 +47,13 @@ export class UpdateInscripcionDto extends PartialType(CreateInscripcionDto) {
     format: 'date-time',
   })
   @IsOptional()
-  @IsDateString({}, { message: 'La fecha de finalización debe tener un formato válido (ISO 8601)' })
+  @IsDateString(
+    {},
+    {
+      message:
+        'La fecha de finalización debe tener un formato válido (ISO 8601)',
+    },
+  )
   fechaFinalizacion?: Date;
 
   @ApiPropertyOptional({
@@ -55,7 +64,10 @@ export class UpdateInscripcionDto extends PartialType(CreateInscripcionDto) {
     maximum: 100,
   })
   @IsOptional()
-  @IsDecimal({ decimal_digits: '0,2' }, { message: 'La calificación debe ser un número decimal' })
+  @IsDecimal(
+    { decimal_digits: '0,2' },
+    { message: 'La calificación debe ser un número decimal' },
+  )
   @Min(0, { message: 'La calificación no puede ser menor a 0' })
   @Max(100, { message: 'La calificación no puede ser mayor a 100' })
   calificacionFinal?: number;

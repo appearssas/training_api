@@ -30,7 +30,8 @@ function getDynamicData(
 }
 
 /**
- * Renderiza la imagen de una firma en el PDF
+ * Renderiza la imagen de una firma en el PDF.
+ * Acepta ruta local o URL (S3/CloudFront); loadImageAsDataUrl soporta ambos.
  */
 async function renderSignatureImage(
   doc: jsPDF,
@@ -40,9 +41,10 @@ async function renderSignatureImage(
   width: number,
   height: number,
 ): Promise<void> {
-  if (!existsSync(signaturePath)) {
-    return;
-  }
+  if (!signaturePath?.trim()) return;
+  const isUrl =
+    signaturePath.startsWith('http://') || signaturePath.startsWith('https://');
+  if (!isUrl && !existsSync(signaturePath)) return;
 
   try {
     const signatureImg = await loadImageAsDataUrl(signaturePath);

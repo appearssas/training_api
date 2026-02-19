@@ -34,7 +34,9 @@ export class ResenasRepositoryAdapter implements IResenasRepository {
 
       // Retornar la reseña con sus relaciones
       // savedResena es un objeto único (no un array) ya que save() recibe un objeto único
-      const resenaId = Array.isArray(savedResena) ? savedResena[0].id : (savedResena as Resena).id;
+      const resenaId = Array.isArray(savedResena)
+        ? savedResena[0].id
+        : savedResena.id;
       return this.findOne(resenaId) as Promise<Resena>;
     } catch (error: unknown) {
       console.error('Error creating resena:', error);
@@ -46,7 +48,11 @@ export class ResenasRepositoryAdapter implements IResenasRepository {
     try {
       return await this.resenaRepository.findOne({
         where: { id },
-        relations: ['inscripcion', 'inscripcion.capacitacion', 'inscripcion.estudiante'],
+        relations: [
+          'inscripcion',
+          'inscripcion.capacitacion',
+          'inscripcion.estudiante',
+        ],
       });
     } catch (error: unknown) {
       console.error('Error fetching resena:', error);
@@ -58,11 +64,17 @@ export class ResenasRepositoryAdapter implements IResenasRepository {
     try {
       return await this.resenaRepository.findOne({
         where: { inscripcion: { id: inscripcionId } },
-        relations: ['inscripcion', 'inscripcion.capacitacion', 'inscripcion.estudiante'],
+        relations: [
+          'inscripcion',
+          'inscripcion.capacitacion',
+          'inscripcion.estudiante',
+        ],
       });
     } catch (error: unknown) {
       console.error('Error fetching resena by inscripcion:', error);
-      throw new InternalServerErrorException('Error al obtener la reseña por inscripción');
+      throw new InternalServerErrorException(
+        'Error al obtener la reseña por inscripción',
+      );
     }
   }
 
@@ -74,7 +86,9 @@ export class ResenasRepositoryAdapter implements IResenasRepository {
       return count > 0;
     } catch (error: unknown) {
       console.error('Error checking resena existence:', error);
-      throw new InternalServerErrorException('Error al verificar la existencia de la reseña');
+      throw new InternalServerErrorException(
+        'Error al verificar la existencia de la reseña',
+      );
     }
   }
 }

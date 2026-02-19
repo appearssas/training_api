@@ -495,53 +495,24 @@ export class CertificadosController {
       }
     }
 
-    // Si es almacenamiento local, intentar leer del disco
+    // Si el error es que no existe el archivo, lo regeneramos (On-Demand fallback
+    console.log(
+      `⚠️ PDF para certificado ${id} no encontrado en disco. Generando On-Demand...`,
+    );
     try {
-      const filePath = this.storageService.getFilePath(
-        certificado.urlCertificado || `/storage/certificates/${fileName}`,
-      );
-      // Validar que intenta leer un archivo real y no una ruta de API malinterpretada
-      if (!filePath.endsWith('.pdf')) {
-        throw new Error('ENOENT'); // forzar regeneración/redirección si no parece archivo
-      }
+      // Generar el PDF usando el servicio (en memoria)
+      const pdfBuffer =
+        await this.pdfGeneratorService.generateCertificate(certificado);
 
-      const fileBuffer = await fs.readFile(filePath);
-      return sendFile(fileBuffer);
-    } catch (error: any) {
-      // Si el error es que no existe el archivo, lo regeneramos (On-Demand fallback)
-      if (error.code === 'ENOENT') {
-        console.log(
-          `⚠️ PDF para certificado ${id} no encontrado en disco. Generando On-Demand...`,
-        );
-        try {
-          // Generar el PDF usando el servicio (en memoria)
-          const pdfBuffer =
-            await this.pdfGeneratorService.generateCertificate(certificado);
-
-          // CAMBIO ARQUITECTURA: NO GUARDAR EN DISCO.
-          // Solo servir el buffer generado.
-          // const url = await this.storageService.saveBuffer(...); <-- ELIMINADO
-
-          return sendFile(pdfBuffer);
-        } catch (genError) {
-          console.error(
-            `❌ Error fatal regenerando PDF para certificado ${id}:`,
-            genError,
-          );
-          return res
-            .status(500)
-            .json({ message: 'Error interno regenerando el certificado PDF.' });
-        }
-      }
-
-      // Otro tipo de error de lectura
+      return sendFile(pdfBuffer);
+    } catch (genError) {
       console.error(
-        `❌ Error leyendo archivo PDF para certificado ${id}:`,
-        error,
+        `❌ Error fatal regenerando PDF para certificado ${id}:`,
+        genError,
       );
       return res
-        .status(404)
-        .json({ message: 'Error al acceder al archivo del certificado.' });
+        .status(500)
+        .json({ message: 'Error interno regenerando el certificado PDF.' });
     }
   }
 

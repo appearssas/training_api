@@ -6,7 +6,7 @@
  * Genera una contraseña temporal segura
  * Formato: [PREFIJO][CARACTERES_ALEATORIOS]
  * Ejemplo: TEMP_A3b7K9m2P5q
- * 
+ *
  * @param length - Longitud de la contraseña (default: 12)
  * @param prefix - Prefijo opcional para la contraseña (default: 'TEMP_')
  * @returns Contraseña temporal generada
@@ -18,7 +18,7 @@ export function generarPasswordTemporal(
   // Caracteres permitidos: mayúsculas, minúsculas, números y algunos símbolos
   const caracteres =
     'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%&*';
-  
+
   // Asegurar que tenga al menos una mayúscula, una minúscula, un número y un símbolo
   const mayuscula = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
   const minuscula = 'abcdefghijklmnopqrstuvwxyz';
@@ -84,4 +84,3 @@ export function validarPasswordSegura(password: string): boolean {
 
   return true;
 }
-

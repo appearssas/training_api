@@ -21,4 +21,3 @@ import { PersonasModule } from '../personas/personas.module';
   exports: ['IPagosRepository'],
 })
 export class PagosModule {}
-

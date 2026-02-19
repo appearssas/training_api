@@ -1,11 +1,81 @@
 import {
   PdfConfig,
   ElementConfig,
+  ElementConfigWithLineSpacing,
   ImageConfig,
+  QrConfig,
   CertificateConfig,
   CertificateConfigOtros,
   CertificateTypeFlags,
 } from '../types/pdf-config.interface';
+
+/** Convierte a número si el valor es un número o string numérico; evita NaN. */
+function toNumber(v: unknown): number | undefined {
+  if (v === undefined || v === null) return undefined;
+  const n = Number(v);
+  return Number.isNaN(n) ? undefined : n;
+}
+
+/** Normaliza campos numéricos de ImageConfig (p. ej. cuando vienen como string del JSON). */
+function normalizeImageConfig(
+  c: ImageConfig | undefined,
+): ImageConfig | undefined {
+  if (!c || typeof c !== 'object') return c;
+  const x = toNumber(c.x);
+  const y = toNumber(c.y);
+  const width = toNumber(c.width);
+  const height = toNumber(c.height);
+  if (
+    x === undefined &&
+    y === undefined &&
+    width === undefined &&
+    height === undefined
+  ) {
+    return c;
+  }
+  return { ...c, ...(x !== undefined && { x }), ...(y !== undefined && { y }), ...(width !== undefined && { width }), ...(height !== undefined && { height }) };
+}
+
+/** Normaliza campos numéricos de ElementConfig (y opcionalmente lineSpacing). */
+function normalizeElementConfig(
+  c: ElementConfig | ElementConfigWithLineSpacing | undefined,
+  opts?: { withLineSpacing?: boolean },
+): ElementConfig | ElementConfigWithLineSpacing | undefined {
+  if (!c || typeof c !== 'object') return c;
+  const x = toNumber(c.x);
+  const y = toNumber(c.y);
+  const fontSize = toNumber(c.fontSize);
+  const lineSpacing =
+    opts?.withLineSpacing && 'lineSpacing' in c
+      ? toNumber((c as ElementConfigWithLineSpacing).lineSpacing)
+      : undefined;
+  let color = c.color;
+  if (Array.isArray(c.color) && c.color.length >= 3) {
+    const r = toNumber(c.color[0]);
+    const g = toNumber(c.color[1]);
+    const b = toNumber(c.color[2]);
+    if (r !== undefined && g !== undefined && b !== undefined) {
+      color = [r, g, b];
+    }
+  }
+  const out: Record<string, unknown> = { ...c };
+  if (x !== undefined) out.x = x;
+  if (y !== undefined) out.y = y;
+  if (fontSize !== undefined) out.fontSize = fontSize;
+  if (lineSpacing !== undefined) out.lineSpacing = lineSpacing;
+  if (color !== undefined) out.color = color;
+  return out as ElementConfig | ElementConfigWithLineSpacing;
+}
+
+/** Normaliza campos numéricos de QrConfig. */
+function normalizeQrConfig(c: QrConfig | undefined): QrConfig | undefined {
+  if (!c || typeof c !== 'object') return c;
+  const x = toNumber(c.x);
+  const y = toNumber(c.y);
+  const size = toNumber(c.size);
+  if (x === undefined && y === undefined && size === undefined) return c;
+  return { ...c, ...(x !== undefined && { x }), ...(y !== undefined && { y }), ...(size !== undefined && { size }) };
+}
 
 /**
  * Obtiene la configuración del tipo de certificado según los flags
@@ -199,6 +269,24 @@ export function getDefaultOtrosConfig(): CertificateConfigOtros {
 }
 
 /**
+ * Fusiona config de rol (instructor/representante) con defaults.
+ * Asegura que nunca se pierdan fontSize, x, y válidos al editar solo posición en el frontend.
+ */
+function mergeRoleConfig<T extends ElementConfig | undefined>(
+  defaultConfig: T,
+  fromRequest: T | undefined,
+): T {
+  const merged = {
+    ...defaultConfig,
+    ...(fromRequest && typeof fromRequest === 'object' ? fromRequest : {}),
+  } as T & { fontSize?: number };
+  if (merged && (merged.fontSize === undefined || merged.fontSize === 0)) {
+    merged.fontSize = (defaultConfig as ElementConfig)?.fontSize ?? 9.5;
+  }
+  return merged as T;
+}
+
+/**
  * Obtiene la configuración con valores por defecto aplicados para la categoría "otros"
  * Si config.otros existe, se fusiona con los valores por defecto
  */
@@ -225,52 +313,73 @@ export function getConfigWithDefaults(
     return { ...config, otros: defaultOtros };
   }
 
-  // Fusionar cada propiedad de config.otros con los valores por defecto
+  // Fusionar cada propiedad de config.otros con los valores por defecto y normalizar números
+  // (el JSON puede llegar con x, y, width, height, fontSize, etc. como string)
   const mergedOtros: CertificateConfigOtros = {
     ...defaultOtros,
     ...config.otros,
-    // Fusionar propiedades anidadas
-    cursoNombre: { ...defaultOtros.cursoNombre, ...config.otros.cursoNombre },
-    nombreEstudiante: {
+    cursoNombre: normalizeElementConfig({
+      ...defaultOtros.cursoNombre,
+      ...config.otros.cursoNombre,
+    }) as ElementConfig,
+    nombreEstudiante: normalizeElementConfig({
       ...defaultOtros.nombreEstudiante,
       ...config.otros.nombreEstudiante,
-    },
-    documento: { ...defaultOtros.documento, ...config.otros.documento },
-    duracion: { ...defaultOtros.duracion, ...config.otros.duracion },
-    fechaEmision: {
+    }) as ElementConfig,
+    documento: normalizeElementConfig({
+      ...defaultOtros.documento,
+      ...config.otros.documento,
+    }) as ElementConfig,
+    duracion: normalizeElementConfig({
+      ...defaultOtros.duracion,
+      ...config.otros.duracion,
+    }) as ElementConfig,
+    fechaEmision: normalizeElementConfig({
       ...defaultOtros.fechaEmision,
       ...config.otros.fechaEmision,
-    },
-    fechaVencimiento: {
+    }) as ElementConfig,
+    fechaVencimiento: normalizeElementConfig({
       ...defaultOtros.fechaVencimiento,
       ...config.otros.fechaVencimiento,
-    },
-    qr: { ...defaultOtros.qr, ...config.otros.qr },
-    instructorFirma: {
+    }) as ElementConfig,
+    qr: normalizeQrConfig({
+      ...defaultOtros.qr,
+      ...config.otros.qr,
+    }),
+    instructorFirma: normalizeImageConfig({
       ...defaultOtros.instructorFirma,
       ...config.otros.instructorFirma,
-    },
-    instructorNombre: {
+    }),
+    instructorNombre: normalizeElementConfig({
       ...defaultOtros.instructorNombre,
       ...config.otros.instructorNombre,
-    },
-    instructorRol: {
-      ...defaultOtros.instructorRol,
-      ...config.otros.instructorRol,
-    },
-    representanteFirma: {
+    }) as ElementConfig,
+    instructorRol: normalizeElementConfig(
+      mergeRoleConfig(
+        defaultOtros.instructorRol,
+        config.otros.instructorRol,
+      ) as ElementConfigWithLineSpacing,
+      { withLineSpacing: true },
+    ) as ElementConfigWithLineSpacing,
+    representanteFirma: normalizeImageConfig({
       ...defaultOtros.representanteFirma,
       ...config.otros.representanteFirma,
-    },
-    representanteNombre: {
+    }),
+    representanteNombre: normalizeElementConfig({
       ...defaultOtros.representanteNombre,
       ...config.otros.representanteNombre,
-    },
-    representanteRol: {
-      ...defaultOtros.representanteRol,
-      ...config.otros.representanteRol,
-    },
-    footer: { ...defaultOtros.footer, ...config.otros.footer },
+    }) as ElementConfig,
+    representanteRol: normalizeElementConfig(
+      mergeRoleConfig(
+        defaultOtros.representanteRol,
+        config.otros.representanteRol,
+      ) as ElementConfigWithLineSpacing,
+      { withLineSpacing: true },
+    ) as ElementConfigWithLineSpacing,
+    footer: normalizeElementConfig({
+      ...defaultOtros.footer,
+      ...config.otros.footer,
+    }) as ElementConfig,
   };
 
   return { ...config, otros: mergedOtros };

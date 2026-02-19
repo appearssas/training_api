@@ -8,7 +8,7 @@ async function bootstrap() {
   const app = await NestFactory.createApplicationContext(AppModule);
   const certificateFormatsService = app.get(CertificateFormatsService);
 
-  const configOtros = {
+  const config = {
     cursoNombre: {
       x: 396,
       y: 395,
@@ -105,18 +105,18 @@ async function bootstrap() {
   try {
     // Verificar si ya existe una configuración activa
     const existing = await certificateFormatsService.findActive();
-    
+
     if (existing) {
       console.log('✅ Ya existe una configuración activa. Actualizando...');
       await certificateFormatsService.update(existing.id, {
-        configOtros,
+        config,
         activo: true,
       });
       console.log('✅ Configuración actualizada exitosamente');
     } else {
       console.log('📝 Creando nueva configuración...');
       const created = await certificateFormatsService.create({
-        configOtros,
+        config,
       });
       console.log('✅ Configuración creada exitosamente con ID:', created.id);
     }

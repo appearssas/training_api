@@ -18,53 +18,22 @@ export class CertificateFormat {
   @PrimaryGeneratedColumn()
   id: number;
 
+  /** Configuración PDF única del formato (posiciones, fuentes, etc.). Un solo config por formato. */
   @Column({
     type: 'json',
     nullable: true,
-    name: 'config_alimentos',
+    name: 'config',
   })
-  configAlimentos: any;
+  config: any;
 
-  @Column({
-    type: 'json',
-    nullable: true,
-    name: 'config_sustancias',
-  })
-  configSustancias: any;
-
-  @Column({
-    type: 'json',
-    nullable: true,
-    name: 'config_otros',
-  })
-  configOtros: any;
-
+  /** Ruta o URL del PNG de fondo (storage/certificates o S3). Un solo fondo por formato. */
   @Column({
     type: 'varchar',
-    length: 255,
+    length: 500,
     nullable: true,
-    name: 'fondo_alimentos_path',
-    comment: 'Ruta del archivo PNG de fondo para alimentos',
+    name: 'fondo_path',
   })
-  fondoAlimentosPath: string | null;
-
-  @Column({
-    type: 'varchar',
-    length: 255,
-    nullable: true,
-    name: 'fondo_sustancias_path',
-    comment: 'Ruta del archivo PNG de fondo para sustancias',
-  })
-  fondoSustanciasPath: string | null;
-
-  @Column({
-    type: 'varchar',
-    length: 255,
-    nullable: true,
-    name: 'fondo_general_path',
-    comment: 'Ruta del archivo PNG de fondo general/otros',
-  })
-  fondoGeneralPath: string | null;
+  fondoPath: string | null;
 
   @Column({
     type: 'tinyint',

@@ -12,6 +12,8 @@ export class AddTipoCertificadoToCapacitaciones1770360000000 implements Migratio
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query('ALTER TABLE `capacitaciones` DROP COLUMN `tipo_certificado`');
+    await queryRunner.query(
+      'ALTER TABLE `capacitaciones` DROP COLUMN `tipo_certificado`',
+    );
   }
 }

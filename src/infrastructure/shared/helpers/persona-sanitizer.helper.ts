@@ -19,7 +19,9 @@ export function sanitizePersonaData(
     sanitized.tipoDocumento = sanitized.tipoDocumento.trim().toUpperCase();
   }
   if (typeof sanitized.tipoPersona === 'string') {
-    sanitized.tipoPersona = sanitized.tipoPersona.trim().toUpperCase() as 'NATURAL' | 'JURIDICA';
+    sanitized.tipoPersona = sanitized.tipoPersona.trim().toUpperCase() as
+      | 'NATURAL'
+      | 'JURIDICA';
   }
   if (typeof sanitized.nombres === 'string') {
     sanitized.nombres = sanitized.nombres.trim().toUpperCase();
@@ -45,4 +47,3 @@ export function sanitizePersonaData(
 
   return sanitized;
 }
-

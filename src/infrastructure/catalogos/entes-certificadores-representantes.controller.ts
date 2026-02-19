@@ -28,7 +28,10 @@ import {
 import { AuthGuard } from '@nestjs/passport';
 import { RolesGuard, Roles } from '@/infrastructure/shared/guards/roles.guard';
 import { RepresentantesService } from './representantes.service';
-import { CreateRepresentanteDto, UpdateRepresentanteDto } from '@/application/catalogos/dto';
+import {
+  CreateRepresentanteDto,
+  UpdateRepresentanteDto,
+} from '@/application/catalogos/dto';
 
 @ApiTags('catalogos')
 @Controller('catalogos/entes-certificadores/:enteId/representantes')
@@ -41,7 +44,8 @@ export class EntesCertificadoresRepresentantesController {
   @Roles('ADMIN', 'INSTRUCTOR')
   @ApiOperation({
     summary: 'Listar representantes del ente',
-    description: 'Representantes legales del ente certificador. Solo ADMIN puede ver inactivos.',
+    description:
+      'Representantes legales del ente certificador. Solo ADMIN puede ver inactivos.',
   })
   @ApiQuery({ name: 'activo', required: false, type: Boolean })
   @ApiResponse({ status: 200, description: 'Lista de representantes del ente' })
@@ -107,9 +111,17 @@ export class EntesCertificadoresRepresentantesController {
   @Roles('ADMIN')
   @UseInterceptors(FileInterceptor('firma'))
   @ApiConsumes('multipart/form-data')
-  @ApiBody({ schema: { type: 'object', properties: { firma: { type: 'string', format: 'binary' } } } })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: { firma: { type: 'string', format: 'binary' } },
+    },
+  })
   @ApiOperation({ summary: 'Subir firma del representante' })
-  @ApiResponse({ status: 200, description: 'Representante actualizado con firma' })
+  @ApiResponse({
+    status: 200,
+    description: 'Representante actualizado con firma',
+  })
   @ApiResponse({ status: 404, description: 'No encontrado' })
   async uploadFirma(
     @Param('enteId', ParseIntPipe) enteId: number,

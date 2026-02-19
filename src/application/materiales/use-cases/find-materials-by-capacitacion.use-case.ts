@@ -13,4 +13,3 @@ export class FindMaterialsByCapacitacionUseCase {
     return this.materialesRepository.findByCapacitacion(capacitacionId);
   }
 }
-

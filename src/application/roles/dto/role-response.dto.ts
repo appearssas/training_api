@@ -46,4 +46,3 @@ export class ListRolesResponseDto {
   })
   data: RoleResponseDto[];
 }
-

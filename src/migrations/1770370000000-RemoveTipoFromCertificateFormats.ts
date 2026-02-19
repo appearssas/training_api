@@ -5,9 +5,7 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
  * El tipo de certificado (alimentos/sustancias/otros) viene de la maestra de cursos
  * (capacitacion.tipoCertificado). El formato activo único ya contiene las tres configuraciones.
  */
-export class RemoveTipoFromCertificateFormats1770370000000
-  implements MigrationInterface
-{
+export class RemoveTipoFromCertificateFormats1770370000000 implements MigrationInterface {
   name = 'RemoveTipoFromCertificateFormats1770370000000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {

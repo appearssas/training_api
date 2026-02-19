@@ -18,7 +18,10 @@ export class FileCompressionInterceptor implements NestInterceptor {
     private readonly imageCompressionService: ImageCompressionService,
   ) {}
 
-  async intercept(context: ExecutionContext, next: CallHandler): Promise<Observable<any>> {
+  async intercept(
+    context: ExecutionContext,
+    next: CallHandler,
+  ): Promise<Observable<any>> {
     const request = context.switchToHttp().getRequest();
     const file = request.file;
 
@@ -26,8 +29,9 @@ export class FileCompressionInterceptor implements NestInterceptor {
     if (file) {
       try {
         // Comprimir cualquier tipo de archivo
-        const compressed = await this.imageCompressionService.compressFile(file);
-        
+        const compressed =
+          await this.imageCompressionService.compressFile(file);
+
         if (compressed.compressed) {
           // Reemplazar el archivo original con el comprimido
           request.file = {
@@ -38,7 +42,10 @@ export class FileCompressionInterceptor implements NestInterceptor {
             mimetype: compressed.mimetype,
           };
 
-          const reduction = ((1 - compressed.buffer.length / file.size) * 100).toFixed(1);
+          const reduction = (
+            (1 - compressed.buffer.length / file.size) *
+            100
+          ).toFixed(1);
           console.log(
             `📦 Archivo comprimido: ${file.originalname} (${(file.size / 1024).toFixed(2)}KB -> ${(compressed.buffer.length / 1024).toFixed(2)}KB, -${reduction}%)`,
           );
@@ -56,4 +63,3 @@ export class FileCompressionInterceptor implements NestInterceptor {
     return next.handle();
   }
 }
-

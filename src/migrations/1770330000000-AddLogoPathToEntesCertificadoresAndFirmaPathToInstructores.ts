@@ -1,8 +1,6 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class AddLogoPathToEntesCertificadoresAndFirmaPathToInstructores1770330000000
-  implements MigrationInterface
-{
+export class AddLogoPathToEntesCertificadoresAndFirmaPathToInstructores1770330000000 implements MigrationInterface {
   name =
     'AddLogoPathToEntesCertificadoresAndFirmaPathToInstructores1770330000000';
 

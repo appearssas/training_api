@@ -14,7 +14,11 @@ export class AddEliminadaToEmpresas1768600000000 implements MigrationInterface {
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(`DROP INDEX \`IDX_empresas_eliminada\` ON \`empresas\``);
-    await queryRunner.query(`ALTER TABLE \`empresas\` DROP COLUMN \`eliminada\``);
+    await queryRunner.query(
+      `DROP INDEX \`IDX_empresas_eliminada\` ON \`empresas\``,
+    );
+    await queryRunner.query(
+      `ALTER TABLE \`empresas\` DROP COLUMN \`eliminada\``,
+    );
   }
 }

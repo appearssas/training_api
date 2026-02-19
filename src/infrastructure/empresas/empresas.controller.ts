@@ -397,20 +397,32 @@ export class EmpresasController {
   @Roles('ADMIN', 'CLIENTE', 'OPERADOR')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
-    summary: 'Listar cursos asignados a la empresa con opción de descarga de certificado',
+    summary:
+      'Listar cursos asignados a la empresa con opción de descarga de certificado',
     description:
       'Devuelve cada curso asignado a la empresa con el flag permiteDescargaCertificado. ADMIN ve cualquier empresa; CLIENTE/OPERADOR solo su empresa.',
   })
   @ApiParam({ name: 'id', description: 'ID de la empresa' })
-  @ApiResponse({ status: 200, description: 'Lista de asignaciones con permiteDescargaCertificado' })
-  @ApiResponse({ status: 403, description: 'CLIENTE/OPERADOR solo puede consultar su propia empresa' })
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de asignaciones con permiteDescargaCertificado',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'CLIENTE/OPERADOR solo puede consultar su propia empresa',
+  })
   async getCapacitacionesWithPermiteDescarga(
     @Param('id', ParseIntPipe) id: number,
-    @GetUser() user: { rolPrincipal?: { codigo?: string }; persona?: { empresaId?: number; empresa?: { id?: number } } },
+    @GetUser()
+    user: {
+      rolPrincipal?: { codigo?: string };
+      persona?: { empresaId?: number; empresa?: { id?: number } };
+    },
   ) {
     const rol = user?.rolPrincipal?.codigo ?? '';
     if (rol === 'CLIENTE' || rol === 'OPERADOR') {
-      const userEmpresaId = user?.persona?.empresaId ?? user?.persona?.empresa?.id ?? null;
+      const userEmpresaId =
+        user?.persona?.empresaId ?? user?.persona?.empresa?.id ?? null;
       if (userEmpresaId == null || id !== userEmpresaId) {
         throw new ForbiddenException(
           'Solo puede consultar los cursos de su propia empresa.',
@@ -433,19 +445,31 @@ export class EmpresasController {
   @ApiParam({ name: 'id', description: 'ID de la empresa' })
   @ApiParam({ name: 'capacitacionId', description: 'ID de la capacitación' })
   @ApiBody({
-    schema: { type: 'object', properties: { permiteDescargaCertificado: { type: 'boolean' } }, required: ['permiteDescargaCertificado'] },
+    schema: {
+      type: 'object',
+      properties: { permiteDescargaCertificado: { type: 'boolean' } },
+      required: ['permiteDescargaCertificado'],
+    },
   })
   @ApiResponse({ status: 200, description: 'Configuración actualizada' })
-  @ApiResponse({ status: 403, description: 'CLIENTE/OPERADOR solo puede modificar su propia empresa' })
+  @ApiResponse({
+    status: 403,
+    description: 'CLIENTE/OPERADOR solo puede modificar su propia empresa',
+  })
   async updatePermiteDescargaCertificado(
     @Param('id', ParseIntPipe) id: number,
     @Param('capacitacionId', ParseIntPipe) capacitacionId: number,
     @Body('permiteDescargaCertificado') permiteDescargaCertificado: boolean,
-    @GetUser() user: { rolPrincipal?: { codigo?: string }; persona?: { empresaId?: number; empresa?: { id?: number } } },
+    @GetUser()
+    user: {
+      rolPrincipal?: { codigo?: string };
+      persona?: { empresaId?: number; empresa?: { id?: number } };
+    },
   ) {
     const rol = user?.rolPrincipal?.codigo ?? '';
     if (rol === 'CLIENTE' || rol === 'OPERADOR') {
-      const userEmpresaId = user?.persona?.empresaId ?? user?.persona?.empresa?.id ?? null;
+      const userEmpresaId =
+        user?.persona?.empresaId ?? user?.persona?.empresa?.id ?? null;
       if (userEmpresaId == null || id !== userEmpresaId) {
         throw new ForbiddenException(
           'Solo puede modificar los cursos de su propia empresa.',

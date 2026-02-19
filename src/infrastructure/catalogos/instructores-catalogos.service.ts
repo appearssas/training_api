@@ -39,4 +39,24 @@ export class InstructoresCatalogosService {
     instructor.firmaPath = path;
     return this.repo.save(instructor);
   }
+
+  /** Actualiza campos editables del instructor (especialidad, rol, tarjeta profesional, licencia, biografía). */
+  async update(
+    id: number,
+    dto: {
+      especialidad?: string | null;
+      rol?: string | null;
+      tarjetaProfesional?: string | null;
+      licencia?: string | null;
+      biografia?: string | null;
+    },
+  ): Promise<Instructor> {
+    const instructor = await this.findOne(id);
+    if (dto.especialidad !== undefined) instructor.especialidad = dto.especialidad ?? '';
+    if (dto.rol !== undefined) instructor.rol = dto.rol ?? null;
+    if (dto.tarjetaProfesional !== undefined) instructor.tarjetaProfesional = dto.tarjetaProfesional ?? null;
+    if (dto.licencia !== undefined) instructor.licencia = dto.licencia ?? null;
+    if (dto.biografia !== undefined) instructor.biografia = dto.biografia ?? '';
+    return this.repo.save(instructor);
+  }
 }

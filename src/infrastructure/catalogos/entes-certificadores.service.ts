@@ -1,8 +1,15 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { EnteCertificador } from '@/entities/catalogos/ente-certificador.entity';
-import { CreateEnteCertificadorDto, UpdateEnteCertificadorDto } from '@/application/catalogos/dto';
+import {
+  CreateEnteCertificadorDto,
+  UpdateEnteCertificadorDto,
+} from '@/application/catalogos/dto';
 import { StorageService } from '@/infrastructure/shared/services/storage.service';
 
 @Injectable()
@@ -21,15 +28,25 @@ export class EntesCertificadoresService {
   }
 
   async findOne(id: number): Promise<EnteCertificador> {
-    const ente = await this.repo.findOne({ where: { id } });
-    if (!ente) throw new NotFoundException(`Ente certificador con ID ${id} no encontrado`);
+    const ente = await this.repo.findOne({
+      where: { id },
+      relations: ['certificateFormat'],
+    });
+    if (!ente)
+      throw new NotFoundException(
+        `Ente certificador con ID ${id} no encontrado`,
+      );
     return ente;
   }
 
   async create(dto: CreateEnteCertificadorDto): Promise<EnteCertificador> {
-    const existing = await this.repo.findOne({ where: { codigo: dto.codigo.trim() } });
+    const existing = await this.repo.findOne({
+      where: { codigo: dto.codigo.trim() },
+    });
     if (existing) {
-      throw new ConflictException(`Ya existe un ente certificador con el código "${dto.codigo}"`);
+      throw new ConflictException(
+        `Ya existe un ente certificador con el código "${dto.codigo}"`,
+      );
     }
     const ente = new EnteCertificador();
     ente.nombre = dto.nombre.trim();
@@ -37,22 +54,44 @@ export class EntesCertificadoresService {
     ente.descripcion = dto.descripcion?.trim() ?? '';
     ente.informacionContacto = dto.informacionContacto?.trim() ?? '';
     ente.activo = dto.activo ?? true;
+    ente.certificateFormatId = dto.certificateFormatId ?? null;
     return this.repo.save(ente);
   }
 
-  async update(id: number, dto: UpdateEnteCertificadorDto): Promise<EnteCertificador> {
+  async update(
+    id: number,
+    dto: UpdateEnteCertificadorDto,
+  ): Promise<EnteCertificador> {
     const ente = await this.findOne(id);
     if (dto.codigo != null && dto.codigo.trim() !== ente.codigo) {
-      const existing = await this.repo.findOne({ where: { codigo: dto.codigo.trim() } });
+      const existing = await this.repo.findOne({
+        where: { codigo: dto.codigo.trim() },
+      });
       if (existing) {
-        throw new ConflictException(`Ya existe un ente certificador con el código "${dto.codigo}"`);
+        throw new ConflictException(
+          `Ya existe un ente certificador con el código "${dto.codigo}"`,
+        );
       }
       ente.codigo = dto.codigo.trim();
     }
     if (dto.nombre != null) ente.nombre = dto.nombre.trim();
-    if (dto.descripcion !== undefined) ente.descripcion = dto.descripcion?.trim() ?? null;
-    if (dto.informacionContacto !== undefined) ente.informacionContacto = dto.informacionContacto?.trim() ?? null;
+    if (dto.descripcion !== undefined)
+      ente.descripcion = dto.descripcion?.trim() ?? null;
+    if (dto.informacionContacto !== undefined)
+      ente.informacionContacto = dto.informacionContacto?.trim() ?? null;
     if (dto.activo !== undefined) ente.activo = dto.activo;
+    if (dto.certificateFormatId !== undefined)
+      ente.certificateFormatId = dto.certificateFormatId ?? null;
+    return this.repo.save(ente);
+  }
+
+  /** Asigna o desasigna el formato de certificado de un ente. */
+  async setCertificateFormat(
+    id: number,
+    certificateFormatId: number | null,
+  ): Promise<EnteCertificador> {
+    const ente = await this.findOne(id);
+    ente.certificateFormatId = certificateFormatId;
     return this.repo.save(ente);
   }
 
@@ -62,7 +101,10 @@ export class EntesCertificadoresService {
   }
 
   /** Sube el logo del ente y actualiza logoPath. */
-  async setLogo(id: number, file: Express.Multer.File): Promise<EnteCertificador> {
+  async setLogo(
+    id: number,
+    file: Express.Multer.File,
+  ): Promise<EnteCertificador> {
     const ente = await this.findOne(id);
     const path = await this.storageService.saveCatalogLogo(id, file);
     ente.logoPath = path;

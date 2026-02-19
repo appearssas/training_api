@@ -1,7 +1,4 @@
-import {
-  Injectable,
-  Inject,
-} from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
 import { IAceptacionesRepository } from '@/domain/aceptaciones/ports/aceptaciones.repository.port';
 import { DocumentoLegalActivoResponseDto } from '../dto/documento-legal-response.dto';
 
@@ -16,7 +13,7 @@ export class ObtenerDocumentosActivosUseCase {
     const documentos =
       await this.aceptacionesRepository.findDocumentosActivos();
 
-    return documentos.map((doc) => ({
+    return documentos.map(doc => ({
       id: doc.id,
       tipo: doc.tipo,
       titulo: doc.titulo,
@@ -27,4 +24,3 @@ export class ObtenerDocumentosActivosUseCase {
     }));
   }
 }
-

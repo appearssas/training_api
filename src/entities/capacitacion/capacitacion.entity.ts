@@ -11,7 +11,7 @@ import {
 import { TipoCapacitacion } from '../catalogos/tipo-capacitacion.entity';
 import { ModalidadCapacitacion } from '../catalogos/modalidad-capacitacion.entity';
 import { EnteCertificador } from '../catalogos/ente-certificador.entity';
-import { Persona } from '../persona/persona.entity';
+import { Instructor } from '../instructores/instructor.entity';
 import { MaterialCapacitacion } from '../materiales/material-capacitacion.entity';
 import { SeccionCapacitacion } from '../secciones/seccion-capacitacion.entity';
 import { Evaluacion } from '../evaluaciones/evaluacion.entity';
@@ -46,14 +46,12 @@ export class Capacitacion {
   modalidad: ModalidadCapacitacion;
 
   @ManyToOne(
-    () => Persona,
-    (persona: Persona) => persona.capacitacionesComoInstructor,
-    {
-      eager: true,
-    },
+    () => Instructor,
+    (instructor: Instructor) => instructor.capacitaciones,
+    { eager: true },
   )
   @JoinColumn({ name: 'instructor_id' })
-  instructor: Persona;
+  instructor: Instructor;
 
   @ManyToOne(
     () => EnteCertificador,

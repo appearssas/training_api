@@ -26,7 +26,10 @@ export class CargaMasivaResponseDto {
       type: 'object',
       properties: {
         fila: { type: 'number', example: 3 },
-        error: { type: 'string', example: 'El número de documento ya está registrado' },
+        error: {
+          type: 'string',
+          example: 'El número de documento ya está registrado',
+        },
         datos: { type: 'object' },
       },
     },
@@ -48,4 +51,3 @@ export class CargaMasivaResponseDto {
     datos: any;
   }>;
 }
-

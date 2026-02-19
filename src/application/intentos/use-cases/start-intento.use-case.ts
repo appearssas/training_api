@@ -1,4 +1,9 @@
-import { Injectable, BadRequestException, NotFoundException, Inject } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+  Inject,
+} from '@nestjs/common';
 import { IIntentosRepository } from '@/domain/intentos/ports/intentos.repository.port';
 import { IEvaluacionesRepository } from '@/domain/evaluaciones/ports/evaluaciones.repository.port';
 import { IInscripcionesRepository } from '@/domain/inscripciones/ports/inscripciones.repository.port';
@@ -22,17 +27,26 @@ export class StartIntentoUseCase {
     private readonly inscripcionesRepository: IInscripcionesRepository,
   ) {}
 
-  async execute(evaluacionId: number, dto: StartIntentoDto): Promise<IntentoEvaluacion> {
+  async execute(
+    evaluacionId: number,
+    dto: StartIntentoDto,
+  ): Promise<IntentoEvaluacion> {
     // Validar que la evaluación existe
     const evaluacion = await this.evaluacionesRepository.findOne(evaluacionId);
     if (!evaluacion) {
-      throw new NotFoundException(`Evaluación con ID ${evaluacionId} no encontrada`);
+      throw new NotFoundException(
+        `Evaluación con ID ${evaluacionId} no encontrada`,
+      );
     }
 
     // Validar que la inscripción existe
-    const inscripcion = await this.inscripcionesRepository.findOne(dto.inscripcionId);
+    const inscripcion = await this.inscripcionesRepository.findOne(
+      dto.inscripcionId,
+    );
     if (!inscripcion) {
-      throw new NotFoundException(`Inscripción con ID ${dto.inscripcionId} no encontrada`);
+      throw new NotFoundException(
+        `Inscripción con ID ${dto.inscripcionId} no encontrada`,
+      );
     }
 
     // Validar que la inscripción pertenece a la capacitación de la evaluación
@@ -55,9 +69,11 @@ export class StartIntentoUseCase {
     }
 
     // Crear el intento (el repositorio calculará el número de intento internamente)
-    const intento = await this.intentosRepository.startAttempt(evaluacionId, dto);
+    const intento = await this.intentosRepository.startAttempt(
+      evaluacionId,
+      dto,
+    );
 
     return intento;
   }
 }
-

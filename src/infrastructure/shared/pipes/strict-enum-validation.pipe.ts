@@ -52,9 +52,9 @@ export class StrictEnumValidationPipe implements PipeTransform<any> {
   private formatValidationErrors(errors: ValidationError[]): string[] {
     const messages: string[] = [];
 
-    errors.forEach((error) => {
+    errors.forEach(error => {
       if (error.constraints) {
-        Object.values(error.constraints).forEach((message) => {
+        Object.values(error.constraints).forEach(message => {
           messages.push(message);
         });
       }
@@ -62,7 +62,7 @@ export class StrictEnumValidationPipe implements PipeTransform<any> {
       // Validar propiedades anidadas
       if (error.children && error.children.length > 0) {
         const nestedMessages = this.formatValidationErrors(error.children);
-        nestedMessages.forEach((message) => {
+        nestedMessages.forEach(message => {
           messages.push(`${error.property}.${message}`);
         });
       }
@@ -71,4 +71,3 @@ export class StrictEnumValidationPipe implements PipeTransform<any> {
     return messages;
   }
 }
-

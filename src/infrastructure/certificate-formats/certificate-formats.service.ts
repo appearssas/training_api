@@ -4,23 +4,39 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { existsSync, unlinkSync, writeFileSync } from 'fs';
-import { join } from 'path';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { CertificateFormatsRepositoryAdapter } from './certificate-formats.repository.adapter';
 import {
   CertificateFormat,
   CertificateFormatType,
 } from '@/entities/certificate-formats/certificate-format.entity';
+import { EnteCertificador } from '@/entities/catalogos/ente-certificador.entity';
 import { CreateCertificateFormatDto } from '@/application/certificate-formats/dto/create-certificate-format.dto';
 import { UpdateCertificateFormatDto } from '@/application/certificate-formats/dto/update-certificate-format.dto';
-import { PUBLIC_ASSETS_PATH } from '../shared/constants/pdf.constants';
+import { StorageService } from '../shared/services/storage.service';
+
+export type CentralizedCertificateConfig = {
+  activeFormatId: number;
+  activo: boolean;
+  config: { alimentos: any; sustancias: any; otros: any };
+  fondos: {
+    alimentos: string | null;
+    sustancias: string | null;
+    otros: string | null;
+  };
+  fondosAbsolute: {
+    alimentos: string | null;
+    sustancias: string | null;
+    otros: string | null;
+  };
+};
 
 /** TTL del caché de configuración activa (5 minutos) */
 const ACTIVE_CONFIG_CACHE_TTL_MS = 5 * 60 * 1000;
 
 @Injectable()
 export class CertificateFormatsService {
-  private readonly backgroundsPath: string;
   private activeConfigCache: {
     config: any;
     centralized?: {
@@ -44,17 +60,10 @@ export class CertificateFormatsService {
   constructor(
     private readonly repository: CertificateFormatsRepositoryAdapter,
     private readonly configService: ConfigService,
-  ) {
-    // Usar la misma ruta que los assets públicos
-    this.backgroundsPath = join(PUBLIC_ASSETS_PATH);
-
-    // Asegurar que el directorio existe
-    if (!existsSync(this.backgroundsPath)) {
-      throw new Error(
-        `Directorio de assets no encontrado: ${this.backgroundsPath}`,
-      );
-    }
-  }
+    private readonly storageService: StorageService,
+    @InjectRepository(EnteCertificador)
+    private readonly enteCertificadorRepo: Repository<EnteCertificador>,
+  ) {}
 
   async create(
     createDto: CreateCertificateFormatDto,
@@ -105,67 +114,86 @@ export class CertificateFormatsService {
   }
 
   /**
-   * Sube o actualiza un archivo PNG de fondo para un tipo de certificado
+   * Convierte el nombre del ente en un slug para el archivo (ej. "Andar del Llano" -> "AndarDelLlano").
+   */
+  private slugFromEnteName(nombre: string): string {
+    return nombre
+      .trim()
+      .normalize('NFD')
+      .replace(/\p{Diacritic}/gu, '')
+      .split(/\s+/)
+      .map(
+        (s) =>
+          s.charAt(0).toUpperCase() + s.slice(1).toLowerCase().replace(/\W/g, ''),
+      )
+      .join('')
+      .replace(/[^a-zA-Z0-9]/g, '') || 'Formato';
+  }
+
+  /**
+   * Sube o actualiza el fondo de un formato por ID.
+   * Se guarda en storage/certificates (local) o S3 con nombre por ente (ej. fondoAndarDelLlano.png).
+   */
+  async uploadBackgroundForFormat(
+    formatId: number,
+    file: Express.Multer.File,
+  ): Promise<CertificateFormat> {
+    if (!file.mimetype || !file.mimetype.includes('image/png')) {
+      throw new BadRequestException('El archivo debe ser una imagen PNG');
+    }
+    await this.findOne(formatId);
+    const ente = await this.enteCertificadorRepo.findOne({
+      where: { certificateFormatId: formatId },
+    });
+    const slug =
+      ente?.nombre != null
+        ? this.slugFromEnteName(ente.nombre)
+        : `Formato${formatId}`;
+    const fileNameWithoutExt = `fondo${slug}`;
+    const pathOrUrl = await this.storageService.saveCertificateFormatFondo(
+      file,
+      fileNameWithoutExt,
+    );
+    const result = await this.repository.updateFondoPathByFormatId(
+      formatId,
+      pathOrUrl,
+    );
+    this.invalidateActiveConfigCache();
+    return result;
+  }
+
+  /**
+   * Sube o actualiza un archivo PNG de fondo para el formato activo (legacy).
+   * Guarda en storage/certificates o S3 y actualiza el único fondo del formato activo.
    */
   async uploadBackground(
     tipo: CertificateFormatType,
     file: Express.Multer.File,
   ): Promise<CertificateFormat> {
-    // Validar que sea un archivo PNG
     if (!file.mimetype || !file.mimetype.includes('image/png')) {
       throw new BadRequestException('El archivo debe ser una imagen PNG');
     }
-
-    // Determinar el nombre del archivo según el tipo
-    let fileName: string;
+    let fileNameWithoutExt: string;
     switch (tipo) {
       case CertificateFormatType.ALIMENTOS:
-        fileName = 'fondoAlimentos.png';
+        fileNameWithoutExt = 'fondoAlimentos';
         break;
       case CertificateFormatType.SUSTANCIAS:
-        fileName = 'fondoSustanciasP.png';
+        fileNameWithoutExt = 'fondoSustanciasP';
         break;
       case CertificateFormatType.OTROS:
-        fileName = 'fondoGeneral.png';
+        fileNameWithoutExt = 'fondoGeneral';
         break;
       default: {
         const invalid = tipo as string;
         throw new BadRequestException(`Tipo de formato no válido: ${invalid}`);
       }
     }
-
-    const filePath = join(this.backgroundsPath, fileName);
-
-    // Si el archivo ya existe, eliminarlo antes de guardar el nuevo
-    if (existsSync(filePath)) {
-      try {
-        unlinkSync(filePath);
-        console.log(
-          `[CertificateFormats] Archivo anterior eliminado: ${filePath}`,
-        );
-      } catch (error) {
-        console.error(
-          `[CertificateFormats] Error al eliminar archivo anterior:`,
-          error,
-        );
-      }
-    }
-
-    // Guardar el nuevo archivo
-    try {
-      writeFileSync(filePath, file.buffer);
-      console.log(`[CertificateFormats] Archivo guardado: ${filePath}`);
-    } catch (error) {
-      console.error(`[CertificateFormats] Error al guardar archivo:`, error);
-      throw new BadRequestException('Error al guardar el archivo PNG');
-    }
-
-    // Actualizar o crear el registro en la base de datos
-    const relativePath = join('assets', fileName).replace(/\\/g, '/');
-    const result = await this.repository.updateBackgroundPath(
-      tipo,
-      relativePath,
+    const pathOrUrl = await this.storageService.saveCertificateFormatFondo(
+      file,
+      fileNameWithoutExt,
     );
+    const result = await this.repository.updateBackgroundPath(tipo, pathOrUrl);
     this.invalidateActiveConfigCache();
     return result;
   }
@@ -180,24 +208,74 @@ export class CertificateFormatsService {
   }
 
   /**
+   * Construye la estructura centralizada a partir de un formato (un solo fondo por formato).
+   * fondosAbsolute: ruta absoluta local o URL (S3/CloudFront) para cargar la imagen en el PDF.
+   */
+  private buildCentralizedFromFormat(
+    format: CertificateFormat,
+  ): CentralizedCertificateConfig {
+    const pathOrUrl = format.fondoPath
+      ? this.storageService.getFilePath(format.fondoPath)
+      : null;
+    return {
+      activeFormatId: format.id,
+      activo: !!format.activo,
+      config: {
+        alimentos: format.config,
+        sustancias: format.config,
+        otros: format.config,
+      },
+      fondos: {
+        alimentos: format.fondoPath,
+        sustancias: format.fondoPath,
+        otros: format.fondoPath,
+      },
+      fondosAbsolute: {
+        alimentos: pathOrUrl,
+        sustancias: pathOrUrl,
+        otros: pathOrUrl,
+      },
+    };
+  }
+
+  /**
+   * Configuración centralizada por ID de formato (para vista previa del editor).
+   */
+  async getCentralizedConfigByFormatId(
+    formatId: number,
+  ): Promise<CentralizedCertificateConfig | null> {
+    const format = await this.findOne(formatId);
+    return format ? this.buildCentralizedFromFormat(format) : null;
+  }
+
+  /**
+   * Configuración centralizada por ente certificador. Si enteId es null o el ente no tiene formato asignado, usa el formato activo global.
+   */
+  async getCentralizedConfigForEnte(
+    enteId: number | null,
+  ): Promise<CentralizedCertificateConfig | null> {
+    if (enteId != null) {
+      const ente = await this.enteCertificadorRepo.findOne({
+        where: { id: enteId },
+        relations: ['certificateFormat'],
+      });
+      if (ente?.certificateFormat) {
+        return this.buildCentralizedFromFormat(ente.certificateFormat);
+      }
+      if (process.env.STAGE !== 'prod') {
+        console.warn(
+          `[CertificateFormats] Ente ${enteId} sin formato asignado; usando formato global`,
+        );
+      }
+    }
+    return this.getCentralizedCertificateConfig();
+  }
+
+  /**
    * Configuración centralizada del certificado: formato activo con config PDF y rutas de fondos.
    * Una sola fuente de verdad para generación de PDF y para la UI de administración.
    */
-  async getCentralizedCertificateConfig(): Promise<{
-    activeFormatId: number;
-    activo: boolean;
-    config: { alimentos: any; sustancias: any; otros: any };
-    fondos: {
-      alimentos: string | null;
-      sustancias: string | null;
-      otros: string | null;
-    };
-    fondosAbsolute: {
-      alimentos: string | null;
-      sustancias: string | null;
-      otros: string | null;
-    };
-  } | null> {
+  async getCentralizedCertificateConfig(): Promise<CentralizedCertificateConfig | null> {
     const now = Date.now();
     if (
       this.activeConfigCache &&
@@ -213,42 +291,9 @@ export class CertificateFormatsService {
       return null;
     }
 
-    const config = {
-      alimentos: format.configAlimentos,
-      sustancias: format.configSustancias,
-      otros: format.configOtros,
-    };
-
-    const resolvePath = (relative: string | null): string | null => {
-      if (!relative) return null;
-      const full = join(
-        this.backgroundsPath,
-        relative.replace(/^assets\/?/, ''),
-      );
-      return existsSync(full) ? full : null;
-    };
-
-    const fondos = {
-      alimentos: format.fondoAlimentosPath,
-      sustancias: format.fondoSustanciasPath,
-      otros: format.fondoGeneralPath,
-    };
-    const fondosAbsolute = {
-      alimentos: resolvePath(format.fondoAlimentosPath),
-      sustancias: resolvePath(format.fondoSustanciasPath),
-      otros: resolvePath(format.fondoGeneralPath),
-    };
-
-    const centralized = {
-      activeFormatId: format.id,
-      activo: !!format.activo,
-      config,
-      fondos,
-      fondosAbsolute,
-    };
-
+    const centralized = this.buildCentralizedFromFormat(format);
     this.activeConfigCache = {
-      config,
+      config: centralized.config,
       centralized,
       expiresAt: now + ACTIVE_CONFIG_CACHE_TTL_MS,
     };
@@ -280,15 +325,6 @@ export class CertificateFormatsService {
       return null;
     }
 
-    switch (tipo) {
-      case CertificateFormatType.ALIMENTOS:
-        return format.configAlimentos;
-      case CertificateFormatType.SUSTANCIAS:
-        return format.configSustancias;
-      case CertificateFormatType.OTROS:
-        return format.configOtros;
-      default:
-        return null;
-    }
+    return format.config ?? null;
   }
 }

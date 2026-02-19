@@ -19,9 +19,15 @@ describe('VideoUrlValidatorService', () => {
 
   describe('isYouTubeUrl', () => {
     it('should return true for standard YouTube URLs', () => {
-      expect(service.isYouTubeUrl('https://www.youtube.com/watch?v=dQw4w9WgXcQ')).toBe(true);
-      expect(service.isYouTubeUrl('https://youtube.com/watch?v=dQw4w9WgXcQ')).toBe(true);
-      expect(service.isYouTubeUrl('http://www.youtube.com/watch?v=dQw4w9WgXcQ')).toBe(true);
+      expect(
+        service.isYouTubeUrl('https://www.youtube.com/watch?v=dQw4w9WgXcQ'),
+      ).toBe(true);
+      expect(
+        service.isYouTubeUrl('https://youtube.com/watch?v=dQw4w9WgXcQ'),
+      ).toBe(true);
+      expect(
+        service.isYouTubeUrl('http://www.youtube.com/watch?v=dQw4w9WgXcQ'),
+      ).toBe(true);
     });
 
     it('should return true for shortened YouTube URLs', () => {
@@ -30,7 +36,9 @@ describe('VideoUrlValidatorService', () => {
     });
 
     it('should return true for YouTube embed URLs', () => {
-      expect(service.isYouTubeUrl('https://www.youtube.com/embed/dQw4w9WgXcQ')).toBe(true);
+      expect(
+        service.isYouTubeUrl('https://www.youtube.com/embed/dQw4w9WgXcQ'),
+      ).toBe(true);
     });
 
     it('should return false for invalid URLs', () => {
@@ -64,9 +72,9 @@ describe('VideoUrlValidatorService', () => {
         service.isOneDriveUrl('https://onedrive.live.com/redir?resid=123'),
       ).toBe(true);
       expect(service.isOneDriveUrl('https://1drv.ms/u/s!123')).toBe(true);
-      expect(
-        service.isOneDriveUrl('https://example.sharepoint.com/file'),
-      ).toBe(true);
+      expect(service.isOneDriveUrl('https://example.sharepoint.com/file')).toBe(
+        true,
+      );
     });
 
     it('should return false for invalid URLs', () => {

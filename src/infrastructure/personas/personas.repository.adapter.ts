@@ -56,7 +56,7 @@ export class PersonasRepositoryAdapter implements IPersonasRepository {
     passwordTemporal: string;
   }> {
     // Usar transacción para asegurar consistencia
-    return await this.dataSource.transaction(async (manager) => {
+    return await this.dataSource.transaction(async manager => {
       // 1. Buscar el rol ALUMNO
       const rolAlumno = await manager.findOne(Rol, {
         where: { codigo: 'ALUMNO', activo: true },

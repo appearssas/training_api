@@ -27,7 +27,8 @@ export class CreateAdminDto {
     default: TipoDocumento.CC,
   })
   @IsStrictEnum(TipoDocumento, {
-    message: 'tipoDocumento debe ser uno de los valores permitidos: CC, TI, CE, PA, RC, NIT',
+    message:
+      'tipoDocumento debe ser uno de los valores permitidos: CC, TI, CE, PA, RC, NIT',
   })
   @IsOptional()
   tipoDocumento?: TipoDocumento;
@@ -78,7 +79,8 @@ export class CreateAdminDto {
     example: Genero.MASCULINO,
   })
   @IsStrictEnum(Genero, {
-    message: 'genero debe ser uno de los valores permitidos: M (MASCULINO), F (FEMENINO), O (OTRO)',
+    message:
+      'genero debe ser uno de los valores permitidos: M (MASCULINO), F (FEMENINO), O (OTRO)',
   })
   @IsOptional()
   genero?: Genero;
@@ -112,7 +114,8 @@ export class CreateAdminDto {
   password: string;
 
   @ApiPropertyOptional({
-    description: 'Indica si el usuario debe ser habilitado inmediatamente. Por defecto es true para administradores.',
+    description:
+      'Indica si el usuario debe ser habilitado inmediatamente. Por defecto es true para administradores.',
     example: true,
     default: true,
   })
@@ -130,7 +133,8 @@ export class CreateAdminDto {
   aceptaTerminos?: boolean;
 
   @ApiPropertyOptional({
-    description: 'Indica si el usuario acepta la política de tratamiento de datos.',
+    description:
+      'Indica si el usuario acepta la política de tratamiento de datos.',
     example: true,
     default: false,
   })
@@ -138,4 +142,3 @@ export class CreateAdminDto {
   @IsOptional()
   aceptaPoliticaDatos?: boolean;
 }
-
