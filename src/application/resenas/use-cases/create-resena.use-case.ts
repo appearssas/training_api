@@ -1,4 +1,9 @@
-import { Injectable, Inject, BadRequestException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  Inject,
+  BadRequestException,
+  ConflictException,
+} from '@nestjs/common';
 import { IResenasRepository } from '@/domain/resenas/ports/resenas.repository.port';
 import { CreateResenaDto } from '@/application/resenas/dto/create-resena.dto';
 import { Resena } from '@/entities/resenas/resena.entity';
@@ -6,7 +11,7 @@ import { IInscripcionesRepository } from '@/domain/inscripciones/ports/inscripci
 
 /**
  * Caso de uso: Crear una nueva reseña
- * 
+ *
  * Reglas de negocio aplicadas:
  * - Valida que la inscripción exista
  * - Valida que no exista una reseña duplicada para la misma inscripción

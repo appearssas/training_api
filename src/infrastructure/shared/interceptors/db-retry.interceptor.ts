@@ -31,9 +31,10 @@ export class DbRetryInterceptor implements NestInterceptor {
 
           if (mayRetry) {
             const delayMs = getDbRetryDelayMs(attempt);
-            const msg = err && typeof err === 'object' && 'message' in err
-              ? String((err as { message?: unknown }).message)
-              : String(err);
+            const msg =
+              err && typeof err === 'object' && 'message' in err
+                ? String((err as { message?: unknown }).message)
+                : String(err);
             this.logger.warn(
               `Reintentando por error transitorio de BD (intento ${attempt + 1}/${DB_RETRY_MAX_ATTEMPTS}, espera ${delayMs}ms): ${msg}`,
             );

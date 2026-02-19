@@ -1,4 +1,10 @@
-import { Injectable, Inject, BadRequestException, NotFoundException, InternalServerErrorException } from '@nestjs/common';
+import {
+  Injectable,
+  Inject,
+  BadRequestException,
+  NotFoundException,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { ICertificadosRepository } from '@/domain/certificados/ports/certificados.repository.port';
 import { CreateCertificadoDto } from '@/application/certificados/dto/create-certificado.dto';
 import { Certificado } from '@/entities/certificados/certificado.entity';
@@ -32,10 +38,15 @@ export class CreateCertificadoUseCase {
     private readonly storageService: StorageService,
   ) {}
 
-  async execute(createCertificadoDto: CreateCertificadoDto): Promise<Certificado> {
+  async execute(
+    createCertificadoDto: CreateCertificadoDto,
+  ): Promise<Certificado> {
     // Log para debugging: verificar qué inscripcionId se recibe
-    console.log('🔍 CreateCertificadoUseCase.execute - inscripcionId recibido:', createCertificadoDto.inscripcionId);
-    
+    console.log(
+      '🔍 CreateCertificadoUseCase.execute - inscripcionId recibido:',
+      createCertificadoDto.inscripcionId,
+    );
+
     // Validar que la inscripción existe y está aprobada
     const inscripcion = await this.inscripcionRepository.findOne({
       where: { id: createCertificadoDto.inscripcionId },
@@ -43,10 +54,13 @@ export class CreateCertificadoUseCase {
         'estudiante',
         'capacitacion',
         'capacitacion.instructor',
+        'capacitacion.instructor.persona',
+        'capacitacion.enteCertificador',
+        'capacitacion.enteCertificador.representantes',
         'capacitacion.tipoCapacitacion',
       ],
     });
-    
+
     // Log para verificar qué inscripción se cargó
     console.log('🔍 CreateCertificadoUseCase.execute - inscripción cargada:', {
       id: inscripcion?.id,
@@ -67,17 +81,21 @@ export class CreateCertificadoUseCase {
     }
 
     // TAREA 1.3: Validar que solo CERTIFIED puede generar certificados (FAL-005)
-    const tipoCapacitacionCodigo = inscripcion.capacitacion?.tipoCapacitacion?.codigo?.toUpperCase();
-    
+    const tipoCapacitacionCodigo =
+      inscripcion.capacitacion?.tipoCapacitacion?.codigo?.toUpperCase();
+
     if (!tipoCapacitacionCodigo || tipoCapacitacionCodigo !== 'CERTIFIED') {
       throw new BadRequestException(
         `Solo las capacitaciones de tipo CERTIFIED pueden generar certificados. ` +
-        `Tipo actual: ${tipoCapacitacionCodigo || 'desconocido'}`,
+          `Tipo actual: ${tipoCapacitacionCodigo || 'desconocido'}`,
       );
     }
 
     // Validar fecha retroactiva si aplica (RF-27)
-    if (createCertificadoDto.esRetroactivo && createCertificadoDto.fechaRetroactiva) {
+    if (
+      createCertificadoDto.esRetroactivo &&
+      createCertificadoDto.fechaRetroactiva
+    ) {
       const fechaRetroactiva = new Date(createCertificadoDto.fechaRetroactiva);
       const fechaActual = new Date();
       const mesesAtras = 6; // Configurable
@@ -107,10 +125,13 @@ export class CreateCertificadoUseCase {
     const token = this.qrGenerator.generateVerificationToken();
     const hashVerificacion = this.qrGenerator.generateVerificationHash(token);
     const urlVerificacion = this.qrGenerator.generateVerificationUrl(token);
-    const urlVerificacionCompleta = this.qrGenerator.generateVerificationUrlForQR(token);
+    const urlVerificacionCompleta =
+      this.qrGenerator.generateVerificationUrlForQR(token);
 
     // Generar código QR (RF-24) - usar URL completa para que funcione cuando se escanea
-    const qrCodeBase64 = await this.qrGenerator.generateQRCode(urlVerificacionCompleta);
+    const qrCodeBase64 = await this.qrGenerator.generateQRCode(
+      urlVerificacionCompleta,
+    );
 
     // Preparar datos del certificado
     const certificadoData: any = {
@@ -126,13 +147,17 @@ export class CreateCertificadoUseCase {
     // Agregar datos retroactivos si aplica (RF-25 a RF-31)
     if (createCertificadoDto.esRetroactivo) {
       certificadoData.esRetroactivo = true;
-      certificadoData.fechaRetroactiva = new Date(createCertificadoDto.fechaRetroactiva!);
-      certificadoData.justificacionRetroactiva = createCertificadoDto.justificacionRetroactiva;
+      certificadoData.fechaRetroactiva = new Date(
+        createCertificadoDto.fechaRetroactiva!,
+      );
+      certificadoData.justificacionRetroactiva =
+        createCertificadoDto.justificacionRetroactiva;
     }
 
     // Crear el certificado en la base de datos
     // El repositorio ya carga las relaciones necesarias
-    const certificado = await this.certificadosRepository.create(certificadoData);
+    const certificado =
+      await this.certificadosRepository.create(certificadoData);
 
     // Validar que el certificado tiene la capacitación cargada correctamente
     if (!certificado.inscripcion?.capacitacion) {
@@ -152,11 +177,12 @@ export class CreateCertificadoUseCase {
 
     // CAMBIO ARQUITECTURA: NO GENERAR EL PDF AHORA (On-Demand)
     // En lugar de crear el archivo y guardarlo, guardamos la URL dinámica de descarga
-    const baseUrl = this.configService.get<string>('APP_URL') || 'http://localhost:3000';
+    const baseUrl =
+      this.configService.get<string>('APP_URL') || 'http://localhost:3000';
     // Ajustar la URL para que apunte al endpoint de descarga dinámica
     // Ejemplo: /api/public/certificates/download/HASH
     const dynamicUrl = `/public/certificates/download/${hashVerificacion}`;
-    
+
     certificado.urlCertificado = dynamicUrl;
 
     // Actualizar certificado con URL dinámica
@@ -167,4 +193,3 @@ export class CreateCertificadoUseCase {
 
   // Método savePdf eliminado ya que no se usa en arquitectura On-Demand
 }
-

@@ -66,4 +66,3 @@ export class Empresa {
   @OneToMany(() => Persona, (persona: Persona) => persona.empresa)
   personas: Persona[];
 }
-

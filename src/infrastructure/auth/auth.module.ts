@@ -53,9 +53,9 @@ import { Empresa } from '@/entities/empresas/empresa.entity';
     },
   ],
   exports: [
-    JwtStrategy, 
-    PassportModule, 
-    JwtModule, 
+    JwtStrategy,
+    PassportModule,
+    JwtModule,
     TypeOrmModule,
     'IAuthRepository', // Exportar IAuthRepository para que otros módulos puedan usarlo
   ],

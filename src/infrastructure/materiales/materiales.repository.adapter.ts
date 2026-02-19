@@ -155,4 +155,3 @@ export class MaterialesRepositoryAdapter implements IMaterialesRepository {
     }
   }
 }
-

@@ -108,7 +108,11 @@ export class ConfiguracionSesionController {
     description:
       'Actualiza una configuración de sesión existente. Solo disponible para ADMIN.',
   })
-  @ApiParam({ name: 'id', type: 'number', description: 'ID de la configuración' })
+  @ApiParam({
+    name: 'id',
+    type: 'number',
+    description: 'ID de la configuración',
+  })
   @ApiBody({ type: UpdateConfiguracionSesionDto })
   @ApiResponse({
     status: 200,

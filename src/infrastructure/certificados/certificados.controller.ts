@@ -12,6 +12,7 @@ import {
   UseGuards,
   BadRequestException,
   NotFoundException,
+  ForbiddenException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -34,6 +35,7 @@ import { FindAllCertificadosUseCase } from '@/application/certificados/use-cases
 import { FindOneCertificadoUseCase } from '@/application/certificados/use-cases/find-one-certificado.use-case';
 import { FindByEstudianteCertificadosUseCase } from '@/application/certificados/use-cases/find-by-estudiante-certificados.use-case';
 import { UpdateCertificadoRetroactivoUseCase } from '@/application/certificados/use-cases/update-certificado-retroactivo.use-case';
+import { UpdateCertificadoUseCase } from '@/application/certificados/use-cases/update-certificado.use-case';
 import { RegenerateCertificatesUseCase } from '@/application/certificados/use-cases/regenerate-certificates.use-case';
 import { PaginationDto } from '@/application/shared/dto/pagination.dto';
 import * as fs from 'fs/promises';
@@ -43,6 +45,7 @@ import { ConfigService } from '@nestjs/config';
 import { PdfGeneratorService } from '@/infrastructure/shared/services/pdf-generator.service';
 import { StorageService } from '@/infrastructure/shared/services/storage.service';
 import { CertificadosRepositoryAdapter } from './certificados.repository.adapter';
+import { EmpresasCapacitacionesService } from '../empresas/empresas-capacitaciones.service';
 
 /**
  * Controlador de Certificados
@@ -60,11 +63,13 @@ export class CertificadosController {
     private readonly findOneCertificadoUseCase: FindOneCertificadoUseCase,
     private readonly findByEstudianteCertificadosUseCase: FindByEstudianteCertificadosUseCase,
     private readonly updateCertificadoRetroactivoUseCase: UpdateCertificadoRetroactivoUseCase,
+    private readonly updateCertificadoUseCase: UpdateCertificadoUseCase,
     private readonly configService: ConfigService,
     private readonly pdfGeneratorService: PdfGeneratorService,
     private readonly regenerateCertificatesUseCase: RegenerateCertificatesUseCase,
     private readonly storageService: StorageService,
     private readonly certificadosRepository: CertificadosRepositoryAdapter,
+    private readonly empresasCapacitacionesService: EmpresasCapacitacionesService,
   ) {}
 
   @Post('generate')
@@ -104,7 +109,7 @@ export class CertificadosController {
   @ApiOperation({
     summary: 'Obtener lista de certificados con paginación',
     description:
-      'ADMIN: ve todos los certificados. INSTRUCTOR: solo los de capacitaciones donde es instructor. ALUMNO/CLIENTE/OPERADOR: solo los propios (donde es el estudiante). Requiere JWT. Filtros en `filters`: `studentId`, `courseId`, `status` (valid|expired|revoked).',
+      'ADMIN: ve todos. INSTRUCTOR: solo de sus capacitaciones. ALUMNO: solo los propios. CLIENTE/OPERADOR: certificados de conductores/estudiantes de su empresa. Filtros en `filters`: `studentId`, `courseId`, `status` (valid|expired|revoked).',
   })
   @ApiBody({
     type: PaginationDto,
@@ -148,9 +153,16 @@ export class CertificadosController {
     description: 'No autorizado. Usar Authorize con JWT.',
   })
   findAll(@Body() pagination: PaginationDto, @GetUser() user: any) {
+    const rol = user?.rolPrincipal?.codigo ?? '';
+    const personaId = user?.persona?.id ?? null;
+    const empresaId =
+      rol === 'CLIENTE' || rol === 'OPERADOR'
+        ? (user?.persona?.empresaId ?? user?.persona?.empresa?.id ?? null)
+        : null;
     const userContext = {
-      rol: user?.rolPrincipal?.codigo ?? '',
-      personaId: user?.persona?.id ?? null,
+      rol,
+      personaId,
+      empresaId: empresaId ?? undefined,
     };
     return this.findAllCertificadosUseCase.execute(pagination, userContext);
   }
@@ -188,11 +200,23 @@ export class CertificadosController {
   })
   findByEstudiante(
     @Param('estudianteId', ParseIntPipe) estudianteId: number,
-    @Body() pagination?: PaginationDto,
+    @Body() pagination: PaginationDto | undefined,
+    @GetUser() user: any,
   ) {
+    const rol = user?.rolPrincipal?.codigo ?? '';
+    const empresaId =
+      rol === 'CLIENTE' || rol === 'OPERADOR'
+        ? (user?.persona?.empresaId ?? user?.persona?.empresa?.id ?? null)
+        : null;
+    const userContext = {
+      rol,
+      personaId: user?.persona?.id ?? null,
+      empresaId: empresaId ?? undefined,
+    };
     return this.findByEstudianteCertificadosUseCase.execute(
       estudianteId,
       pagination,
+      userContext,
     );
   }
 
@@ -241,6 +265,7 @@ export class CertificadosController {
   async findOneOrFile(
     @Param('idOrFilename') idOrFilename: string,
     @Res() res: Response,
+    @GetUser() user: any,
   ) {
     // 1. Si es PDF, servir el archivo
     if (idOrFilename.endsWith('.pdf')) {
@@ -262,7 +287,7 @@ export class CertificadosController {
           await fs.access(filePath);
           found = true;
           break;
-        } catch (e) {
+        } catch {
           continue;
         }
       }
@@ -272,9 +297,18 @@ export class CertificadosController {
         const match = filename.match(/certificado-(\d+)-/);
         if (match && match[1]) {
           const id = parseInt(match[1], 10);
-          return this.regenerateAndServePdf(id, res, 'inline');
+          return this.regenerateAndServePdf(id, res, 'inline', user);
         }
         throw new NotFoundException('Archivo no encontrado');
+      }
+
+      // Verificar acceso para PDFs de certificados (CLIENTE/OPERADOR solo de su empresa y permite descarga)
+      const match = filename.match(/certificado-(\d+)-/);
+      if (match && match[1]) {
+        const id = parseInt(match[1], 10);
+        const cert = await this.findOneCertificadoUseCase.execute(id);
+        this.ensureCertificateAccessForUser(cert, user);
+        await this.ensurePermiteDescargaCertificado(cert, user);
       }
 
       res.setHeader('Content-Type', 'application/pdf');
@@ -289,8 +323,10 @@ export class CertificadosController {
       const id = parseInt(idOrFilename, 10);
       try {
         const result = await this.findOneCertificadoUseCase.execute(id);
+        this.ensureCertificateAccessForUser(result, user);
         return res.json(result);
-      } catch (error) {
+      } catch (err) {
+        if (err instanceof ForbiddenException) throw err;
         throw new NotFoundException('Certificado no encontrado');
       }
     }
@@ -319,8 +355,12 @@ export class CertificadosController {
     },
   })
   @ApiResponse({ status: 404, description: 'Certificado no encontrado' })
-  async viewPDF(@Param('id', ParseIntPipe) id: number, @Res() res: Response) {
-    return this.regenerateAndServePdf(id, res, 'inline');
+  async viewPDF(
+    @Param('id', ParseIntPipe) id: number,
+    @Res() res: Response,
+    @GetUser() user: any,
+  ) {
+    return this.regenerateAndServePdf(id, res, 'inline', user);
   }
 
   @Get(':id/download')
@@ -346,8 +386,58 @@ export class CertificadosController {
   async downloadPDF(
     @Param('id', ParseIntPipe) id: number,
     @Res() res: Response,
+    @GetUser() user: any,
   ) {
-    return this.regenerateAndServePdf(id, res, 'attachment');
+    return this.regenerateAndServePdf(id, res, 'attachment', user);
+  }
+
+  /**
+   * Verifica que un usuario CLIENTE/OPERADOR solo acceda a certificados de estudiantes de su empresa.
+   */
+  private ensureCertificateAccessForUser(certificado: any, user: any): void {
+    const rol = user?.rolPrincipal?.codigo ?? '';
+    if (rol !== 'CLIENTE' && rol !== 'OPERADOR') return;
+    const empresaId =
+      user?.persona?.empresaId ?? user?.persona?.empresa?.id ?? null;
+    if (empresaId == null) return;
+    const estudianteEmpresaId =
+      certificado?.inscripcion?.estudiante?.empresaId ??
+      certificado?.inscripcion?.estudiante?.empresa?.id ??
+      null;
+    if (estudianteEmpresaId !== empresaId) {
+      throw new ForbiddenException(
+        'No tiene permiso para acceder a este certificado',
+      );
+    }
+  }
+
+  /**
+   * Si el usuario es ALUMNO o CLIENTE/OPERADOR y el curso-empresa tiene descarga de certificado deshabilitada, lanza 403.
+   */
+  private async ensurePermiteDescargaCertificado(
+    certificado: any,
+    user: any,
+  ): Promise<void> {
+    const rol = user?.rolPrincipal?.codigo ?? '';
+    if (rol === 'ADMIN' || rol === 'INSTRUCTOR') return;
+
+    const empresaId =
+      certificado?.inscripcion?.estudiante?.empresaId ??
+      certificado?.inscripcion?.estudiante?.empresa?.id ??
+      null;
+    const capacitacionId = certificado?.inscripcion?.capacitacion?.id ?? null;
+    if (empresaId == null || capacitacionId == null) return;
+
+    const ce =
+      await this.empresasCapacitacionesService.getByEmpresaAndCapacitacion(
+        empresaId,
+        capacitacionId,
+      );
+    if (ce && ce.permiteDescargaCertificado === false) {
+      throw new ForbiddenException(
+        'La descarga de certificados para este curso está deshabilitada por su organización.',
+      );
+    }
   }
 
   /**
@@ -357,14 +447,19 @@ export class CertificadosController {
     id: number,
     res: Response,
     disposition: 'inline' | 'attachment',
+    user?: any,
   ) {
     const certificado = await this.findOneCertificadoUseCase.execute(id);
+    if (user) {
+      this.ensureCertificateAccessForUser(certificado, user);
+      await this.ensurePermiteDescargaCertificado(certificado, user);
+    }
 
     // Nombre base para el archivo
     const fileName = `certificado-${id}-${Date.now()}.pdf`;
 
     // Función auxiliar para enviar la respuesta
-    const sendFile = async (buffer: Buffer) => {
+    const sendFile = (buffer: Buffer) => {
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader(
         'Content-Disposition',
@@ -400,53 +495,24 @@ export class CertificadosController {
       }
     }
 
-    // Si es almacenamiento local, intentar leer del disco
+    // Si el error es que no existe el archivo, lo regeneramos (On-Demand fallback
+    console.log(
+      `⚠️ PDF para certificado ${id} no encontrado en disco. Generando On-Demand...`,
+    );
     try {
-      const filePath = this.storageService.getFilePath(
-        certificado.urlCertificado || `/storage/certificates/${fileName}`,
-      );
-      // Validar que intenta leer un archivo real y no una ruta de API malinterpretada
-      if (!filePath.endsWith('.pdf')) {
-        throw new Error('ENOENT'); // forzar regeneración/redirección si no parece archivo
-      }
+      // Generar el PDF usando el servicio (en memoria)
+      const pdfBuffer =
+        await this.pdfGeneratorService.generateCertificate(certificado);
 
-      const fileBuffer = await fs.readFile(filePath);
-      return sendFile(fileBuffer);
-    } catch (error: any) {
-      // Si el error es que no existe el archivo, lo regeneramos (On-Demand fallback)
-      if (error.code === 'ENOENT') {
-        console.log(
-          `⚠️ PDF para certificado ${id} no encontrado en disco. Generando On-Demand...`,
-        );
-        try {
-          // Generar el PDF usando el servicio (en memoria)
-          const pdfBuffer =
-            await this.pdfGeneratorService.generateCertificate(certificado);
-
-          // CAMBIO ARQUITECTURA: NO GUARDAR EN DISCO.
-          // Solo servir el buffer generado.
-          // const url = await this.storageService.saveBuffer(...); <-- ELIMINADO
-
-          return sendFile(pdfBuffer);
-        } catch (genError) {
-          console.error(
-            `❌ Error fatal regenerando PDF para certificado ${id}:`,
-            genError,
-          );
-          return res
-            .status(500)
-            .json({ message: 'Error interno regenerando el certificado PDF.' });
-        }
-      }
-
-      // Otro tipo de error de lectura
+      return sendFile(pdfBuffer);
+    } catch (genError) {
       console.error(
-        `❌ Error leyendo archivo PDF para certificado ${id}:`,
-        error,
+        `❌ Error fatal regenerando PDF para certificado ${id}:`,
+        genError,
       );
       return res
-        .status(404)
-        .json({ message: 'Error al acceder al archivo del certificado.' });
+        .status(500)
+        .json({ message: 'Error interno regenerando el certificado PDF.' });
     }
   }
 
@@ -477,8 +543,49 @@ export class CertificadosController {
     return this.updateCertificadoRetroactivoUseCase.execute(
       id,
       updateDto,
-      user.id,
+      Number(user.id),
     );
+  }
+
+  @Patch(':id')
+  @Roles('ADMIN')
+  @ApiOperation({
+    summary: 'Editar fechas de un certificado',
+    description:
+      'Actualiza la fecha de expedición y/o fecha de caducidad del certificado. Solo ADMIN.',
+  })
+  @ApiParam({
+    name: 'id',
+    type: 'number',
+    description: 'ID del certificado',
+  })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        fechaEmision: { type: 'string', format: 'date', example: '2024-12-01' },
+        fechaVencimiento: {
+          type: 'string',
+          format: 'date',
+          example: '2025-12-01',
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Certificado actualizado exitosamente',
+  })
+  @ApiResponse({ status: 404, description: 'Certificado no encontrado' })
+  @ApiResponse({
+    status: 400,
+    description: 'Datos inválidos (ej. caducidad anterior a expedición)',
+  })
+  update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateDto: UpdateCertificadoDto,
+  ) {
+    return this.updateCertificadoUseCase.execute(id, updateDto);
   }
 
   @Delete(':id')
@@ -497,6 +604,7 @@ export class CertificadosController {
   })
   @ApiResponse({ status: 404, description: 'Certificado no encontrado' })
   remove(@Param('id', ParseIntPipe) id: number) {
+    void id; // reservado para futuro caso de uso de eliminación
     // TODO: Implementar caso de uso de eliminación si es necesario
     return {
       message:

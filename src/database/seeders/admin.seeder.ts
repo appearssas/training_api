@@ -20,7 +20,7 @@ import { TipoDocumento } from '@/entities/persona/types';
 export class AdminSeeder extends BaseSeeder {
   async run(): Promise<void> {
     // Usar transacción para asegurar consistencia
-    await this.dataSource.transaction(async (manager) => {
+    await this.dataSource.transaction(async manager => {
       const personaRepository = manager.getRepository(Persona);
       const usuarioRepository = manager.getRepository(Usuario);
       const rolRepository = manager.getRepository(Rol);

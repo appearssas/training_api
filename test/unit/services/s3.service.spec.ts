@@ -59,7 +59,9 @@ describe('S3Service', () => {
       } as any);
       fail('Should have thrown an error');
     } catch (error) {
-      expect((error as Error).message).toContain('AWS_S3_BUCKET_NAME debe estar configurado');
+      expect((error as Error).message).toContain(
+        'AWS_S3_BUCKET_NAME debe estar configurado',
+      );
     }
   });
 
@@ -143,7 +145,11 @@ describe('S3Service', () => {
       mockS3Client.send.mockResolvedValue({});
 
       const buffer = Buffer.from('test content');
-      const url = await service.uploadBuffer(buffer, 'test.pdf', 'certificates');
+      const url = await service.uploadBuffer(
+        buffer,
+        'test.pdf',
+        'certificates',
+      );
 
       expect(mockS3Client.send).toHaveBeenCalled();
       expect(url).toContain('certificates');

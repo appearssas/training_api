@@ -13,8 +13,13 @@ export class GetAttemptsUseCase {
     private readonly intentosRepository: IIntentosRepository,
   ) {}
 
-  async execute(evaluacionId: number, inscripcionId: number): Promise<IntentoEvaluacion[]> {
-    return this.intentosRepository.getAttemptsByStudent(evaluacionId, inscripcionId);
+  async execute(
+    evaluacionId: number,
+    inscripcionId: number,
+  ): Promise<IntentoEvaluacion[]> {
+    return this.intentosRepository.getAttemptsByStudent(
+      evaluacionId,
+      inscripcionId,
+    );
   }
 }
-

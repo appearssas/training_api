@@ -13,7 +13,6 @@ import {
 import { Usuario } from '../usuarios/usuario.entity';
 import { Alumno } from '../alumnos/alumno.entity';
 import { Instructor } from '../instructores/instructor.entity';
-import { Capacitacion } from '../capacitacion/capacitacion.entity';
 import { Inscripcion } from '../inscripcion/inscripcion.entity';
 import { PersonaRol } from '../roles/persona-rol.entity';
 import { Empresa } from '../empresas/empresa.entity';
@@ -53,7 +52,6 @@ export class Persona {
 
   @Column({ type: 'varchar', length: 200, nullable: true })
   apellidos: string;
-
 
   @Column({ type: 'int', nullable: true, name: 'empresa_id' })
   empresaId: number;
@@ -126,12 +124,6 @@ export class Persona {
     nullable: true,
   })
   instructor: Instructor;
-
-  @OneToMany(
-    () => Capacitacion,
-    (capacitacion: Capacitacion) => capacitacion.instructor,
-  )
-  capacitacionesComoInstructor: Capacitacion[];
 
   @OneToMany(
     () => Inscripcion,

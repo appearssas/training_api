@@ -6,17 +6,22 @@ import { CertificadosRepositoryAdapter } from './certificados.repository.adapter
 import { Certificado } from '@/entities/certificados/certificado.entity';
 import { Inscripcion } from '@/entities/inscripcion/inscripcion.entity';
 import { AuditoriaCertificadoRetroactivo } from '@/entities/auditoria/auditoria-certificado-retroactivo.entity';
+import { Capacitacion } from '@/entities/capacitacion/capacitacion.entity';
+import { Representante } from '@/entities/catalogos/representante.entity';
+import { Instructor } from '@/entities/instructores/instructor.entity';
 import { CreateCertificadoUseCase } from '@/application/certificados/use-cases/create-certificado.use-case';
 import { FindAllCertificadosUseCase } from '@/application/certificados/use-cases/find-all-certificados.use-case';
 import { FindOneCertificadoUseCase } from '@/application/certificados/use-cases/find-one-certificado.use-case';
 import { FindByEstudianteCertificadosUseCase } from '@/application/certificados/use-cases/find-by-estudiante-certificados.use-case';
 import { VerifyCertificadoUseCase } from '@/application/certificados/use-cases/verify-certificado.use-case';
 import { UpdateCertificadoRetroactivoUseCase } from '@/application/certificados/use-cases/update-certificado-retroactivo.use-case';
+import { UpdateCertificadoUseCase } from '@/application/certificados/use-cases/update-certificado.use-case';
 import { RegenerateCertificatesUseCase } from '@/application/certificados/use-cases/regenerate-certificates.use-case';
 import { PdfGeneratorService } from '../shared/services/pdf-generator.service';
 import { QrGeneratorService } from '../shared/services/qr-generator.service';
 import { StorageModule } from '../shared/storage/storage.module';
 import { CertificateFormatsModule } from '../certificate-formats/certificate-formats.module';
+import { EmpresasModule } from '../empresas/empresas.module';
 
 /**
  * Módulo de Certificados
@@ -27,10 +32,14 @@ import { CertificateFormatsModule } from '../certificate-formats/certificate-for
   imports: [
     StorageModule,
     forwardRef(() => CertificateFormatsModule),
+    EmpresasModule,
     TypeOrmModule.forFeature([
       Certificado,
       Inscripcion,
       AuditoriaCertificadoRetroactivo,
+      Capacitacion,
+      Representante,
+      Instructor,
     ]),
   ],
   providers: [
@@ -41,6 +50,7 @@ import { CertificateFormatsModule } from '../certificate-formats/certificate-for
     FindByEstudianteCertificadosUseCase,
     VerifyCertificadoUseCase,
     UpdateCertificadoRetroactivoUseCase,
+    UpdateCertificadoUseCase,
     RegenerateCertificatesUseCase,
     PdfGeneratorService,
     QrGeneratorService,
@@ -61,4 +71,3 @@ import { CertificateFormatsModule } from '../certificate-formats/certificate-for
   ],
 })
 export class CertificadosModule {}
-

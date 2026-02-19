@@ -39,6 +39,8 @@ export class CreateResenaDto {
   })
   @IsOptional()
   @IsString({ message: 'El comentario debe ser un texto' })
-  @MaxLength(1000, { message: 'El comentario no puede exceder 1000 caracteres' })
+  @MaxLength(1000, {
+    message: 'El comentario no puede exceder 1000 caracteres',
+  })
   comentario?: string;
 }

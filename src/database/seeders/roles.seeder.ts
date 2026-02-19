@@ -34,7 +34,8 @@ export class RolesSeeder extends BaseSeeder {
       {
         nombre: 'Cliente',
         codigo: 'CLIENTE',
-        descripcion: 'Cliente institucional que puede cargar conductores masivamente',
+        descripcion:
+          'Cliente institucional que puede cargar conductores masivamente',
         activo: true,
       },
     ];

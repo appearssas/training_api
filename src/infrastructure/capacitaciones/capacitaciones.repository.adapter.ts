@@ -52,6 +52,10 @@ export class CapacitacionesRepositoryAdapter implements ICapacitacionesRepositor
         } as any,
         modalidad: { id: createCapacitacionDto.modalidadId } as any,
         instructor: { id: createCapacitacionDto.instructorId } as any,
+        enteCertificador:
+          createCapacitacionDto.enteCertificadorId != null
+            ? ({ id: createCapacitacionDto.enteCertificadorId } as any)
+            : undefined,
         usuarioCreacion: createCapacitacionDto.usuarioCreacion || 'system',
       });
 
@@ -193,7 +197,10 @@ export class CapacitacionesRepositoryAdapter implements ICapacitacionesRepositor
     }
   }
 
-  async findAll(pagination: PaginationDto): Promise<any> {
+  async findAll(
+    pagination: PaginationDto,
+    options?: { empresaId?: number },
+  ): Promise<any> {
     try {
       const { page = 1, limit = 10, search, sortField, sortOrder } = pagination;
       const skip = (page - 1) * limit;
@@ -201,21 +208,36 @@ export class CapacitacionesRepositoryAdapter implements ICapacitacionesRepositor
       const queryBuilder =
         this.capacitacionRepository.createQueryBuilder('capacitacion');
 
+      // Cliente institucional / operador: solo cursos asignados a su empresa por el admin (el cliente luego los asigna a sus usuarios)
+      let hasWhere = false;
+      if (options?.empresaId != null) {
+        queryBuilder.where(
+          'capacitacion.id IN (SELECT ce.capacitacion_id FROM capacitaciones_empresas ce WHERE ce.empresa_id = :empresaId)',
+          { empresaId: options.empresaId },
+        );
+        hasWhere = true;
+      }
+
       // Incluir relaciones necesarias para el frontend
       queryBuilder
         .leftJoinAndSelect('capacitacion.tipoCapacitacion', 'tipoCapacitacion')
         .leftJoinAndSelect('capacitacion.modalidad', 'modalidad')
         .leftJoinAndSelect('capacitacion.instructor', 'instructor')
+        .leftJoinAndSelect('instructor.persona', 'instructorPersona')
+        .leftJoinAndSelect('capacitacion.enteCertificador', 'enteCertificador')
         .leftJoinAndSelect('capacitacion.evaluaciones', 'evaluaciones')
         .leftJoinAndSelect('capacitacion.inscripciones', 'inscripciones')
         .leftJoinAndSelect('inscripciones.resenas', 'resenas')
         .leftJoinAndSelect('inscripciones.estudiante', 'estudiante');
 
       if (search) {
-        queryBuilder.where(
-          'capacitacion.titulo LIKE :search OR capacitacion.descripcion LIKE :search',
-          { search: `%${search}%` },
-        );
+        const searchCondition =
+          '(capacitacion.titulo LIKE :search OR capacitacion.descripcion LIKE :search)';
+        if (hasWhere) {
+          queryBuilder.andWhere(searchCondition, { search: `%${search}%` });
+        } else {
+          queryBuilder.where(searchCondition, { search: `%${search}%` });
+        }
       }
 
       if (sortField) {
@@ -333,6 +355,8 @@ export class CapacitacionesRepositoryAdapter implements ICapacitacionesRepositor
           'tipoCapacitacion',
           'modalidad',
           'instructor',
+          'instructor.persona',
+          'enteCertificador',
           'materiales',
           'materiales.tipoMaterial',
           'secciones',
@@ -448,9 +472,15 @@ export class CapacitacionesRepositoryAdapter implements ICapacitacionesRepositor
     updateCapacitacionDto: UpdateCapacitacionDto,
   ): Promise<Capacitacion> {
     try {
+      // No cargar 'instructor' en relations para que TypeORM persista el cambio
+      // al asignar instructor = { id }; si viene cargado (eager), save() a veces no actualiza la FK
       const capacitacion = await this.capacitacionRepository.findOne({
         where: { id },
-        relations: ['tipoCapacitacion', 'modalidad', 'instructor'],
+        relations: [
+          'tipoCapacitacion',
+          'modalidad',
+          'enteCertificador',
+        ],
       });
 
       if (!capacitacion) {
@@ -525,6 +555,13 @@ export class CapacitacionesRepositoryAdapter implements ICapacitacionesRepositor
         } as any;
       }
 
+      if (updateCapacitacionDto.enteCertificadorId !== undefined) {
+        capacitacion.enteCertificador =
+          updateCapacitacionDto.enteCertificadorId != null
+            ? ({ id: updateCapacitacionDto.enteCertificadorId } as any)
+            : null;
+      }
+
       if (
         updateCapacitacionDto.areaId !== undefined &&
         updateCapacitacionDto.areaId !== null
@@ -534,6 +571,19 @@ export class CapacitacionesRepositoryAdapter implements ICapacitacionesRepositor
 
       const savedCapacitacion =
         await this.capacitacionRepository.save(capacitacion);
+
+      // Forzar instructor_id en BD con UPDATE directo (TypeORM save/relation a veces no persiste la FK)
+      const instructorId =
+        updateCapacitacionDto.instructorId !== undefined &&
+        updateCapacitacionDto.instructorId !== null
+          ? Number(updateCapacitacionDto.instructorId)
+          : null;
+      if (instructorId !== null) {
+        await this.dataSource.query(
+          'UPDATE capacitaciones SET instructor_id = ? WHERE id = ?',
+          [instructorId, id],
+        );
+      }
 
       // Retornar la capacitación completa con relaciones
       const capacitacionCompleta = await this.findOne(savedCapacitacion.id);

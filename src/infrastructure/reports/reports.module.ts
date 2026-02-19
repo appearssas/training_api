@@ -7,13 +7,7 @@ import { Certificado } from '../../entities/certificados/certificado.entity';
 import { Capacitacion } from '../../entities/capacitacion/capacitacion.entity';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([
-      Inscripcion,
-      Certificado,
-      Capacitacion
-    ]),
-  ],
+  imports: [TypeOrmModule.forFeature([Inscripcion, Certificado, Capacitacion])],
   controllers: [ReportsController],
   providers: [ReportsService],
 })

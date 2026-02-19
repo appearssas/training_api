@@ -34,9 +34,11 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       '/.well-known/',
       '/favicon.ico',
     ];
-    
-    const shouldIgnore = ignoredPaths.some(path => request.url.startsWith(path));
-    
+
+    const shouldIgnore = ignoredPaths.some(path =>
+      request.url.startsWith(path),
+    );
+
     if (shouldIgnore) {
       // Responder 404 sin loguear el error
       return response.status(HttpStatus.NOT_FOUND).json({
@@ -63,12 +65,16 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         });
       }
 
-      const message = typeof errorResponse.message === 'string'
-        ? errorResponse.message
-        : 'Bad Request';
+      const message =
+        typeof errorResponse.message === 'string'
+          ? errorResponse.message
+          : 'Bad Request';
 
       if (isTransientDbError({ message })) {
-        this.logger.warn('Transient DB error (e.g. ECONNRESET) rethrown as BadRequest:', message);
+        this.logger.warn(
+          'Transient DB error (e.g. ECONNRESET) rethrown as BadRequest:',
+          message,
+        );
         return response.status(HttpStatus.SERVICE_UNAVAILABLE).json({
           statusCode: HttpStatus.SERVICE_UNAVAILABLE,
           message: RETRY_MESSAGE,

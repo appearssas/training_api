@@ -1,4 +1,9 @@
-import { Injectable, Inject, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  Inject,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { IUsuariosRepository } from '@/domain/usuarios/ports/usuarios.repository.port';
 
 @Injectable()
@@ -28,4 +33,3 @@ export class DeleteUserUseCase {
     };
   }
 }
-

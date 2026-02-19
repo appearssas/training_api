@@ -7,34 +7,49 @@ import {
   DynamicDataConfig,
 } from '../types/pdf-config.interface';
 
+export type TipoCertificadoCapacitacion = 'alimentos' | 'sustancias' | 'otros';
+
+/** Capacitación con campos usados para certificado (maestra de cursos). */
+export interface CapacitacionCertificado {
+  tipoCertificado?: TipoCertificadoCapacitacion | null;
+  titulo?: string | null;
+  duracionHoras?: number | null;
+}
+
+/** Capacitación con ente certificador (maestra) para texto de alianza en certificado. */
+export interface CapacitacionConEnte {
+  enteCertificador?: { nombre: string } | null;
+}
+
 /**
- * Determina el fondo del certificado basado en el título
+ * Determina el fondo del certificado desde la maestra de cursos (tipoCertificado).
+ * Solo usa base de datos; si no está definido, se usa 'otros'.
  */
-export function getCertificateBackground(capacitacion: any): string {
-  let backgroundName = 'fondoGeneral.png'; // Default
-
-  if (capacitacion?.titulo) {
-    const titulo = capacitacion.titulo.toLowerCase();
-
-    // Logic: Alimentos -> Fondo Alimentos
-    if (
-      (titulo.includes('manipulación') && titulo.includes('alimentos')) ||
-      (titulo.includes('manipulacion') && titulo.includes('alimentos')) ||
-      (titulo.includes('primeros') && titulo.includes('auxilios'))
-    ) {
-      backgroundName = 'fondoAlimentos.png';
-    }
-    // Logic: Sustancias / Mercancías Peligrosas -> Fondo Sustancias
-    else if (
-      titulo.includes('transporte') &&
-      (titulo.includes('mercancias') || titulo.includes('mercancías')) &&
-      titulo.includes('peligrosas')
-    ) {
-      backgroundName = 'fondoSustanciasP.png';
-    }
+export function getCertificateBackground(
+  capacitacion: CapacitacionCertificado | null | undefined,
+): string {
+  const tipo = getTipoCertificadoFromCapacitacion(capacitacion);
+  if (tipo === 'alimentos') {
+    return join(PUBLIC_ASSETS_PATH, 'fondoAlimentos.png');
   }
+  if (tipo === 'sustancias') {
+    return join(PUBLIC_ASSETS_PATH, 'fondoSustanciasP.png');
+  }
+  return join(PUBLIC_ASSETS_PATH, 'fondoGeneral.png');
+}
 
-  return join(PUBLIC_ASSETS_PATH, backgroundName);
+/**
+ * Obtiene el tipo de certificado desde la maestra de cursos (solo base de datos).
+ * Si no está definido en la capacitación, devuelve 'otros'.
+ */
+function getTipoCertificadoFromCapacitacion(
+  capacitacion: CapacitacionCertificado | null | undefined,
+): TipoCertificadoCapacitacion {
+  const tipo = capacitacion?.tipoCertificado;
+  if (tipo === 'alimentos' || tipo === 'sustancias' || tipo === 'otros') {
+    return tipo;
+  }
+  return 'otros';
 }
 
 /**
@@ -85,128 +100,88 @@ export function getInstructorDetails(
 }
 
 /**
- * Valores por defecto del representante para alimentos
- */
-const DEFAULT_REPRESENTANTE_ALIMENTOS: RepresentativeDetails = {
-  name: 'Francy Dayany Gonzalez Galindo',
-  signatureImage: join(PUBLIC_ASSETS_PATH, 'firma_francy_gonzalez.png'),
-};
-
-/**
- * Valores por defecto del representante para otros cursos
- */
-const DEFAULT_REPRESENTANTE_OTROS: RepresentativeDetails = {
-  name: 'Alfonso Alejandro Velasco Reyes',
-  signatureImage: join(PUBLIC_ASSETS_PATH, 'firma_alfonso_velasco.png'),
-};
-
-/**
- * Obtiene los detalles del representante legal basado en el tipo de curso y configuración dinámica
- * @param isAlimentos - Indica si es un curso de alimentos
- * @param dynamicData - Datos dinámicos opcionales de la base de datos
+ * Obtiene los detalles del representante legal desde la maestra (tabla representantes)
+ * o desde la configuración dinámica del certificado.
+ * @param representativeOverride - Datos del representante desde BD (ente certificador → representantes)
+ * @param dynamicData - Datos dinámicos opcionales (override desde formato de certificado)
  */
 export function getRepresentativeDetails(
-  isAlimentos: boolean,
+  representativeOverride?: RepresentativeDetails | null,
   dynamicData?: DynamicDataConfig,
 ): RepresentativeDetails {
-  // Obtener valores por defecto según el tipo de curso
-  const defaults = isAlimentos
-    ? DEFAULT_REPRESENTANTE_ALIMENTOS
-    : DEFAULT_REPRESENTANTE_OTROS;
+  const fromDb =
+    representativeOverride &&
+    (representativeOverride.name || representativeOverride.signatureImage)
+      ? representativeOverride
+      : null;
 
-  // Si hay datos dinámicos del representante, usarlos; si no, usar defaults
   if (dynamicData?.representante) {
     const { nombre, firmaImagen } = dynamicData.representante;
+    const nameFromConfig =
+      nombre != null && String(nombre).trim() !== ''
+        ? String(nombre).trim()
+        : fromDb?.name ?? '';
+    const firmaFromConfig =
+      firmaImagen != null && String(firmaImagen).trim() !== '';
+
     return {
-      name: nombre || defaults.name,
-      signatureImage: firmaImagen
-        ? join(PUBLIC_ASSETS_PATH, firmaImagen)
-        : defaults.signatureImage,
+      name: nameFromConfig,
+      signatureImage: firmaFromConfig
+        ? join(PUBLIC_ASSETS_PATH, firmaImagen!)
+        : (fromDb?.signatureImage ?? ''),
+      role: fromDb?.role ?? '',
     };
   }
 
-  return defaults;
+  if (fromDb) {
+    return fromDb;
+  }
+
+  return { name: '', signatureImage: '', role: '' };
 }
 
 /**
- * Obtiene la compañía aliada basada en el tipo de curso y configuración dinámica
- * @param isAlimentos - Indica si es un curso de alimentos
- * @param isCesaroto - Indica si es un curso de Cesaroto
- * @param dynamicData - Datos dinámicos opcionales de la base de datos
+ * Obtiene la compañía aliada desde la maestra (ente certificador de la capacitación)
+ * o desde la configuración dinámica del certificado.
+ * @param capacitacion - Capacitación con enteCertificador (maestra)
+ * @param dynamicData - Datos dinámicos opcionales (override desde formato de certificado)
  */
 export function getAllianceCompany(
-  isAlimentos: boolean,
-  isCesaroto: boolean,
+  capacitacion: CapacitacionConEnte | null | undefined,
   dynamicData?: DynamicDataConfig,
 ): string {
-  // Si hay datos dinámicos de la empresa aliada, usarlos
   if (dynamicData?.alianzaEmpresa) {
     return dynamicData.alianzaEmpresa;
   }
-
-  // Valores por defecto según el tipo de curso
-  if (isAlimentos) {
-    return 'IPS CONFIANZA.';
-  }
-  if (isCesaroto) {
-    return 'CEASAROTO.';
-  }
-  return 'ANDAR DEL LLANO.';
+  const nombre = capacitacion?.enteCertificador?.nombre?.trim();
+  return nombre ?? '';
 }
 
 /**
- * Obtiene la duración del curso basada en el tipo y configuración dinámica
- * @param isCesaroto - Indica si es un curso de Cesaroto
- * @param isAlimentos - Indica si es un curso de alimentos
- * @param dynamicData - Datos dinámicos opcionales de la base de datos
+ * Obtiene la duración en horas desde la maestra de cursos (solo base de datos: capacitacion.duracionHoras).
+ * Si no está definida, devuelve "20" para no romper la generación del certificado.
  */
 export function getDuration(
-  isCesaroto: boolean,
-  isAlimentos: boolean,
-  dynamicData?: DynamicDataConfig,
+  capacitacion: CapacitacionCertificado | null | undefined,
 ): string {
-  // Si hay datos dinámicos de duración, usarlos
-  if (dynamicData?.duracionHoras) {
-    return dynamicData.duracionHoras;
-  }
-
-  // Valores por defecto según el tipo de curso
-  if (isCesaroto) {
-    return '60';
-  }
-  if (isAlimentos) {
-    return '10';
+  if (!capacitacion) return '20';
+  const horas = capacitacion.duracionHoras;
+  if (horas != null && !Number.isNaN(Number(horas))) {
+    return String(Math.round(Number(horas)));
   }
   return '20';
 }
 
 /**
- * Determina los tipos de certificado y configuraciones a usar
+ * Determina los tipos de certificado desde la maestra de cursos (solo base de datos: tipoCertificado).
  */
 export function determineCertificateTypes(
-  capacitacion: any,
+  capacitacion: CapacitacionCertificado | null | undefined,
 ): CertificateTypeFlags {
-  const tituloLower = (capacitacion?.titulo || '').toLowerCase().trim();
-
-  const isAlimentos =
-    (tituloLower.includes('alimentos') &&
-      (tituloLower.includes('manipulación') ||
-        tituloLower.includes('manipulacion'))) ||
-    (tituloLower.includes('primeros') && tituloLower.includes('auxilios'));
-
-  const isCesaroto =
-    tituloLower.includes('transporte') &&
-    (tituloLower.includes('mercancias') ||
-      tituloLower.includes('mercancías')) &&
-    tituloLower.includes('peligrosas');
-
-  const isSustanciasPeligrosas =
-    tituloLower.includes('peligrosas') ||
-    (tituloLower.includes('sustancias') &&
-      tituloLower.includes('peligrosas')) ||
-    (tituloLower.includes('mercancías') &&
-      tituloLower.includes('peligrosas')) ||
-    (tituloLower.includes('mercancias') && tituloLower.includes('peligrosas'));
+  const tipo = getTipoCertificadoFromCapacitacion(capacitacion);
+  const isAlimentos = tipo === 'alimentos';
+  const isSustanciasPeligrosas = tipo === 'sustancias';
+  const isCesaroto = isSustanciasPeligrosas;
 
   return {
     isAlimentos,

@@ -29,4 +29,3 @@ export class FindOneEvaluacionUseCase {
     return evaluacion;
   }
 }
-

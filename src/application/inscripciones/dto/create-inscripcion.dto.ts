@@ -27,13 +27,14 @@ export class CreateInscripcionDto {
   estudianteId: number;
 
   @ApiPropertyOptional({
-    description: 'ID del pago asociado (requerido solo para conductores externos)',
+    description:
+      'ID del pago asociado (requerido solo para conductores externos)',
     example: 1,
     type: Number,
     nullable: true,
   })
   @IsOptional()
-  @ValidateIf((o) => o.pagoId !== null && o.pagoId !== undefined)
+  @ValidateIf(o => o.pagoId !== null && o.pagoId !== undefined)
   @IsInt({ message: 'El ID del pago debe ser un número entero' })
   @IsPositive({ message: 'El ID del pago debe ser positivo' })
   pagoId?: number | null;
@@ -45,6 +46,9 @@ export class CreateInscripcionDto {
     format: 'date-time',
   })
   @IsOptional()
-  @IsDateString({}, { message: 'La fecha de inicio debe tener un formato válido (ISO 8601)' })
+  @IsDateString(
+    {},
+    { message: 'La fecha de inicio debe tener un formato válido (ISO 8601)' },
+  )
   fechaInicio?: Date;
 }

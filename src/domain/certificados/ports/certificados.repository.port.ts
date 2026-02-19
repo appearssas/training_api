@@ -7,11 +7,14 @@ import { PaginationDto } from '@/application/shared/dto/pagination.dto';
  * Contexto del usuario para filtrar certificados según rol:
  * - ADMIN: ve todos (no se aplica filtro).
  * - INSTRUCTOR: solo certificados de capacitaciones donde él es el instructor.
- * - ALUMNO, CLIENTE, OPERADOR: solo certificados donde él es el estudiante de la inscripción.
+ * - ALUMNO: solo certificados donde él es el estudiante.
+ * - CLIENTE, OPERADOR: solo certificados de estudiantes de su empresa (empresaId); si no tienen empresa, solo los propios (personaId).
  */
 export interface CertificadosUserContext {
   rol: string;
   personaId: number | null;
+  /** Para CLIENTE/OPERADOR: ID de la empresa; certificados de estudiantes con estudiante.empresa_id = empresaId */
+  empresaId?: number | null;
 }
 
 /**
@@ -20,12 +23,21 @@ export interface CertificadosUserContext {
  */
 export interface ICertificadosRepository {
   create(createCertificadoDto: CreateCertificadoDto): Promise<Certificado>;
-  findAll(pagination: PaginationDto, userContext?: CertificadosUserContext): Promise<any>;
+  findAll(
+    pagination: PaginationDto,
+    userContext?: CertificadosUserContext,
+  ): Promise<any>;
   findOne(id: number): Promise<Certificado | null>;
   findByInscripcion(inscripcionId: number): Promise<Certificado[]>;
-  findByEstudiante(estudianteId: number, pagination?: PaginationDto): Promise<any>;
+  findByEstudiante(
+    estudianteId: number,
+    pagination?: PaginationDto,
+    userContext?: CertificadosUserContext,
+  ): Promise<any>;
   findByHashVerificacion(hash: string): Promise<Certificado | null>;
-  update(id: number, updateCertificadoDto: UpdateCertificadoDto): Promise<Certificado>;
+  update(
+    id: number,
+    updateCertificadoDto: UpdateCertificadoDto,
+  ): Promise<Certificado>;
   remove(id: number): Promise<void>;
 }
-

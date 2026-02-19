@@ -19,4 +19,3 @@ export class UpdateMaterialDto extends PartialType(CreateMaterialDto) {
   @IsOptional()
   activo?: boolean;
 }
-

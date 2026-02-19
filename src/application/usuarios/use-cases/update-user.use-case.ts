@@ -16,7 +16,10 @@ export class UpdateUserUseCase {
     private readonly usuariosRepository: IUsuariosRepository,
   ) {}
 
-  async execute(id: number, updateUserDto: UpdateUserDto): Promise<UserResponseDto> {
+  async execute(
+    id: number,
+    updateUserDto: UpdateUserDto,
+  ): Promise<UserResponseDto> {
     // Verificar que el usuario existe
     const existingUser = await this.usuariosRepository.findById(id);
     if (!existingUser) {
@@ -26,7 +29,9 @@ export class UpdateUserUseCase {
     // Validar que hay al menos un campo para actualizar
     const hasUpdates = Object.keys(updateUserDto).length > 0;
     if (!hasUpdates) {
-      throw new BadRequestException('Debe proporcionar al menos un campo para actualizar');
+      throw new BadRequestException(
+        'Debe proporcionar al menos un campo para actualizar',
+      );
     }
 
     // Verificar si el username está disponible (si se está actualizando)
@@ -80,4 +85,3 @@ export class UpdateUserUseCase {
     };
   }
 }
-

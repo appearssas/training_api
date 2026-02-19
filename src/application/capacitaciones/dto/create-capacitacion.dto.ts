@@ -9,6 +9,8 @@ import {
   Length,
   ValidateNested,
   IsIn,
+  ValidateIf,
+  IsNotEmpty,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
@@ -42,13 +44,15 @@ export class CreateCapacitacionDto {
   descripcion?: string;
 
   @ApiProperty({
-    description: 'ID del tipo de capacitación (1=STANDARD, 2=CERTIFIED, 3=SURVEY)',
+    description:
+      'ID del tipo de capacitación (1=STANDARD, 2=CERTIFIED, 3=SURVEY)',
     example: 1,
     enum: [1, 2, 3],
   })
   @IsInt()
   @IsIn(VALID_TRAINING_TYPE_IDS, {
-    message: 'tipoCapacitacionId debe ser uno de los valores válidos: 1 (STANDARD), 2 (CERTIFIED), 3 (SURVEY)',
+    message:
+      'tipoCapacitacionId debe ser uno de los valores válidos: 1 (STANDARD), 2 (CERTIFIED), 3 (SURVEY)',
   })
   tipoCapacitacionId: number;
 
@@ -65,6 +69,20 @@ export class CreateCapacitacionDto {
   })
   @IsInt()
   instructorId: number;
+
+  @ApiPropertyOptional({
+    description:
+      'ID del ente certificador (Cesaroto, Andar del Llano, Confianza IPS). Obligatorio si tipoCapacitacionId es 2 (CERTIFIED).',
+    example: 1,
+  })
+  @ValidateIf((o) => o.tipoCapacitacionId === 2)
+  @IsNotEmpty({
+    message:
+      'El ente certificador es obligatorio para capacitaciones de tipo CERTIFIED (certificado).',
+  })
+  @ValidateIf((o) => o.tipoCapacitacionId === 2)
+  @IsInt()
+  enteCertificadorId?: number;
 
   @ApiPropertyOptional({
     description: 'ID del área temática',
@@ -109,6 +127,16 @@ export class CreateCapacitacionDto {
   @IsNumber()
   @Min(0)
   duracionHoras?: number;
+
+  @ApiPropertyOptional({
+    description:
+      'Tipo de certificado (formato PDF y fondo: alimentos, sustancias, otros). Si no se envía, se infiere del título.',
+    enum: ['alimentos', 'sustancias', 'otros'],
+    example: 'otros',
+  })
+  @IsOptional()
+  @IsIn(['alimentos', 'sustancias', 'otros'])
+  tipoCertificado?: 'alimentos' | 'sustancias' | 'otros' | null;
 
   @ApiPropertyOptional({
     description: 'Capacidad máxima de estudiantes',
@@ -159,7 +187,8 @@ export class CreateCapacitacionDto {
   })
   @IsOptional()
   @IsStrictEnum(EstadoCapacitacion, {
-    message: 'estado debe ser uno de los valores permitidos: borrador, publicada, en_curso, finalizada, cancelada',
+    message:
+      'estado debe ser uno de los valores permitidos: borrador, publicada, en_curso, finalizada, cancelada',
   })
   estado?: EstadoCapacitacion;
 
@@ -174,7 +203,8 @@ export class CreateCapacitacionDto {
   usuarioCreacion?: string;
 
   @ApiPropertyOptional({
-    description: 'Datos de la evaluación a crear junto con la capacitación (opcional)',
+    description:
+      'Datos de la evaluación a crear junto con la capacitación (opcional)',
     type: CreateEvaluacionInlineDto,
   })
   @IsOptional()

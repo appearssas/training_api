@@ -6,9 +6,7 @@ import { AceptacionPolitica } from '@/entities/aceptaciones/aceptacion-politica.
 import { DocumentoLegal } from '@/entities/documentos/documento-legal.entity';
 
 @Injectable()
-export class AceptacionesRepositoryAdapter
-  implements IAceptacionesRepository
-{
+export class AceptacionesRepositoryAdapter implements IAceptacionesRepository {
   constructor(
     @InjectRepository(DocumentoLegal)
     private readonly documentoLegalRepository: Repository<DocumentoLegal>,
@@ -47,12 +45,12 @@ export class AceptacionesRepositoryAdapter
 
     // Obtener todas las aceptaciones del usuario
     const aceptaciones = await this.findAceptacionesByUsuario(usuarioId);
-    
+
     // Validar cada documento activo
     for (const documento of documentosActivos) {
       // Buscar la aceptación correspondiente a este documento
       const aceptacion = aceptaciones.find(
-        (a) => a.documentoLegal.id === documento.id,
+        a => a.documentoLegal.id === documento.id,
       );
 
       // 1. Si no existe aceptación -> Falso
@@ -108,4 +106,3 @@ export class AceptacionesRepositoryAdapter
     return await this.aceptacionRepository.save(aceptacion);
   }
 }
-

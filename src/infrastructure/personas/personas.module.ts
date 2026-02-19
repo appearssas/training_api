@@ -34,4 +34,3 @@ import { EmailModule } from '@/infrastructure/email/email.module';
   exports: ['IPersonasRepository'],
 })
 export class PersonasModule {}
-

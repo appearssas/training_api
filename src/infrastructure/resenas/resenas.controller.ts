@@ -93,8 +93,11 @@ export class ResenasController {
     status: 404,
     description: 'Reseña no encontrada',
   })
-  async findByInscripcion(@Param('inscripcionId', ParseIntPipe) inscripcionId: number) {
-    const resena = await this.findResenaByInscripcionUseCase.execute(inscripcionId);
+  async findByInscripcion(
+    @Param('inscripcionId', ParseIntPipe) inscripcionId: number,
+  ) {
+    const resena =
+      await this.findResenaByInscripcionUseCase.execute(inscripcionId);
     if (!resena) {
       return null;
     }

@@ -28,9 +28,9 @@ export class Rol {
   @CreateDateColumn({ name: 'fecha_creacion' })
   fechaCreacion: Date;
 
-  @OneToMany(() => PersonaRol, (personaRol) => personaRol.rol)
+  @OneToMany(() => PersonaRol, personaRol => personaRol.rol)
   personaRoles: PersonaRol[];
 
-  @OneToMany(() => Usuario, (usuario) => usuario.rolPrincipal)
+  @OneToMany(() => Usuario, usuario => usuario.rolPrincipal)
   usuarios: Usuario[];
 }

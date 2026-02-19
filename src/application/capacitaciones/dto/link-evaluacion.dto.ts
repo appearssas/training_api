@@ -9,4 +9,3 @@ export class LinkEvaluacionDto {
   @IsInt()
   evaluacionId: number;
 }
-

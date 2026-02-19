@@ -19,7 +19,7 @@ export class CreatePagoDto {
 
   @ApiProperty({
     description: 'Monto del pago',
-    example: 150000.00,
+    example: 150000.0,
     minimum: 0,
   })
   @IsNumber()
@@ -36,7 +36,8 @@ export class CreatePagoDto {
   metodoPago: string;
 
   @ApiPropertyOptional({
-    description: 'Fecha del pago (formato ISO). Si no se proporciona, se usa la fecha actual',
+    description:
+      'Fecha del pago (formato ISO). Si no se proporciona, se usa la fecha actual',
     example: '2025-01-15',
   })
   @IsDateString()
@@ -59,4 +60,3 @@ export class CreatePagoDto {
   @IsOptional()
   observaciones?: string;
 }
-

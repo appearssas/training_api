@@ -14,6 +14,7 @@ import {
   HttpStatus,
   NotFoundException,
   ConflictException,
+  ForbiddenException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -29,8 +30,14 @@ import { RolesGuard, Roles } from '@/infrastructure/shared/guards/roles.guard';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Empresa } from '@/entities/empresas/empresa.entity';
-import { CreateEmpresaDto, UpdateEmpresaDto } from '@/application/empresas/dto';
+import {
+  CreateEmpresaDto,
+  UpdateEmpresaDto,
+  AssignCapacitacionesToEmpresaDto,
+} from '@/application/empresas/dto';
 import { sanitizeEmpresaData } from '@/infrastructure/shared/helpers/empresa-sanitizer.helper';
+import { EmpresasCapacitacionesService } from './empresas-capacitaciones.service';
+import { GetUser } from '@/infrastructure/shared/auth/decorators/get-user.decorator';
 
 @ApiTags('empresas')
 @Controller('empresas')
@@ -40,6 +47,7 @@ export class EmpresasController {
   constructor(
     @InjectRepository(Empresa)
     private readonly empresaRepository: Repository<Empresa>,
+    private readonly empresasCapacitacionesService: EmpresasCapacitacionesService,
   ) {}
 
   @Get()
@@ -47,7 +55,8 @@ export class EmpresasController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Listar todas las empresas',
-    description: 'Obtiene una lista de todas las empresas activas. Solo disponible para ADMIN.',
+    description:
+      'Obtiene una lista de todas las empresas activas. Solo disponible para ADMIN.',
   })
   @ApiResponse({
     status: 200,
@@ -65,8 +74,14 @@ export class EmpresasController {
           telefono: { type: 'string', example: '+573001234567' },
           direccion: { type: 'string', example: 'Calle 123 #45-67' },
           activo: { type: 'boolean', example: true },
-          fechaCreacion: { type: 'string', example: '2025-01-15T10:30:00.000Z' },
-          fechaActualizacion: { type: 'string', example: '2025-01-15T10:30:00.000Z' },
+          fechaCreacion: {
+            type: 'string',
+            example: '2025-01-15T10:30:00.000Z',
+          },
+          fechaActualizacion: {
+            type: 'string',
+            example: '2025-01-15T10:30:00.000Z',
+          },
         },
       },
     },
@@ -91,7 +106,8 @@ export class EmpresasController {
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
     summary: 'Crear una nueva empresa',
-    description: 'Crea una nueva empresa en el sistema. Solo disponible para ADMIN.',
+    description:
+      'Crea una nueva empresa en el sistema. Solo disponible para ADMIN.',
   })
   @ApiBody({ type: CreateEmpresaDto })
   @ApiResponse({
@@ -109,7 +125,10 @@ export class EmpresasController {
         direccion: { type: 'string', example: 'Calle 123 #45-67' },
         activo: { type: 'boolean', example: true },
         fechaCreacion: { type: 'string', example: '2025-01-15T10:30:00.000Z' },
-        fechaActualizacion: { type: 'string', example: '2025-01-15T10:30:00.000Z' },
+        fechaActualizacion: {
+          type: 'string',
+          example: '2025-01-15T10:30:00.000Z',
+        },
       },
     },
   })
@@ -154,19 +173,49 @@ export class EmpresasController {
     description:
       'Lista empresas con filtros (búsqueda por texto, estado activo, tipo documento) y paginación. Solo ADMIN.',
   })
-  @ApiQuery({ name: 'search', required: false, description: 'Texto en razón social, documento, email o teléfono' })
-  @ApiQuery({ name: 'activo', required: false, description: 'Filtrar por estado: true, false' })
-  @ApiQuery({ name: 'eliminadas', required: false, description: 'true = solo empresas eliminadas (soft-delete). Si no, las eliminadas se excluyen de todos los filtros.' })
-  @ApiQuery({ name: 'tipoDocumento', required: false, description: 'Filtrar por tipo de documento (NIT, CC, etc.)' })
-  @ApiQuery({ name: 'page', required: false, type: Number, description: 'Página (default 1)' })
-  @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Registros por página (default 10)' })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+    description: 'Texto en razón social, documento, email o teléfono',
+  })
+  @ApiQuery({
+    name: 'activo',
+    required: false,
+    description: 'Filtrar por estado: true, false',
+  })
+  @ApiQuery({
+    name: 'eliminadas',
+    required: false,
+    description:
+      'true = solo empresas eliminadas (soft-delete). Si no, las eliminadas se excluyen de todos los filtros.',
+  })
+  @ApiQuery({
+    name: 'tipoDocumento',
+    required: false,
+    description: 'Filtrar por tipo de documento (NIT, CC, etc.)',
+  })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    description: 'Página (default 1)',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: 'Registros por página (default 10)',
+  })
   @ApiResponse({
     status: 200,
     description: 'Lista paginada de empresas',
     schema: {
       type: 'object',
       properties: {
-        data: { type: 'array', items: { $ref: '#/components/schemas/Empresa' } },
+        data: {
+          type: 'array',
+          items: { $ref: '#/components/schemas/Empresa' },
+        },
         total: { type: 'number' },
         page: { type: 'number' },
         limit: { type: 'number' },
@@ -181,9 +230,18 @@ export class EmpresasController {
     @Query('tipoDocumento') tipoDocumento?: string,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
-  ): Promise<{ data: Empresa[]; total: number; page: number; limit: number; totalPages: number }> {
+  ): Promise<{
+    data: Empresa[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }> {
     const pageNum = Math.max(1, parseInt(page || '1', 10) || 1);
-    const limitNum = Math.min(100, Math.max(1, parseInt(limit || '10', 10) || 10));
+    const limitNum = Math.min(
+      100,
+      Math.max(1, parseInt(limit || '10', 10) || 10),
+    );
     const skip = (pageNum - 1) * limitNum;
 
     const qb = this.empresaRepository
@@ -244,7 +302,8 @@ export class EmpresasController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Actualizar una empresa',
-    description: 'Actualiza los datos de una empresa existente. Solo disponible para ADMIN.',
+    description:
+      'Actualiza los datos de una empresa existente. Solo disponible para ADMIN.',
   })
   @ApiParam({
     name: 'id',
@@ -277,7 +336,10 @@ export class EmpresasController {
 
     const sanitized = sanitizeEmpresaData(updateEmpresaDto);
 
-    if (sanitized.numeroDocumento && sanitized.numeroDocumento !== empresa.numeroDocumento) {
+    if (
+      sanitized.numeroDocumento &&
+      sanitized.numeroDocumento !== empresa.numeroDocumento
+    ) {
       const existingEmpresa = await this.empresaRepository.findOne({
         where: { numeroDocumento: sanitized.numeroDocumento },
       });
@@ -291,6 +353,175 @@ export class EmpresasController {
 
     Object.assign(empresa, sanitized);
     return await this.empresaRepository.save(empresa);
+  }
+
+  @Post(':id/capacitaciones')
+  @Roles('ADMIN')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Asignar cursos a una empresa (cliente institucional)',
+    description:
+      'Asigna capacitaciones (cursos) a una empresa. El usuario CLIENTE de esa empresa podrá luego asignar estos cursos a sus usuarios (conductores/empleados). Solo ADMIN.',
+  })
+  @ApiParam({
+    name: 'id',
+    type: 'number',
+    description: 'ID de la empresa (cliente institucional)',
+    example: 1,
+  })
+  @ApiBody({ type: AssignCapacitacionesToEmpresaDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Cursos asignados a la empresa',
+    schema: {
+      type: 'object',
+      properties: {
+        assigned: { type: 'number', example: 3 },
+        skipped: { type: 'number', example: 0 },
+        details: { type: 'array', items: { type: 'string' } },
+      },
+    },
+  })
+  @ApiResponse({ status: 404, description: 'Empresa no encontrada' })
+  async assignCapacitaciones(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: AssignCapacitacionesToEmpresaDto,
+  ) {
+    return this.empresasCapacitacionesService.assignCapacitacionesToEmpresa(
+      id,
+      dto.courseIds,
+    );
+  }
+
+  @Get(':id/capacitaciones-with-descarga')
+  @Roles('ADMIN', 'CLIENTE', 'OPERADOR')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary:
+      'Listar cursos asignados a la empresa con opción de descarga de certificado',
+    description:
+      'Devuelve cada curso asignado a la empresa con el flag permiteDescargaCertificado. ADMIN ve cualquier empresa; CLIENTE/OPERADOR solo su empresa.',
+  })
+  @ApiParam({ name: 'id', description: 'ID de la empresa' })
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de asignaciones con permiteDescargaCertificado',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'CLIENTE/OPERADOR solo puede consultar su propia empresa',
+  })
+  async getCapacitacionesWithPermiteDescarga(
+    @Param('id', ParseIntPipe) id: number,
+    @GetUser()
+    user: {
+      rolPrincipal?: { codigo?: string };
+      persona?: { empresaId?: number; empresa?: { id?: number } };
+    },
+  ) {
+    const rol = user?.rolPrincipal?.codigo ?? '';
+    if (rol === 'CLIENTE' || rol === 'OPERADOR') {
+      const userEmpresaId =
+        user?.persona?.empresaId ?? user?.persona?.empresa?.id ?? null;
+      if (userEmpresaId == null || id !== userEmpresaId) {
+        throw new ForbiddenException(
+          'Solo puede consultar los cursos de su propia empresa.',
+        );
+      }
+    }
+    return this.empresasCapacitacionesService.getCapacitacionesByEmpresaWithPermiteDescarga(
+      id,
+    );
+  }
+
+  @Patch(':id/capacitaciones/:capacitacionId/permite-descarga')
+  @Roles('ADMIN', 'CLIENTE', 'OPERADOR')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Actualizar si se permite descargar certificados para un curso',
+    description:
+      'Activa o desactiva la descarga de PDF de certificados para ese curso en la empresa. ADMIN o CLIENTE/OPERADOR de esa empresa.',
+  })
+  @ApiParam({ name: 'id', description: 'ID de la empresa' })
+  @ApiParam({ name: 'capacitacionId', description: 'ID de la capacitación' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: { permiteDescargaCertificado: { type: 'boolean' } },
+      required: ['permiteDescargaCertificado'],
+    },
+  })
+  @ApiResponse({ status: 200, description: 'Configuración actualizada' })
+  @ApiResponse({
+    status: 403,
+    description: 'CLIENTE/OPERADOR solo puede modificar su propia empresa',
+  })
+  async updatePermiteDescargaCertificado(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('capacitacionId', ParseIntPipe) capacitacionId: number,
+    @Body('permiteDescargaCertificado') permiteDescargaCertificado: boolean,
+    @GetUser()
+    user: {
+      rolPrincipal?: { codigo?: string };
+      persona?: { empresaId?: number; empresa?: { id?: number } };
+    },
+  ) {
+    const rol = user?.rolPrincipal?.codigo ?? '';
+    if (rol === 'CLIENTE' || rol === 'OPERADOR') {
+      const userEmpresaId =
+        user?.persona?.empresaId ?? user?.persona?.empresa?.id ?? null;
+      if (userEmpresaId == null || id !== userEmpresaId) {
+        throw new ForbiddenException(
+          'Solo puede modificar los cursos de su propia empresa.',
+        );
+      }
+    }
+    return this.empresasCapacitacionesService.updatePermiteDescargaCertificado(
+      id,
+      capacitacionId,
+      permiteDescargaCertificado,
+    );
+  }
+
+  @Delete(':id/capacitaciones/:capacitacionId')
+  @Roles('ADMIN')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Quitar un curso de una empresa',
+    description:
+      'Elimina la asignación del curso a la empresa. La empresa deja de poder asignar ese curso a sus usuarios. Solo ADMIN.',
+  })
+  @ApiParam({ name: 'id', description: 'ID de la empresa' })
+  @ApiParam({
+    name: 'capacitacionId',
+    description: 'ID de la capacitación (curso)',
+  })
+  @ApiResponse({ status: 200, description: 'Curso quitado de la empresa' })
+  async removeCapacitacionFromEmpresa(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('capacitacionId', ParseIntPipe) capacitacionId: number,
+  ) {
+    return this.empresasCapacitacionesService.removeCapacitacionFromEmpresa(
+      id,
+      capacitacionId,
+    );
+  }
+
+  @Get('por-capacitacion/:capacitacionId')
+  @Roles('ADMIN')
+  @ApiOperation({
+    summary: 'Listar empresas con un curso asignado',
+    description:
+      'Devuelve las empresas que tienen asignado el curso (para que el admin pueda quitar). Solo ADMIN.',
+  })
+  @ApiParam({ name: 'capacitacionId', description: 'ID de la capacitación' })
+  @ApiResponse({ status: 200, description: 'Lista de empresas' })
+  async getEmpresasByCapacitacion(
+    @Param('capacitacionId', ParseIntPipe) capacitacionId: number,
+  ) {
+    return this.empresasCapacitacionesService.getEmpresasByCapacitacion(
+      capacitacionId,
+    );
   }
 
   @Delete(':id')
@@ -315,7 +546,9 @@ export class EmpresasController {
     status: 404,
     description: 'Empresa no encontrada',
   })
-  async remove(@Param('id', ParseIntPipe) id: number): Promise<{ message: string }> {
+  async remove(
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<{ message: string }> {
     const empresa = await this.empresaRepository.findOne({ where: { id } });
 
     if (!empresa) {
@@ -326,7 +559,8 @@ export class EmpresasController {
     empresa.eliminada = true;
     await this.empresaRepository.save(empresa);
 
-    return { message: `Empresa ${empresa.razonSocial} ha sido eliminada exitosamente` };
+    return {
+      message: `Empresa ${empresa.razonSocial} ha sido eliminada exitosamente`,
+    };
   }
 }
-

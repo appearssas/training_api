@@ -123,4 +123,3 @@ Fecha de última actualización: ${new Date().toLocaleDateString('es-CO')}`,
     }
   }
 }
-

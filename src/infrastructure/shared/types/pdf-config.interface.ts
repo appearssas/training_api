@@ -95,6 +95,8 @@ export interface InstructorDetails {
 export interface RepresentativeDetails {
   name: string;
   signatureImage: string;
+  /** Cargo/rol del representante (ej. desde BD: representantes.cargo). */
+  role?: string;
 }
 
 export interface CertificateTypeFlags {

@@ -15,4 +15,3 @@ export class StartIntentoDto {
   @Min(1)
   inscripcionId: number;
 }
-

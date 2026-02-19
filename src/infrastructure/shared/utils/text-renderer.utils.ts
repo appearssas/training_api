@@ -8,6 +8,13 @@ import { DEFAULT_VALUES } from '../constants/pdf.constants';
 import { getElementConfig } from './config-helpers.utils';
 import type { PdfConfig } from '../types/pdf-config.interface';
 
+/** Convierte valor de config (puede venir como string desde el frontend) a número para evitar "514" + 0 = "5140". */
+function toNum(value: unknown, defaultValue: number): number {
+  if (value === undefined || value === null) return defaultValue;
+  const n = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(n) ? n : defaultValue;
+}
+
 /**
  * Aplica estilos de texto al documento PDF
  */
@@ -50,12 +57,12 @@ export function renderCourseText(
   config: ElementConfig | undefined,
   isSimplified: boolean = true,
 ): void {
-  const cursoX = config?.x !== undefined ? config.x : pageWidth / 2;
-  const cursoY = config?.y !== undefined ? config.y : 395;
-  const cursoFontSize =
-    config?.fontSize !== undefined
-      ? config.fontSize
-      : DEFAULT_VALUES.FONT_SIZES.LARGE;
+  const cursoX = toNum(config?.x, pageWidth / 2);
+  const cursoY = toNum(config?.y, 395);
+  const cursoFontSize = toNum(
+    config?.fontSize,
+    DEFAULT_VALUES.FONT_SIZES.LARGE,
+  );
   const cursoColor =
     config?.color ??
     (isSimplified
@@ -76,12 +83,12 @@ export function renderStudentName(
   nombreCompleto: string,
   config: ElementConfig | undefined,
 ): void {
-  const nombreX = config?.x !== undefined ? config.x : pageWidth / 2;
-  const nombreY = config?.y !== undefined ? config.y : 290;
-  const nombreFontSize =
-    config?.fontSize !== undefined
-      ? config.fontSize
-      : DEFAULT_VALUES.FONT_SIZES.LARGE;
+  const nombreX = toNum(config?.x, pageWidth / 2);
+  const nombreY = toNum(config?.y, 290);
+  const nombreFontSize = toNum(
+    config?.fontSize,
+    DEFAULT_VALUES.FONT_SIZES.LARGE,
+  );
   const nombreColor = config?.color ?? DEFAULT_VALUES.COLORS.BLUE_DARK;
   const nombreBold = config?.bold !== undefined ? config.bold : true;
 
@@ -101,26 +108,22 @@ export function renderDocumentId(
 ): void {
   const { usarConfigAlimentos, usarConfigSustancias } = certificateTypes;
 
-  const docX =
-    config?.x !== undefined
-      ? config.x
-      : usarConfigAlimentos
-        ? 405
-        : usarConfigSustancias
-          ? 370
-          : pageWidth / 2;
-  const docY =
-    config?.y !== undefined
-      ? config.y
-      : usarConfigAlimentos
-        ? 323
-        : usarConfigSustancias
-          ? 320
-          : 323;
-  const docFontSize =
-    config?.fontSize !== undefined
-      ? config.fontSize
-      : DEFAULT_VALUES.FONT_SIZES.LARGE;
+  const defaultDocX = usarConfigAlimentos
+    ? 405
+    : usarConfigSustancias
+      ? 370
+      : pageWidth / 2;
+  const defaultDocY = usarConfigAlimentos
+    ? 323
+    : usarConfigSustancias
+      ? 320
+      : 323;
+  const docX = toNum(config?.x, defaultDocX);
+  const docY = toNum(config?.y, defaultDocY);
+  const docFontSize = toNum(
+    config?.fontSize,
+    DEFAULT_VALUES.FONT_SIZES.LARGE,
+  );
   const docColor = config?.color ?? DEFAULT_VALUES.COLORS.BLUE_DARK;
   const docBold = config?.bold !== undefined ? config.bold : false;
 
@@ -140,10 +143,9 @@ export function renderPersonName(
   defaultY: number,
   defaultFontSize: number,
 ): void {
-  const nombreX = config?.x !== undefined ? config.x : defaultX;
-  const nombreY = config?.y !== undefined ? config.y : defaultY;
-  const nombreFontSize =
-    config?.fontSize !== undefined ? config.fontSize : defaultFontSize;
+  const nombreX = toNum(config?.x, defaultX);
+  const nombreY = toNum(config?.y, defaultY);
+  const nombreFontSize = toNum(config?.fontSize, defaultFontSize);
   const nombreColor = config?.color ?? DEFAULT_VALUES.COLORS.BLUE_DARK;
   const nombreBold = config?.bold !== undefined ? config.bold : true;
 
@@ -164,15 +166,22 @@ export function renderRole(
   defaultFontSize: number,
   lineSpacing: number = DEFAULT_VALUES.LINE_SPACING.INSTRUCTOR_ROLE,
 ): void {
-  const rolX = config?.x !== undefined ? config.x : defaultX;
-  const rolY = config?.y !== undefined ? config.y : defaultY;
-  const rolFontSize =
+  const rolX = toNum(config?.x, defaultX);
+  const rolY = toNum(config?.y, defaultY);
+  const rawFontSize =
     config?.fontSize !== undefined ? config.fontSize : defaultFontSize;
+  const rolFontSize =
+    toNum(rawFontSize, defaultFontSize) > 0
+      ? toNum(rawFontSize, defaultFontSize)
+      : defaultFontSize;
   const rolColor = config?.color ?? DEFAULT_VALUES.COLORS.BLUE_DARK;
   const rolBold = config?.bold !== undefined ? config.bold : false;
-  const rolLineSpacing: number =
+  const rolLineSpacing =
     (config as ElementConfigWithLineSpacing)?.lineSpacing !== undefined
-      ? (config as ElementConfigWithLineSpacing).lineSpacing!
+      ? toNum(
+          (config as ElementConfigWithLineSpacing).lineSpacing,
+          lineSpacing,
+        )
       : lineSpacing;
 
   applyTextStyle(doc, rolFontSize, rolColor, rolBold);

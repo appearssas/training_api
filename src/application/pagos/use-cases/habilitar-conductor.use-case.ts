@@ -47,9 +47,7 @@ export class HabilitarConductorUseCase {
 
     // Verificar que el usuario existe
     if (!estudiante.usuario) {
-      throw new NotFoundException(
-        'El conductor no tiene un usuario asociado',
-      );
+      throw new NotFoundException('El conductor no tiene un usuario asociado');
     }
 
     // Habilitar el conductor
@@ -62,4 +60,3 @@ export class HabilitarConductorUseCase {
     };
   }
 }
-

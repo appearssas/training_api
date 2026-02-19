@@ -10,6 +10,9 @@ import {
   BadRequestException,
   UseGuards,
 } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { EnteCertificador } from '@/entities/catalogos/ente-certificador.entity';
 import {
   ApiTags,
   ApiOperation,
@@ -20,6 +23,8 @@ import {
 } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
 import { RolesGuard, Roles } from '@/infrastructure/shared/guards/roles.guard';
+import { GetUser } from '@/infrastructure/shared/auth/decorators/get-user.decorator';
+import { Usuario } from '@/entities/usuarios/usuario.entity';
 import {
   CreateCapacitacionDto,
   UpdateCapacitacionDto,
@@ -48,6 +53,8 @@ export class CapacitacionesController {
     private readonly removeCapacitacionUseCase: RemoveCapacitacionUseCase,
     private readonly linkEvaluacionUseCase: LinkEvaluacionUseCase,
     private readonly toggleStatusUseCase: ToggleStatusUseCase,
+    @InjectRepository(EnteCertificador)
+    private readonly enteCertificadorRepository: Repository<EnteCertificador>,
   ) {}
 
   @Post()
@@ -79,12 +86,27 @@ export class CapacitacionesController {
     return this.createCapacitacionUseCase.execute(createCapacitacionDto);
   }
 
+  @Get('catalog/entes-certificadores')
+  @Roles('ADMIN', 'INSTRUCTOR')
+  @ApiOperation({
+    summary: 'Listar entes certificadores',
+    description:
+      'Catálogo de entes certificadores activos para asignar a capacitaciones.',
+  })
+  @ApiResponse({ status: 200, description: 'Lista de entes certificadores' })
+  async getEntesCertificadores() {
+    return this.enteCertificadorRepository.find({
+      where: { activo: true },
+      order: { nombre: 'ASC' },
+    });
+  }
+
   @Post('list')
   @Roles('ADMIN', 'INSTRUCTOR', 'ALUMNO', 'CLIENTE', 'OPERADOR')
   @ApiOperation({
     summary: 'Obtener lista de capacitaciones con paginación',
     description:
-      'Obtiene una lista paginada de todas las capacitaciones disponibles en el sistema. Todos los roles autenticados pueden ver las capacitaciones.',
+      'Lista paginada de capacitaciones. ADMIN/INSTRUCTOR/ALUMNO ven todo el catálogo. CLIENTE y OPERADOR solo ven cursos en los que su empresa tiene al menos un alumno inscrito (cursos asignados a su empresa).',
   })
   @ApiBody({ type: PaginationDto })
   @ApiResponse({
@@ -107,8 +129,8 @@ export class CapacitacionesController {
     status: 400,
     description: 'Parámetros de paginación inválidos',
   })
-  findAll(@Body() pagination: PaginationDto) {
-    return this.findAllCapacitacionesUseCase.execute(pagination);
+  findAll(@Body() pagination: PaginationDto, @GetUser() user?: Usuario) {
+    return this.findAllCapacitacionesUseCase.execute(pagination, user);
   }
 
   @Get(':id')

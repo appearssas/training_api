@@ -88,5 +88,4 @@ describe('ReportsService', () => {
       expect(result).toBeDefined();
     });
   });
-
 });

@@ -3,7 +3,10 @@ import { IInscripcionesRepository } from '@/domain/inscripciones/ports/inscripci
 import { BulkAssignCoursesDto } from '@/application/inscripciones/dto/bulk-assign-courses.dto';
 import { InscripcionValidatorService } from '@/infrastructure/shared/services/inscripcion-validator.service';
 import { CreateInscripcionDto } from '@/application/inscripciones/dto/create-inscripcion.dto';
-import { Inscripcion } from '@/entities/inscripcion/inscripcion.entity';
+import { Usuario } from '@/entities/usuarios/usuario.entity';
+
+/** Solo CLIENTE y OPERADOR tienen restricción por empresa. ADMIN puede asignar cursos a quien sea. */
+const ROLES_CON_RESTRICCION_EMPRESA = ['CLIENTE', 'OPERADOR'] as const;
 
 interface BulkAssignResult {
   success: number;
@@ -18,10 +21,9 @@ interface BulkAssignResult {
 
 /**
  * Caso de uso: Asignación masiva de cursos a usuarios
- * 
- * Permite asignar múltiples cursos a múltiples usuarios en una sola operación.
- * Valida cada combinación usuario-curso antes de crear la inscripción.
- * Omite duplicados y registra errores para cada fallo.
+ *
+ * ADMIN: puede asignar cualquier curso a cualquier usuario (sin restricción de empresa).
+ * CLIENTE/OPERADOR: solo puede asignar cursos asignados a su empresa y solo a usuarios de su empresa.
  */
 @Injectable()
 export class BulkAssignCoursesUseCase {
@@ -31,8 +33,18 @@ export class BulkAssignCoursesUseCase {
     private readonly inscripcionValidator: InscripcionValidatorService,
   ) {}
 
-  async execute(bulkAssignDto: BulkAssignCoursesDto): Promise<BulkAssignResult> {
+  async execute(
+    bulkAssignDto: BulkAssignCoursesDto,
+    user?: Usuario,
+  ): Promise<BulkAssignResult> {
     const { userIds, courseIds } = bulkAssignDto;
+    const rol = user?.rolPrincipal?.codigo;
+    const esClienteOOperador =
+      rol != null && ROLES_CON_RESTRICCION_EMPRESA.includes(rol as any);
+    const empresaId = esClienteOOperador
+      ? (user?.persona?.empresaId ?? user?.persona?.empresa?.id)
+      : undefined;
+
     const result: BulkAssignResult = {
       success: 0,
       failed: 0,
@@ -48,8 +60,22 @@ export class BulkAssignCoursesUseCase {
     for (const userId of userIds) {
       for (const courseId of courseIds) {
         try {
+          // Solo CLIENTE/OPERADOR: validar curso asignado a su empresa y estudiante de su empresa. ADMIN omite estas validaciones.
+          if (empresaId != null) {
+            await this.inscripcionValidator.validateCapacitacionAssignedToEmpresa(
+              courseId,
+              empresaId,
+            );
+            await this.inscripcionValidator.validateEstudianteBelongsToEmpresa(
+              userId,
+              empresaId,
+            );
+          }
+
           // 1. Validar que la capacitación esté disponible
-          await this.inscripcionValidator.validateCapacitacionDisponible(courseId);
+          await this.inscripcionValidator.validateCapacitacionDisponible(
+            courseId,
+          );
 
           // 2. Validar que el estudiante existe y está activo
           await this.inscripcionValidator.validateEstudiante(userId);
@@ -81,7 +107,10 @@ export class BulkAssignCoursesUseCase {
             result.details.skipped.push({
               userId,
               courseId,
-              reason: error instanceof Error ? error.message : 'Capacidad máxima excedida',
+              reason:
+                error instanceof Error
+                  ? error.message
+                  : 'Capacidad máxima excedida',
             });
             continue;
           }
@@ -92,7 +121,8 @@ export class BulkAssignCoursesUseCase {
             capacitacionId: courseId,
           };
 
-          const inscripcion = await this.inscripcionesRepository.create(createDto);
+          const inscripcion =
+            await this.inscripcionesRepository.create(createDto);
           result.details.created.push({
             userId,
             courseId,
@@ -101,7 +131,9 @@ export class BulkAssignCoursesUseCase {
           result.success++;
         } catch (error) {
           const errorMessage =
-            error instanceof Error ? error.message : 'Error desconocido al crear inscripción';
+            error instanceof Error
+              ? error.message
+              : 'Error desconocido al crear inscripción';
           result.details.errors.push({
             userId,
             courseId,
@@ -115,4 +147,3 @@ export class BulkAssignCoursesUseCase {
     return result;
   }
 }
-

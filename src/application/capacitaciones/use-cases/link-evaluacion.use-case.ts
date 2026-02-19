@@ -22,9 +22,8 @@ export class LinkEvaluacionUseCase {
     linkEvaluacionDto: LinkEvaluacionDto,
   ): Promise<Capacitacion> {
     // Validar que la capacitación exista
-    const capacitacion = await this.capacitacionesRepository.findOne(
-      capacitacionId,
-    );
+    const capacitacion =
+      await this.capacitacionesRepository.findOne(capacitacionId);
     if (!capacitacion) {
       throw new BadRequestException(
         `Capacitación con ID ${capacitacionId} no encontrada`,
@@ -51,7 +50,8 @@ export class LinkEvaluacionUseCase {
     }
 
     // Retornar la capacitación actualizada con sus evaluaciones
-    const capacitacionActualizada = await this.capacitacionesRepository.findOne(capacitacionId);
+    const capacitacionActualizada =
+      await this.capacitacionesRepository.findOne(capacitacionId);
     if (!capacitacionActualizada) {
       throw new BadRequestException(
         `Error al obtener la capacitación actualizada con ID ${capacitacionId}`,
@@ -60,4 +60,3 @@ export class LinkEvaluacionUseCase {
     return capacitacionActualizada;
   }
 }
-

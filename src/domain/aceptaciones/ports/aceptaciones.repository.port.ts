@@ -30,11 +30,15 @@ export interface IAceptacionesRepository {
   /**
    * Verifica si un usuario ha aceptado un documento específico
    */
-  hasAceptadoDocumento(usuarioId: number, documentoId: number): Promise<boolean>;
+  hasAceptadoDocumento(
+    usuarioId: number,
+    documentoId: number,
+  ): Promise<boolean>;
 
   /**
    * Crea una nueva aceptación
    */
-  createAceptacion(aceptacionData: Partial<AceptacionPolitica>): Promise<AceptacionPolitica>;
+  createAceptacion(
+    aceptacionData: Partial<AceptacionPolitica>,
+  ): Promise<AceptacionPolitica>;
 }
-

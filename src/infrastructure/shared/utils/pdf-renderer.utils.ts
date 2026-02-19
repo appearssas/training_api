@@ -6,7 +6,10 @@ import {
 } from '../types/pdf-config.interface';
 import { DEFAULT_VALUES } from '../constants/pdf.constants';
 import { generateQRCodeImage } from './image.utils';
-import { getAllianceCompany } from './certificate.utils';
+import {
+  getAllianceCompany,
+  type CapacitacionConEnte,
+} from './certificate.utils';
 import { QrGeneratorService } from '../services/qr-generator.service';
 import {
   getCertificateConfig,
@@ -249,16 +252,16 @@ export async function renderQRCode(
 }
 
 /**
- * Renderiza el pie de página con formato mixto
+ * Renderiza el pie de página con formato mixto.
+ * La compañía aliada sale de la maestra (ente certificador de la capacitación) o de dataDinamica.
  */
 export function renderFooter(
   doc: jsPDF,
   pageWidth: number,
   config: PdfConfig | undefined,
   certificateTypes: CertificateTypeFlags,
+  capacitacion?: CapacitacionConEnte | null,
 ): void {
-  const { isAlimentos, isCesaroto } = certificateTypes;
-
   const certificateConfig = getCertificateConfig(config, certificateTypes);
   const footerConfig = certificateConfig?.footer;
 
@@ -277,18 +280,15 @@ export function renderFooter(
   doc.setFontSize(footerFontSize);
   doc.setTextColor(...footerColor);
 
-  // Obtener datos dinámicos para la empresa aliada
   const dynamicData = getDynamicData(config, certificateTypes);
-  const allianceCompany = getAllianceCompany(isAlimentos, isCesaroto, dynamicData);
+  const allianceCompany = getAllianceCompany(capacitacion, dynamicData);
+  const displayCompany = allianceCompany || '—';
 
-  // Construir el texto completo para calcular el ancho y dividir en líneas
-  const footerText = `Certificado emitido por FORMAR360 en alianza con ${allianceCompany} La autenticidad de este documento puede verificarse escaneando el código QR.`;
+  const footerText = `Certificado emitido por FORMAR360 en alianza con ${displayCompany} La autenticidad de este documento puede verificarse escaneando el código QR.`;
   const footerLines = doc.splitTextToSize(footerText, pageWidth - 40);
 
-  // Función helper para renderizar una línea con formato mixto
   const renderMixedLine = (line: string, yPos: number, isCentered: boolean) => {
-    // Escapar caracteres especiales de regex en allianceCompany
-    const escapedCompany = allianceCompany.replace(
+    const escapedCompany = displayCompany.replace(
       /[.*+?^${}()|[\]\\]/g,
       '\\$&',
     );
@@ -299,7 +299,7 @@ export function renderFooter(
     let totalWidth = 0;
     doc.setFont('helvetica', 'normal');
     parts.forEach((part: string) => {
-      if (part === 'FORMAR360' || part === allianceCompany) {
+      if (part === 'FORMAR360' || part === displayCompany) {
         doc.setFont('helvetica', 'bold');
       } else {
         doc.setFont('helvetica', 'normal');
@@ -312,7 +312,7 @@ export function renderFooter(
 
     // Renderizar cada parte
     parts.forEach((part: string) => {
-      if (part === 'FORMAR360' || part === allianceCompany) {
+      if (part === 'FORMAR360' || part === displayCompany) {
         doc.setFont('helvetica', 'bold');
       } else {
         doc.setFont('helvetica', 'normal');

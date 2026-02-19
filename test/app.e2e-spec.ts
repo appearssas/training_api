@@ -491,7 +491,7 @@ describe('AppController (e2e)', () => {
         const pdfResponse = await request(app.getHttpServer())
           .get(`/certificados/${certificadoId}/download`)
           .set('Authorization', `Bearer ${adminToken}`)
-          .expect((res) => {
+          .expect(res => {
             expect([200, 404]).toContain(res.status);
           });
 
@@ -543,7 +543,7 @@ describe('AppController (e2e)', () => {
         .post('/inscripciones')
         .set('Authorization', `Bearer ${adminToken}`)
         .send(invalidInscripcionDto)
-        .expect((res) => {
+        .expect(res => {
           // Debería fallar la validación
           expect([400, 404]).toContain(res.status);
         });

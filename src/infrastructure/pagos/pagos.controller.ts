@@ -110,14 +110,16 @@ export class PagosController {
       properties: {
         message: {
           type: 'string',
-          example: 'Conductor Juan Pérez habilitado exitosamente. Ya puede iniciar sesión y recibir cursos.',
+          example:
+            'Conductor Juan Pérez habilitado exitosamente. Ya puede iniciar sesión y recibir cursos.',
         },
       },
     },
   })
   @ApiResponse({
     status: 400,
-    description: 'No se puede habilitar: no es conductor externo o no tiene pago registrado',
+    description:
+      'No se puede habilitar: no es conductor externo o no tiene pago registrado',
   })
   @ApiResponse({
     status: 401,
@@ -137,4 +139,3 @@ export class PagosController {
     return await this.habilitarConductorUseCase.execute(studentId);
   }
 }
-

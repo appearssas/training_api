@@ -22,7 +22,8 @@ export class VerifyCertificadoUseCase {
     fechaEmision: Date;
     fechaVencimiento: Date | null;
   }> {
-    const certificado = await this.certificadosRepository.findByHashVerificacion(token);
+    const certificado =
+      await this.certificadosRepository.findByHashVerificacion(token);
 
     if (!certificado) {
       throw new NotFoundException('Certificado no encontrado o inválido');
@@ -39,9 +40,10 @@ export class VerifyCertificadoUseCase {
     }
 
     // Calcular fecha de emisión (retroactiva si aplica) (RF-28, RF-31)
-    const fechaEmision = certificado.esRetroactivo && certificado.fechaRetroactiva
-      ? certificado.fechaRetroactiva
-      : certificado.fechaEmision;
+    const fechaEmision =
+      certificado.esRetroactivo && certificado.fechaRetroactiva
+        ? certificado.fechaRetroactiva
+        : certificado.fechaEmision;
 
     // Verificar si está vencido
     const isExpired = certificado.fechaVencimiento
@@ -57,4 +59,3 @@ export class VerifyCertificadoUseCase {
     };
   }
 }
-

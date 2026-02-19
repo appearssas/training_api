@@ -15,12 +15,12 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
       context.getHandler(),
       context.getClass(),
     ]);
-    
+
     if (isPublic) {
       // Endpoint público, permitir acceso sin autenticación
       return true;
     }
-    
+
     // Endpoint protegido, ejecutar autenticación JWT
     return super.canActivate(context);
   }

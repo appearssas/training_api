@@ -66,4 +66,3 @@ import { Certificado } from '@/entities/certificados/certificado.entity';
   ],
 })
 export class IntentosModule {}
-

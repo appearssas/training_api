@@ -6,4 +6,3 @@ export interface IPagosRepository {
   findByEstudianteId(estudianteId: number): Promise<Pago[]>;
   findByIdWithRelations(id: number): Promise<Pago | null>;
 }
-

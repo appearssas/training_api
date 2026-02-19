@@ -16,12 +16,20 @@ import { S3Service } from '../services/s3.service';
         // Solo crear S3Service si las variables de entorno están configuradas
         const bucketName = configService.get<string>('AWS_S3_BUCKET_NAME');
         const accessKeyId = configService.get<string>('AWS_ACCESS_KEY_ID');
-        const secretAccessKey = configService.get<string>('AWS_SECRET_ACCESS_KEY');
+        const secretAccessKey = configService.get<string>(
+          'AWS_SECRET_ACCESS_KEY',
+        );
 
         console.log('\n🔍 StorageModule - Verificando configuración S3:');
-        console.log(`   bucketName: ${bucketName ? `✅ Configurado (${bucketName})` : '❌ No configurado'}`);
-        console.log(`   accessKeyId: ${accessKeyId ? `✅ Configurado (${accessKeyId.substring(0, 4)}...)` : '❌ No configurado'}`);
-        console.log(`   secretAccessKey: ${secretAccessKey ? `✅ Configurado (${secretAccessKey.substring(0, 4)}...)` : '❌ No configurado'}`);
+        console.log(
+          `   bucketName: ${bucketName ? `✅ Configurado (${bucketName})` : '❌ No configurado'}`,
+        );
+        console.log(
+          `   accessKeyId: ${accessKeyId ? `✅ Configurado (${accessKeyId.substring(0, 4)}...)` : '❌ No configurado'}`,
+        );
+        console.log(
+          `   secretAccessKey: ${secretAccessKey ? `✅ Configurado (${secretAccessKey.substring(0, 4)}...)` : '❌ No configurado'}`,
+        );
 
         if (bucketName && accessKeyId && secretAccessKey) {
           try {
@@ -35,7 +43,9 @@ import { S3Service } from '../services/s3.service';
             return null;
           }
         }
-        console.log('⚠️ Variables de S3 no configuradas completamente, S3Service será null\n');
+        console.log(
+          '⚠️ Variables de S3 no configuradas completamente, S3Service será null\n',
+        );
         return null;
       },
       inject: [ConfigService],
@@ -45,4 +55,3 @@ import { S3Service } from '../services/s3.service';
   exports: [StorageService, S3Service],
 })
 export class StorageModule {}
-

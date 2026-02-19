@@ -10,11 +10,7 @@ import { RolesGuard } from '@/infrastructure/shared/guards/roles.guard';
 import { AuthModule } from '@/infrastructure/auth/auth.module';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([Rol]),
-    PassportModule,
-    AuthModule,
-  ],
+  imports: [TypeOrmModule.forFeature([Rol]), PassportModule, AuthModule],
   controllers: [RolesController],
   providers: [
     GetRolesUseCase,
@@ -27,4 +23,3 @@ import { AuthModule } from '@/infrastructure/auth/auth.module';
   exports: ['IRolesRepository'],
 })
 export class RolesModule {}
-

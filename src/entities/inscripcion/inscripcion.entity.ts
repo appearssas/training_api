@@ -21,13 +21,13 @@ export class Inscripcion {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne(() => Capacitacion, (capacitacion) => capacitacion.inscripciones, {
+  @ManyToOne(() => Capacitacion, capacitacion => capacitacion.inscripciones, {
     onDelete: 'CASCADE',
   })
   @JoinColumn({ name: 'capacitacion_id' })
   capacitacion: Capacitacion;
 
-  @ManyToOne(() => Persona, (persona) => persona.inscripciones)
+  @ManyToOne(() => Persona, persona => persona.inscripciones)
   @JoinColumn({ name: 'estudiante_id' })
   estudiante: Persona;
 
@@ -72,15 +72,15 @@ export class Inscripcion {
   @Column({ type: 'tinyint', nullable: true })
   aprobado: boolean | null;
 
-  @OneToMany(() => ProgresoLeccion, (progreso) => progreso.inscripcion)
+  @OneToMany(() => ProgresoLeccion, progreso => progreso.inscripcion)
   progresoLecciones: ProgresoLeccion[];
 
-  @OneToMany(() => IntentoEvaluacion, (intento) => intento.inscripcion)
+  @OneToMany(() => IntentoEvaluacion, intento => intento.inscripcion)
   intentosEvaluacion: IntentoEvaluacion[];
 
-  @OneToMany(() => Certificado, (certificado) => certificado.inscripcion)
+  @OneToMany(() => Certificado, certificado => certificado.inscripcion)
   certificados: Certificado[];
 
-  @OneToMany(() => Resena, (resena) => resena.inscripcion)
+  @OneToMany(() => Resena, resena => resena.inscripcion)
   resenas: Resena[];
 }
