@@ -412,14 +412,21 @@ export class CertificadosController {
   }
 
   /**
-   * Si el usuario es ALUMNO o CLIENTE/OPERADOR y el curso-empresa tiene descarga de certificado deshabilitada, lanza 403.
+   * Solo ALUMNO (y conductores) respetan permiteDescargaCertificado de la empresa.
+   * ADMIN, INSTRUCTOR, CLIENTE y OPERADOR pueden descargar siempre (aunque esté deshabilitado para alumnos).
    */
   private async ensurePermiteDescargaCertificado(
     certificado: any,
     user: any,
   ): Promise<void> {
     const rol = user?.rolPrincipal?.codigo ?? '';
-    if (rol === 'ADMIN' || rol === 'INSTRUCTOR') return;
+    if (
+      rol === 'ADMIN' ||
+      rol === 'INSTRUCTOR' ||
+      rol === 'CLIENTE' ||
+      rol === 'OPERADOR'
+    )
+      return;
 
     const empresaId =
       certificado?.inscripcion?.estudiante?.empresaId ??
