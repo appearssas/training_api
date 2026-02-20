@@ -30,13 +30,19 @@ export class DashboardService {
   ) {}
 
   /**
-   * Solo ADMIN ve datos de todas las empresas. Resto (ej. usuario institucional/CLIENTE) solo datos de su empresa.
+   * Datos globales solo cuando el usuario es ADMIN y no tiene empresa.
+   * Si tiene empresa (persona.empresaId o persona.empresa), se filtra por esa empresa (ADMIN, CLIENTE u OPERADOR).
    */
   async getStats(user: Usuario) {
-    const isAdmin = user?.rolPrincipal?.codigo === 'ADMIN';
-    const empresaId: number | undefined = isAdmin
+    const personaEmpresaId =
+      user?.persona?.empresaId ??
+      (user?.persona?.empresa?.id as number | undefined) ??
+      undefined;
+    const isAdminSinEmpresa =
+      user?.rolPrincipal?.codigo === 'ADMIN' && personaEmpresaId == null;
+    const empresaId: number | undefined = isAdminSinEmpresa
       ? undefined
-      : (user?.persona?.empresaId ?? undefined);
+      : personaEmpresaId;
 
     const [
       activeCourses,
@@ -174,14 +180,14 @@ export class DashboardService {
         .createQueryBuilder('inscripcion')
         .innerJoin('inscripcion.estudiante', 'estudiante');
       if (empresaId != null) {
-        q.andWhere('estudiante.empresaId = :empresaId', { empresaId });
+        q.andWhere('estudiante.empresa_id = :empresaId', { empresaId });
       }
       return q;
     };
 
     const result = await baseQb()
       .select('COUNT(DISTINCT inscripcion.estudiante_id)', 'count')
-      .where('inscripcion.estado IN (:...estados)', {
+      .andWhere('inscripcion.estado IN (:...estados)', {
         estados: [EstadoInscripcion.INSCRITO, EstadoInscripcion.EN_PROGRESO],
       })
       .getRawOne();
@@ -189,7 +195,7 @@ export class DashboardService {
 
     const currentResult = await baseQb()
       .select('COUNT(DISTINCT inscripcion.estudiante_id)', 'count')
-      .where('inscripcion.fechaInscripcion >= :start', {
+      .andWhere('inscripcion.fechaInscripcion >= :start', {
         start: currentMonthStart,
       })
       .getRawOne();
@@ -197,7 +203,7 @@ export class DashboardService {
 
     const previousResult = await baseQb()
       .select('COUNT(DISTINCT inscripcion.estudiante_id)', 'count')
-      .where('inscripcion.fechaInscripcion >= :start', {
+      .andWhere('inscripcion.fechaInscripcion >= :start', {
         start: previousMonthStart,
       })
       .andWhere('inscripcion.fechaInscripcion < :end', {
@@ -224,7 +230,7 @@ export class DashboardService {
       )
       .setParameter('completo', EstadoInscripcion.COMPLETADO);
     if (empresaId != null) {
-      qb.andWhere('estudiante.empresaId = :empresaId', { empresaId });
+      qb.andWhere('estudiante.empresa_id = :empresaId', { empresaId });
     }
     const result = await qb.getRawOne();
 
@@ -246,7 +252,7 @@ export class DashboardService {
       .select('AVG(resena.calificacion)', 'avg')
       .where('resena.fechaCreacion >= :date', { date: sixMonthsAgo });
     if (empresaId != null) {
-      qb.andWhere('estudiante.empresaId = :empresaId', { empresaId });
+      qb.andWhere('estudiante.empresa_id = :empresaId', { empresaId });
     }
     const result = await qb.getRawOne();
 
@@ -285,7 +291,7 @@ export class DashboardService {
         .createQueryBuilder(alias)
         .innerJoin(`${alias}.inscripcion`, 'inscripcion')
         .innerJoin('inscripcion.estudiante', 'estudiante')
-        .where('estudiante.empresaId = :empresaId', { empresaId });
+        .where('estudiante.empresa_id = :empresaId', { empresaId });
 
     const currentMonth = await qb('cert')
       .andWhere('cert.fechaEmision >= :start', { start: currentMonthStart })
@@ -313,7 +319,7 @@ export class DashboardService {
       .innerJoin('intento.inscripcion', 'inscripcion')
       .innerJoin('inscripcion.estudiante', 'estudiante')
       .where('intento.estado = :estado', { estado: EstadoIntento.EN_PROGRESO })
-      .andWhere('estudiante.empresaId = :empresaId', { empresaId })
+      .andWhere('estudiante.empresa_id = :empresaId', { empresaId })
       .getCount();
     return { value: count };
   }
@@ -424,7 +430,7 @@ export class DashboardService {
         .andWhere('inscripcion.fechaInscripcion < :end', { end: nextMonth })
         .setParameter('completo', EstadoInscripcion.COMPLETADO);
       if (empresaId != null) {
-        qb.andWhere('estudiante.empresaId = :empresaId', { empresaId });
+        qb.andWhere('estudiante.empresa_id = :empresaId', { empresaId });
       }
       const result = await qb.getRawOne();
 
@@ -468,7 +474,7 @@ export class DashboardService {
         now,
         end: thirtyDaysLater,
       })
-      .andWhere('estudiante.empresaId = :empresaId', { empresaId })
+      .andWhere('estudiante.empresa_id = :empresaId', { empresaId })
       .orderBy('cert.fechaVencimiento', 'ASC')
       .take(5)
       .select(['cert.id', 'cert.fechaVencimiento'])
@@ -528,7 +534,7 @@ export class DashboardService {
       .createQueryBuilder('inscripcion')
       .innerJoinAndSelect('inscripcion.estudiante', 'estudiante')
       .innerJoinAndSelect('inscripcion.capacitacion', 'capacitacion')
-      .where('estudiante.empresaId = :empresaId', { empresaId })
+      .where('estudiante.empresa_id = :empresaId', { empresaId })
       .orderBy('inscripcion.fechaInscripcion', 'DESC')
       .take(5)
       .getMany();
@@ -540,7 +546,7 @@ export class DashboardService {
       .leftJoinAndSelect('cert.inscripcion', 'i')
       .leftJoinAndSelect('i.estudiante', 'e')
       .leftJoinAndSelect('i.capacitacion', 'cap')
-      .where('estudiante.empresaId = :empresaId', { empresaId })
+      .where('estudiante.empresa_id = :empresaId', { empresaId })
       .orderBy('cert.fechaEmision', 'DESC')
       .take(5)
       .getMany();
