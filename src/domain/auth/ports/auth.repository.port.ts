@@ -7,6 +7,7 @@ import { Rol } from '@/entities/roles/rol.entity';
  */
 export interface IAuthRepository {
   findByUsername(username: string): Promise<Usuario | null>;
+  findUsuarioById(id: number): Promise<Usuario | null>;
   findByEmail(email: string): Promise<Persona | null>;
   findByNumeroDocumento(numeroDocumento: string): Promise<Persona | null>;
   comparePassword(password: string, hashedPassword: string): boolean;
