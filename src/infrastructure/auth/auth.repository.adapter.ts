@@ -107,6 +107,13 @@ export class AuthRepositoryAdapter implements IAuthRepository {
     return user ?? null;
   }
 
+  async findUsuarioById(id: number): Promise<Usuario | null> {
+    return this.userRepository.findOne({
+      where: { id },
+      select: { id: true, username: true, passwordHash: true },
+    });
+  }
+
   comparePassword(password: string, hashedPassword: string): boolean {
     return comparePassword(password, hashedPassword);
   }

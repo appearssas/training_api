@@ -10,6 +10,7 @@ import { UpdateProfileUseCase } from '@/application/auth/use-cases/update-profil
 import { RegisterUseCase } from '@/application/auth/use-cases/register.use-case';
 import { CreateAdminUseCase } from '@/application/auth/use-cases/create-admin.use-case';
 import { ChangePasswordUseCase } from '@/application/auth/use-cases/change-password.use-case';
+import { AdminChangeUserPasswordUseCase } from '@/application/auth/use-cases/admin-change-user-password.use-case';
 import { RequestPasswordResetUseCase } from '@/application/auth/use-cases/request-password-reset.use-case';
 import { ResetPasswordUseCase } from '@/application/auth/use-cases/reset-password.use-case';
 import { JwtStrategy } from '@/infrastructure/shared/auth/strategies/jwt.strategy';
@@ -37,6 +38,7 @@ import { Empresa } from '@/entities/empresas/empresa.entity';
     RegisterUseCase,
     CreateAdminUseCase,
     ChangePasswordUseCase,
+    AdminChangeUserPasswordUseCase,
     UpdateProfileUseCase,
     RequestPasswordResetUseCase,
     ResetPasswordUseCase,

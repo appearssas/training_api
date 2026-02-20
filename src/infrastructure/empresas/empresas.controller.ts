@@ -394,13 +394,13 @@ export class EmpresasController {
   }
 
   @Get(':id/capacitaciones-with-descarga')
-  @Roles('ADMIN', 'CLIENTE', 'OPERADOR')
+  @Roles('ADMIN', 'CLIENTE', 'OPERADOR', 'ALUMNO')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary:
       'Listar cursos asignados a la empresa con opción de descarga de certificado',
     description:
-      'Devuelve cada curso asignado a la empresa con el flag permiteDescargaCertificado. ADMIN ve cualquier empresa; CLIENTE/OPERADOR solo su empresa.',
+      'Devuelve cada curso asignado a la empresa con el flag permiteDescargaCertificado. ADMIN ve cualquier empresa; CLIENTE/OPERADOR/ALUMNO solo su propia empresa (ALUMNO para saber si puede descargar certificados).',
   })
   @ApiParam({ name: 'id', description: 'ID de la empresa' })
   @ApiResponse({
@@ -409,7 +409,8 @@ export class EmpresasController {
   })
   @ApiResponse({
     status: 403,
-    description: 'CLIENTE/OPERADOR solo puede consultar su propia empresa',
+    description:
+      'CLIENTE/OPERADOR/ALUMNO solo puede consultar su propia empresa',
   })
   async getCapacitacionesWithPermiteDescarga(
     @Param('id', ParseIntPipe) id: number,
@@ -420,7 +421,7 @@ export class EmpresasController {
     },
   ) {
     const rol = user?.rolPrincipal?.codigo ?? '';
-    if (rol === 'CLIENTE' || rol === 'OPERADOR') {
+    if (rol === 'CLIENTE' || rol === 'OPERADOR' || rol === 'ALUMNO') {
       const userEmpresaId =
         user?.persona?.empresaId ?? user?.persona?.empresa?.id ?? null;
       if (userEmpresaId == null || id !== userEmpresaId) {

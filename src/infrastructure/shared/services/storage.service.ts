@@ -70,17 +70,20 @@ export class StorageService {
 
       const isRender =
         !!process.env.RENDER || baseStoragePath.startsWith('/app/');
-      const storageType = isRender ? 'Render (disco persistente)' : 'Local';
 
       console.log('📦 StorageService - Configuración de almacenamiento:');
-      console.log(`   ✅ Tipo: ${storageType}`);
+      console.log(
+        `   ✅ Tipo: Local${isRender ? ' (Render: monta disco persistente en esta ruta para que no se borre en deploy)' : ''}`,
+      );
       console.log(`   📁 Ruta base: ${this.storagePath}`);
       console.log(`   📁 Materiales: ${this.materialsPath}`);
       console.log(`   📁 Certificados: ${this.certificatesPath}`);
       console.log(`   📁 Avatares: ${this.avatarsPath}`);
       console.log(`   📁 Catálogos: ${this.catalogosPath}`);
       if (isRender) {
-        console.log(`   🌐 Entorno: Render (disco persistente)`);
+        console.log(
+          `   ⚠️  En Render sin disco persistente los archivos se pierden en cada deploy. Usa S3 o añade un Persistent Disk con ruta ${this.storagePath}`,
+        );
       }
 
       this.ensureDirectoriesExist();

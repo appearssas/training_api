@@ -10,6 +10,7 @@ API REST para sistema de capacitaciones tipo Udemy, construida con NestJS y Type
 - [Requisitos](#requisitos)
 - [Instalación](#instalación)
 - [Ejecutar la aplicación](#ejecutar-la-aplicación)
+- [Despliegue en Render (persistencia de storage)](#despliegue-en-render-persistencia-de-storage)
 - [Migraciones](#migraciones)
 - [Entidades Principales](#entidades-principales)
 - [Agregar Nuevos Módulos](#agregar-nuevos-módulos)
@@ -279,6 +280,20 @@ El contenedor de la API está configurado con **hot-reload** activo. Esto signif
 - ✅ No necesitas reconstruir el contenedor después de cambios en el código
 - ✅ El servidor se reinicia automáticamente cuando detecta cambios
 - ⚠️ Si cambias `package.json`, necesitas reconstruir: `docker-compose build api && docker-compose up -d api`
+
+---
+
+## Despliegue en Render (persistencia de storage)
+
+En Render el filesystem es **efímero**: en cada deploy se borra el contenido de `storage` (certificados, materiales, avatares, etc.). Para evitarlo tienes dos opciones:
+
+1. **Usar S3 (recomendado)**  
+   Configura en Render las variables `AWS_S3_BUCKET_NAME`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` (y opcionalmente `AWS_REGION`, `AWS_CLOUDFRONT_URL`). La API guardará todo en S3 y no usará disco local.
+
+2. **Disco persistente de Render**  
+   En el servicio → **Disks** → Add Disk → **Mount path**: `/app/storage`. Así la carpeta donde la API escribe queda en un disco que persiste entre deploys.
+
+Detalle completo: [docs/RENDER_DEPLOY.md](docs/RENDER_DEPLOY.md).
 
 ---
 
