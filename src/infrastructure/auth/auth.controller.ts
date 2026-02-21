@@ -31,6 +31,7 @@ import { RefreshTokenUseCase } from '@/application/auth/use-cases/refresh-token.
 import { RegisterUseCase } from '@/application/auth/use-cases/register.use-case';
 import { CreateAdminUseCase } from '@/application/auth/use-cases/create-admin.use-case';
 import { ChangePasswordUseCase } from '@/application/auth/use-cases/change-password.use-case';
+import { AdminChangeUserPasswordUseCase } from '@/application/auth/use-cases/admin-change-user-password.use-case';
 import {
   RequestPasswordResetUseCase,
   RequestPasswordResetResponse,
@@ -43,6 +44,7 @@ import { LoginDto } from '@/application/auth/dto/login.dto';
 import { RegisterDto } from '@/application/auth/dto/register.dto';
 import { CreateAdminDto } from '@/application/auth/dto/create-admin.dto';
 import { ChangePasswordDto } from '@/application/auth/dto/change-password.dto';
+import { AdminChangeUserPasswordDto } from '@/application/auth/dto/admin-change-user-password.dto';
 import { UpdateProfileDto } from '@/application/auth/dto/update-profile.dto';
 import { RequestPasswordResetDto } from '@/application/auth/dto/request-password-reset.dto';
 import { ResetPasswordDto } from '@/application/auth/dto/reset-password.dto';
@@ -92,6 +94,7 @@ export class AuthController {
     private readonly registerUseCase: RegisterUseCase,
     private readonly createAdminUseCase: CreateAdminUseCase,
     private readonly changePasswordUseCase: ChangePasswordUseCase,
+    private readonly adminChangeUserPasswordUseCase: AdminChangeUserPasswordUseCase,
     private readonly updateProfileUseCase: UpdateProfileUseCase,
     private readonly requestPasswordResetUseCase: RequestPasswordResetUseCase,
     private readonly resetPasswordUseCase: ResetPasswordUseCase,
@@ -516,6 +519,50 @@ export class AuthController {
   })
   async createAdmin(@Body() createAdminDto: CreateAdminDto) {
     return await this.createAdminUseCase.execute(createAdminDto);
+  }
+
+  @Patch('admin/change-user-password/:userId')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('ADMIN')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({
+    summary: 'Cambiar contraseña de un usuario (solo administrador)',
+    description:
+      'Permite al administrador cambiar la contraseña de cualquier usuario. Requiere ingresar la contraseña del administrador para verificar identidad.',
+  })
+  @ApiParam({
+    name: 'userId',
+    type: Number,
+    description: 'ID del usuario al que se le cambiará la contraseña',
+  })
+  @ApiBody({ type: AdminChangeUserPasswordDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Contraseña del usuario actualizada correctamente',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Nueva contraseña inválida o igual a la actual',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Contraseña de administrador incorrecta',
+  })
+  @ApiResponse({ status: 403, description: 'Se requiere rol ADMIN' })
+  @ApiResponse({
+    status: 404,
+    description: 'Usuario a modificar no encontrado',
+  })
+  async adminChangeUserPassword(
+    @Param('userId') userId: string,
+    @Body() dto: AdminChangeUserPasswordDto,
+    @GetUser() adminUser: Usuario,
+  ) {
+    return await this.adminChangeUserPasswordUseCase.execute(
+      adminUser,
+      Number(userId),
+      dto,
+    );
   }
 
   @Post('change-password/:username')

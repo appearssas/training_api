@@ -1,8 +1,26 @@
-import { Controller, Get, Param, ParseIntPipe, Patch, Body, UseGuards } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBody, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  Controller,
+  Get,
+  Param,
+  ParseIntPipe,
+  Patch,
+  Body,
+  UseGuards,
+} from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiParam,
+  ApiBody,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
 import { RolesGuard, Roles } from '@/infrastructure/shared/guards/roles.guard';
-import { FindOneEvaluacionUseCase, UpdateEvaluacionUseCase } from '@/application/evaluaciones/use-cases';
+import {
+  FindOneEvaluacionUseCase,
+  UpdateEvaluacionUseCase,
+} from '@/application/evaluaciones/use-cases';
 import { UpdateEvaluacionDto } from '@/application/evaluaciones/dto';
 import { Evaluacion } from '@/entities/evaluaciones/evaluacion.entity';
 
@@ -28,7 +46,8 @@ export class EvaluacionesController {
   @Roles('ADMIN', 'INSTRUCTOR', 'ALUMNO', 'CLIENTE', 'OPERADOR')
   @ApiOperation({
     summary: 'Obtener una evaluación por ID',
-    description: 'Retorna una evaluación completa con todas sus preguntas y opciones de respuesta ordenadas. Todos los roles autenticados pueden ver evaluaciones.',
+    description:
+      'Retorna una evaluación completa con todas sus preguntas y opciones de respuesta ordenadas. Todos los roles autenticados pueden ver evaluaciones.',
   })
   @ApiParam({
     name: 'id',
@@ -130,4 +149,3 @@ export class EvaluacionesController {
     return this.updateEvaluacionUseCase.execute(id, updateEvaluacionDto);
   }
 }
-

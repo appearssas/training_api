@@ -4,9 +4,7 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
  * Índice compuesto para optimizar findActive() en certificate_formats.
  * La consulta filtra por activo = 1 y ordena por fecha_actualizacion DESC.
  */
-export class AddCertificateFormatsActiveIndex1769500000000
-  implements MigrationInterface
-{
+export class AddCertificateFormatsActiveIndex1769500000000 implements MigrationInterface {
   name = 'AddCertificateFormatsActiveIndex1769500000000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {

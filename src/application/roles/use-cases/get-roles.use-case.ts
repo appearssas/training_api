@@ -15,7 +15,7 @@ export class GetRolesUseCase {
   async execute(): Promise<ListRolesResponseDto> {
     const roles = await this.rolesRepository.findAll();
 
-    const data: RoleResponseDto[] = roles.map((rol) => ({
+    const data: RoleResponseDto[] = roles.map(rol => ({
       id: rol.id,
       nombre: rol.nombre,
       codigo: rol.codigo,
@@ -29,4 +29,3 @@ export class GetRolesUseCase {
     };
   }
 }
-

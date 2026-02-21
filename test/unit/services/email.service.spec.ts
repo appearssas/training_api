@@ -26,7 +26,7 @@ describe('EmailService', () => {
       verify: jest.fn().mockResolvedValue(true),
     };
 
-    jest.spyOn(nodemailer, 'createTransport').mockReturnValue(mockTransporter as any);
+    jest.spyOn(nodemailer, 'createTransport').mockReturnValue(mockTransporter);
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -51,7 +51,6 @@ describe('EmailService', () => {
   it('should be defined', () => {
     expect(service).toBeDefined();
   });
-
 
   describe('enviarCredencialesTemporales', () => {
     it('should send temporary credentials email', async () => {

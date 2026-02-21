@@ -44,7 +44,7 @@ export class GetUsersUseCase {
 
     const totalPages = Math.ceil(total / limit);
 
-    const data: UserResponseDto[] = usuarios.map((usuario) => ({
+    const data: UserResponseDto[] = usuarios.map(usuario => ({
       id: usuario.id,
       persona: {
         id: usuario.persona.id,
@@ -95,4 +95,3 @@ export class GetUsersUseCase {
     };
   }
 }
-

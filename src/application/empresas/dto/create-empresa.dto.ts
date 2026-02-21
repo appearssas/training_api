@@ -16,7 +16,9 @@ export class CreateEmpresaDto {
   })
   @IsString({ message: 'El número de documento debe ser una cadena de texto' })
   @IsNotEmpty({ message: 'El número de documento es requerido' })
-  @MaxLength(50, { message: 'El número de documento no puede exceder 50 caracteres' })
+  @MaxLength(50, {
+    message: 'El número de documento no puede exceder 50 caracteres',
+  })
   @Matches(/^[0-9-]+$/, {
     message: 'El número de documento solo puede contener números y guiones',
   })
@@ -30,7 +32,9 @@ export class CreateEmpresaDto {
   })
   @IsOptional()
   @IsString({ message: 'El tipo de documento debe ser una cadena de texto' })
-  @MaxLength(20, { message: 'El tipo de documento no puede exceder 20 caracteres' })
+  @MaxLength(20, {
+    message: 'El tipo de documento no puede exceder 20 caracteres',
+  })
   tipoDocumento?: string;
 
   @ApiProperty({
@@ -40,7 +44,9 @@ export class CreateEmpresaDto {
   })
   @IsString({ message: 'La razón social debe ser una cadena de texto' })
   @IsNotEmpty({ message: 'La razón social es requerida' })
-  @MaxLength(500, { message: 'La razón social no puede exceder 500 caracteres' })
+  @MaxLength(500, {
+    message: 'La razón social no puede exceder 500 caracteres',
+  })
   razonSocial: string;
 
   @ApiPropertyOptional({
@@ -71,4 +77,3 @@ export class CreateEmpresaDto {
   @IsString({ message: 'La dirección debe ser una cadena de texto' })
   direccion?: string;
 }
-

@@ -111,7 +111,9 @@ describe('StorageService', () => {
         return undefined;
       });
 
-      s3Service.uploadFile.mockResolvedValue('https://cdn.example.com/materials/test.jpg');
+      s3Service.uploadFile.mockResolvedValue(
+        'https://cdn.example.com/materials/test.jpg',
+      );
 
       const newModule = await Test.createTestingModule({
         providers: [
@@ -193,7 +195,9 @@ describe('StorageService', () => {
         return undefined;
       });
 
-      s3Service.uploadBuffer.mockResolvedValue('https://cdn.example.com/certificates/test.pdf');
+      s3Service.uploadBuffer.mockResolvedValue(
+        'https://cdn.example.com/certificates/test.pdf',
+      );
 
       const newModule = await Test.createTestingModule({
         providers: [
@@ -211,7 +215,11 @@ describe('StorageService', () => {
       const newService = newModule.get<StorageService>(StorageService);
 
       const buffer = Buffer.from('test content');
-      const url = await newService.saveBuffer(buffer, 'test.pdf', 'certificates');
+      const url = await newService.saveBuffer(
+        buffer,
+        'test.pdf',
+        'certificates',
+      );
 
       expect(url).toBe('https://cdn.example.com/certificates/test.pdf');
       expect(s3Service.uploadBuffer).toHaveBeenCalled();
@@ -226,21 +234,22 @@ describe('StorageService', () => {
     });
 
     it('should remove /storage/ prefix if present', () => {
-      const filePath = service.getFilePath('/storage/materials/test.jpg');
-      expect(filePath).not.toContain('/storage/');
+      const withPrefix = service.getFilePath('/storage/materials/test.jpg');
+      const withoutPrefix = service.getFilePath('materials/test.jpg');
+      expect(withPrefix).toBe(withoutPrefix);
     });
   });
 
   describe('fileExists', () => {
-    it('should return true if file exists', () => {
+    it('should return true if file exists', async () => {
       (fs.existsSync as jest.Mock).mockReturnValue(true);
-      const exists = service.fileExists('materials/test.jpg');
+      const exists = await service.fileExists('materials/test.jpg');
       expect(exists).toBe(true);
     });
 
-    it('should return false if file does not exist', () => {
+    it('should return false if file does not exist', async () => {
       (fs.existsSync as jest.Mock).mockReturnValue(false);
-      const exists = service.fileExists('materials/nonexistent.jpg');
+      const exists = await service.fileExists('materials/nonexistent.jpg');
       expect(exists).toBe(false);
     });
   });

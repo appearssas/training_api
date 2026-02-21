@@ -14,6 +14,7 @@ import { Evaluacion } from '@/entities/evaluaciones/evaluacion.entity';
 import { Pregunta } from '@/entities/evaluaciones/pregunta.entity';
 import { OpcionRespuesta } from '@/entities/evaluaciones/opcion-respuesta.entity';
 import { TipoPregunta } from '@/entities/catalogos/tipo-pregunta.entity';
+import { EnteCertificador } from '@/entities/catalogos/ente-certificador.entity';
 import { Certificado } from '@/entities/certificados/certificado.entity';
 import { Inscripcion } from '@/entities/inscripcion/inscripcion.entity';
 import { EvaluacionValidatorService } from '../shared/services/evaluacion-validator.service';
@@ -43,6 +44,7 @@ import { CertificadoValidatorService } from '../shared/services/certificado-vali
       Pregunta,
       OpcionRespuesta,
       TipoPregunta,
+      EnteCertificador,
       Certificado,
       Inscripcion,
     ]),

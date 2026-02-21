@@ -241,4 +241,3 @@ export class IntentosController {
     return this.getAttemptsUseCase.execute(evaluacionId, inscripcionId);
   }
 }
-

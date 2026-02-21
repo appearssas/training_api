@@ -29,7 +29,9 @@ describe('CertificadoValidatorService', () => {
       ],
     }).compile();
 
-    service = module.get<CertificadoValidatorService>(CertificadoValidatorService);
+    service = module.get<CertificadoValidatorService>(
+      CertificadoValidatorService,
+    );
     certificadoRepository = module.get(getRepositoryToken(Certificado));
     inscripcionRepository = module.get(getRepositoryToken(Inscripcion));
   });
@@ -91,7 +93,10 @@ describe('CertificadoValidatorService', () => {
       const inscripcion2 = new Inscripcion();
       inscripcion2.id = 2;
       inscripcion2.certificados = [certificado1];
-      inscripcionRepository.find.mockResolvedValue([inscripcion1, inscripcion2]);
+      inscripcionRepository.find.mockResolvedValue([
+        inscripcion1,
+        inscripcion2,
+      ]);
 
       const result = await service.getCertificadosCount(1);
       expect(result).toBe(3);

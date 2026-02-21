@@ -1,4 +1,9 @@
-import { Injectable, Inject, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  Inject,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { IEvaluacionesRepository } from '@/domain/evaluaciones/ports/evaluaciones.repository.port';
 import { UpdateEvaluacionDto } from '@/application/evaluaciones/dto';
 import { Evaluacion } from '@/entities/evaluaciones/evaluacion.entity';
@@ -36,13 +41,17 @@ export class UpdateEvaluacionUseCase {
     // Validar que si se actualizan preguntas, haya al menos una
     if (updateEvaluacionDto.preguntas !== undefined) {
       if (updateEvaluacionDto.preguntas.length === 0) {
-        throw new BadRequestException('La evaluación debe tener al menos una pregunta');
+        throw new BadRequestException(
+          'La evaluación debe tener al menos una pregunta',
+        );
       }
 
       // Validar que cada pregunta tenga al menos una opción
       for (const pregunta of updateEvaluacionDto.preguntas) {
         if (!pregunta.opciones || pregunta.opciones.length === 0) {
-          throw new BadRequestException('Cada pregunta debe tener al menos una opción de respuesta');
+          throw new BadRequestException(
+            'Cada pregunta debe tener al menos una opción de respuesta',
+          );
         }
       }
     }
@@ -50,4 +59,3 @@ export class UpdateEvaluacionUseCase {
     return this.evaluacionesRepository.update(id, updateEvaluacionDto);
   }
 }
-

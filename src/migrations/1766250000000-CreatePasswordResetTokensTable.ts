@@ -1,8 +1,11 @@
-import { MigrationInterface, QueryRunner, Table, TableForeignKey } from 'typeorm';
+import {
+  MigrationInterface,
+  QueryRunner,
+  Table,
+  TableForeignKey,
+} from 'typeorm';
 
-export class CreatePasswordResetTokensTable1766250000000
-  implements MigrationInterface
-{
+export class CreatePasswordResetTokensTable1766250000000 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.createTable(
       new Table({
@@ -71,7 +74,7 @@ export class CreatePasswordResetTokensTable1766250000000
     const table = await queryRunner.getTable('password_reset_tokens');
     if (table) {
       const foreignKey = table.foreignKeys.find(
-        (fk) => fk.columnNames.indexOf('usuario_id') !== -1,
+        fk => fk.columnNames.indexOf('usuario_id') !== -1,
       );
       if (foreignKey) {
         await queryRunner.dropForeignKey('password_reset_tokens', foreignKey);

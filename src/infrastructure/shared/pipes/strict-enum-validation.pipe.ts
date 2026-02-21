@@ -15,7 +15,7 @@ import { validate, ValidationError } from 'class-validator';
 export class StrictEnumValidationPipe implements PipeTransform<any> {
   async transform(value: any, { metatype }: ArgumentMetadata) {
     if (!metatype || !this.toValidate(metatype)) {
-      return value;
+      return value as unknown;
     }
 
     const object = plainToInstance(metatype, value);
@@ -38,23 +38,26 @@ export class StrictEnumValidationPipe implements PipeTransform<any> {
     }
 
     // Después de validar, aplicar transformación solo para tipos no-enum
-    return plainToInstance(metatype, value, {
+    const plain: object | object[] = Array.isArray(value)
+      ? (value as object[])
+      : (value as object);
+    return plainToInstance(metatype, plain, {
       enableImplicitConversion: true,
       excludeExtraneousValues: true,
-    });
+    }) as unknown;
   }
 
-  private toValidate(metatype: Function): boolean {
-    const types: Function[] = [String, Boolean, Number, Array, Object];
+  private toValidate(metatype: any): boolean {
+    const types: any[] = [String, Boolean, Number, Array, Object];
     return !types.includes(metatype);
   }
 
   private formatValidationErrors(errors: ValidationError[]): string[] {
     const messages: string[] = [];
 
-    errors.forEach((error) => {
+    errors.forEach(error => {
       if (error.constraints) {
-        Object.values(error.constraints).forEach((message) => {
+        Object.values(error.constraints).forEach(message => {
           messages.push(message);
         });
       }
@@ -62,7 +65,7 @@ export class StrictEnumValidationPipe implements PipeTransform<any> {
       // Validar propiedades anidadas
       if (error.children && error.children.length > 0) {
         const nestedMessages = this.formatValidationErrors(error.children);
-        nestedMessages.forEach((message) => {
+        nestedMessages.forEach(message => {
           messages.push(`${error.property}.${message}`);
         });
       }
@@ -71,4 +74,3 @@ export class StrictEnumValidationPipe implements PipeTransform<any> {
     return messages;
   }
 }
-

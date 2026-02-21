@@ -45,6 +45,7 @@ import { ConfigService } from '@nestjs/config';
 import { PdfGeneratorService } from '@/infrastructure/shared/services/pdf-generator.service';
 import { StorageService } from '@/infrastructure/shared/services/storage.service';
 import { CertificadosRepositoryAdapter } from './certificados.repository.adapter';
+import { EmpresasCapacitacionesService } from '../empresas/empresas-capacitaciones.service';
 
 /**
  * Controlador de Certificados
@@ -68,6 +69,7 @@ export class CertificadosController {
     private readonly regenerateCertificatesUseCase: RegenerateCertificatesUseCase,
     private readonly storageService: StorageService,
     private readonly certificadosRepository: CertificadosRepositoryAdapter,
+    private readonly empresasCapacitacionesService: EmpresasCapacitacionesService,
   ) {}
 
   @Post('generate')
@@ -300,12 +302,13 @@ export class CertificadosController {
         throw new NotFoundException('Archivo no encontrado');
       }
 
-      // Verificar acceso para PDFs de certificados (CLIENTE/OPERADOR solo de su empresa)
+      // Verificar acceso para PDFs de certificados (CLIENTE/OPERADOR solo de su empresa y permite descarga)
       const match = filename.match(/certificado-(\d+)-/);
       if (match && match[1]) {
         const id = parseInt(match[1], 10);
         const cert = await this.findOneCertificadoUseCase.execute(id);
         this.ensureCertificateAccessForUser(cert, user);
+        await this.ensurePermiteDescargaCertificado(cert, user);
       }
 
       res.setHeader('Content-Type', 'application/pdf');
@@ -409,6 +412,42 @@ export class CertificadosController {
   }
 
   /**
+   * Solo ALUMNO (y conductores) respetan permiteDescargaCertificado de la empresa.
+   * ADMIN, INSTRUCTOR, CLIENTE y OPERADOR pueden descargar siempre (aunque esté deshabilitado para alumnos).
+   */
+  private async ensurePermiteDescargaCertificado(
+    certificado: any,
+    user: any,
+  ): Promise<void> {
+    const rol = user?.rolPrincipal?.codigo ?? '';
+    if (
+      rol === 'ADMIN' ||
+      rol === 'INSTRUCTOR' ||
+      rol === 'CLIENTE' ||
+      rol === 'OPERADOR'
+    )
+      return;
+
+    const empresaId =
+      certificado?.inscripcion?.estudiante?.empresaId ??
+      certificado?.inscripcion?.estudiante?.empresa?.id ??
+      null;
+    const capacitacionId = certificado?.inscripcion?.capacitacion?.id ?? null;
+    if (empresaId == null || capacitacionId == null) return;
+
+    const ce =
+      await this.empresasCapacitacionesService.getByEmpresaAndCapacitacion(
+        empresaId,
+        capacitacionId,
+      );
+    if (ce && ce.permiteDescargaCertificado === false) {
+      throw new ForbiddenException(
+        'La descarga de certificados para este curso está deshabilitada por su organización.',
+      );
+    }
+  }
+
+  /**
    * Helper que intenta servir el PDF y si no existe, lo regenera.
    */
   private async regenerateAndServePdf(
@@ -418,7 +457,10 @@ export class CertificadosController {
     user?: any,
   ) {
     const certificado = await this.findOneCertificadoUseCase.execute(id);
-    if (user) this.ensureCertificateAccessForUser(certificado, user);
+    if (user) {
+      this.ensureCertificateAccessForUser(certificado, user);
+      await this.ensurePermiteDescargaCertificado(certificado, user);
+    }
 
     // Nombre base para el archivo
     const fileName = `certificado-${id}-${Date.now()}.pdf`;
@@ -460,53 +502,24 @@ export class CertificadosController {
       }
     }
 
-    // Si es almacenamiento local, intentar leer del disco
+    // Si el error es que no existe el archivo, lo regeneramos (On-Demand fallback
+    console.log(
+      `⚠️ PDF para certificado ${id} no encontrado en disco. Generando On-Demand...`,
+    );
     try {
-      const filePath = this.storageService.getFilePath(
-        certificado.urlCertificado || `/storage/certificates/${fileName}`,
-      );
-      // Validar que intenta leer un archivo real y no una ruta de API malinterpretada
-      if (!filePath.endsWith('.pdf')) {
-        throw new Error('ENOENT'); // forzar regeneración/redirección si no parece archivo
-      }
+      // Generar el PDF usando el servicio (en memoria)
+      const pdfBuffer =
+        await this.pdfGeneratorService.generateCertificate(certificado);
 
-      const fileBuffer = await fs.readFile(filePath);
-      return sendFile(fileBuffer);
-    } catch (error: any) {
-      // Si el error es que no existe el archivo, lo regeneramos (On-Demand fallback)
-      if (error.code === 'ENOENT') {
-        console.log(
-          `⚠️ PDF para certificado ${id} no encontrado en disco. Generando On-Demand...`,
-        );
-        try {
-          // Generar el PDF usando el servicio (en memoria)
-          const pdfBuffer =
-            await this.pdfGeneratorService.generateCertificate(certificado);
-
-          // CAMBIO ARQUITECTURA: NO GUARDAR EN DISCO.
-          // Solo servir el buffer generado.
-          // const url = await this.storageService.saveBuffer(...); <-- ELIMINADO
-
-          return sendFile(pdfBuffer);
-        } catch (genError) {
-          console.error(
-            `❌ Error fatal regenerando PDF para certificado ${id}:`,
-            genError,
-          );
-          return res
-            .status(500)
-            .json({ message: 'Error interno regenerando el certificado PDF.' });
-        }
-      }
-
-      // Otro tipo de error de lectura
+      return sendFile(pdfBuffer);
+    } catch (genError) {
       console.error(
-        `❌ Error leyendo archivo PDF para certificado ${id}:`,
-        error,
+        `❌ Error fatal regenerando PDF para certificado ${id}:`,
+        genError,
       );
       return res
-        .status(404)
-        .json({ message: 'Error al acceder al archivo del certificado.' });
+        .status(500)
+        .json({ message: 'Error interno regenerando el certificado PDF.' });
     }
   }
 

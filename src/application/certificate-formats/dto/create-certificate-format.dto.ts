@@ -1,20 +1,17 @@
-import { IsEnum, IsOptional, IsObject, ValidateNested } from 'class-validator';
+import {
+  IsOptional,
+  IsObject,
+  ValidateNested,
+  IsString,
+  IsBoolean,
+  MaxLength,
+} from 'class-validator';
 import { Type } from 'class-transformer';
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { CertificateFormatType } from '@/entities/certificate-formats/certificate-format.entity';
-import { PdfConfig } from '@/infrastructure/shared/types/pdf-config.interface';
+import { ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateCertificateFormatDto {
-  @ApiProperty({
-    enum: CertificateFormatType,
-    description: 'Tipo de formato de certificado',
-    example: CertificateFormatType.OTROS,
-  })
-  @IsEnum(CertificateFormatType)
-  tipo: CertificateFormatType;
-
   @ApiPropertyOptional({
-    description: 'Configuración para certificados de alimentos',
+    description: 'Configuración PDF única del formato (posiciones, fuentes, etc.)',
     type: 'object',
     additionalProperties: true,
   })
@@ -22,27 +19,23 @@ export class CreateCertificateFormatDto {
   @IsObject()
   @ValidateNested()
   @Type(() => Object)
-  configAlimentos?: any;
+  config?: any;
 
   @ApiPropertyOptional({
-    description: 'Configuración para certificados de sustancias peligrosas',
-    type: 'object',
-    additionalProperties: true,
+    description:
+      'Ruta o URL del PNG de fondo (se asigna al subir por POST /certificate-formats/:id/upload-background; storage/certificates o S3)',
+    maxLength: 500,
   })
   @IsOptional()
-  @IsObject()
-  @ValidateNested()
-  @Type(() => Object)
-  configSustancias?: any;
+  @IsString()
+  @MaxLength(500)
+  fondoPath?: string | null;
 
   @ApiPropertyOptional({
-    description: 'Configuración para otros tipos de certificados',
-    type: 'object',
-    additionalProperties: true,
+    description: 'Si el formato está activo (solo uno activo a la vez)',
+    default: true,
   })
   @IsOptional()
-  @IsObject()
-  @ValidateNested()
-  @Type(() => Object)
-  configOtros?: any;
+  @IsBoolean()
+  activo?: boolean;
 }

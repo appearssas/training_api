@@ -16,9 +16,7 @@ import {
  * Sigue el principio de Inversión de Dependencias (SOLID)
  */
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([Evaluacion, Pregunta, OpcionRespuesta]),
-  ],
+  imports: [TypeOrmModule.forFeature([Evaluacion, Pregunta, OpcionRespuesta])],
   controllers: [EvaluacionesController],
   providers: [
     FindOneEvaluacionUseCase,
@@ -38,4 +36,3 @@ import {
   ],
 })
 export class EvaluacionesModule {}
-

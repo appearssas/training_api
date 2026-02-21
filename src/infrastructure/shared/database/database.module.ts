@@ -4,7 +4,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import * as entities from '@/entities';
 
 // Filtrar solo las clases que son entidades TypeORM (excluir enums y otros exports)
-const entityClasses = Object.values(entities).filter((entity) => {
+const entityClasses = Object.values(entities).filter(entity => {
   // Debe ser una función (clase)
   if (typeof entity !== 'function') {
     return false;
@@ -14,7 +14,7 @@ const entityClasses = Object.values(entities).filter((entity) => {
   const keys = Object.keys(entity);
   if (keys.length > 0) {
     const hasEnumLikeProperties = keys.some(
-      (key) =>
+      key =>
         typeof (entity as any)[key] === 'string' ||
         typeof (entity as any)[key] === 'number',
     );

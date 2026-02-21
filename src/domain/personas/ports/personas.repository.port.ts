@@ -25,13 +25,10 @@ export interface IPersonasRepository {
    * Crea un conductor externo con usuario y contraseña temporal
    * El usuario queda habilitado pero debe cambiar la contraseña en el primer login
    */
-  createConductorExterno(
-    personaData: Partial<Persona>,
-  ): Promise<{
+  createConductorExterno(personaData: Partial<Persona>): Promise<{
     persona: Persona;
     alumno: Alumno;
     usuario: Usuario;
     passwordTemporal: string;
   }>;
 }
-

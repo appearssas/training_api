@@ -1,8 +1,6 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class CreateCertificateFormatsTable1769476191406
-  implements MigrationInterface
-{
+export class CreateCertificateFormatsTable1769476191406 implements MigrationInterface {
   name = 'CreateCertificateFormatsTable1769476191406';
 
   public async up(queryRunner: QueryRunner): Promise<void> {

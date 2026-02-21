@@ -10,7 +10,8 @@ import {
 } from 'typeorm';
 import { TipoCapacitacion } from '../catalogos/tipo-capacitacion.entity';
 import { ModalidadCapacitacion } from '../catalogos/modalidad-capacitacion.entity';
-import { Persona } from '../persona/persona.entity';
+import { EnteCertificador } from '../catalogos/ente-certificador.entity';
+import { Instructor } from '../instructores/instructor.entity';
 import { MaterialCapacitacion } from '../materiales/material-capacitacion.entity';
 import { SeccionCapacitacion } from '../secciones/seccion-capacitacion.entity';
 import { Evaluacion } from '../evaluaciones/evaluacion.entity';
@@ -45,14 +46,20 @@ export class Capacitacion {
   modalidad: ModalidadCapacitacion;
 
   @ManyToOne(
-    () => Persona,
-    (persona: Persona) => persona.capacitacionesComoInstructor,
-    {
-      eager: true,
-    },
+    () => Instructor,
+    (instructor: Instructor) => instructor.capacitaciones,
+    { eager: true },
   )
   @JoinColumn({ name: 'instructor_id' })
-  instructor: Persona;
+  instructor: Instructor;
+
+  @ManyToOne(
+    () => EnteCertificador,
+    (ente: EnteCertificador) => ente.capacitaciones,
+    { eager: true, nullable: true },
+  )
+  @JoinColumn({ name: 'ente_certificador_id' })
+  enteCertificador: EnteCertificador | null;
 
   @Column({ type: 'int', nullable: true, name: 'area_id' })
   areaId: number;
@@ -86,6 +93,18 @@ export class Capacitacion {
     name: 'duracion_vigencia_dias',
   })
   duracionVigenciaDias: number;
+
+  /**
+   * Tipo de certificado para este curso (define formato PDF y fondo: alimentos, sustancias, otros).
+   * Si es null, se infiere del título por compatibilidad.
+   */
+  @Column({
+    type: 'varchar',
+    length: 20,
+    nullable: true,
+    name: 'tipo_certificado',
+  })
+  tipoCertificado: 'alimentos' | 'sustancias' | 'otros' | null;
 
   @Column({ type: 'int', nullable: true, name: 'capacidad_maxima' })
   capacidadMaxima: number;

@@ -44,4 +44,3 @@ import { FileCompressionInterceptor } from '../shared/interceptors/file-compress
   ],
 })
 export class MaterialesModule {}
-

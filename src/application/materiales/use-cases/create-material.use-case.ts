@@ -40,4 +40,3 @@ export class CreateMaterialUseCase {
     return this.materialesRepository.create(createMaterialDto);
   }
 }
-

@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, MoreThan } from 'typeorm';
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+
 const bcrypt = require('bcryptjs');
 import { Usuario } from '@/entities/usuarios/usuario.entity';
 import { PasswordResetToken } from '@/entities/password-reset/password-reset-token.entity';
@@ -106,10 +106,9 @@ export class ResetPasswordUseCase {
   private getTokenRepository() {
     // Este es un workaround temporal
     // En una implementación más robusta, inyectarías el Repository directamente
-    const { repository } =
-      this.passwordResetRepository as any as {
-        repository: Repository<any>;
-      };
+    const { repository } = this.passwordResetRepository as any as {
+      repository: Repository<any>;
+    };
     return repository;
   }
 }

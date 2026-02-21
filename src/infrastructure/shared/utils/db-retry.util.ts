@@ -23,9 +23,12 @@ export function isTransientDbError(exception: unknown): boolean {
   if (exception == null) return false;
   const e = exception as ExceptionLike;
   const msg = String(e?.message ?? '');
-  if (TRANSIENT_DB_CODES.some((c) => msg.includes(c))) return true;
+  if (TRANSIENT_DB_CODES.some(c => msg.includes(c))) return true;
   const code = e?.driverError?.code;
-  return typeof code === 'string' && TRANSIENT_DB_CODES.includes(code as (typeof TRANSIENT_DB_CODES)[number]);
+  return (
+    typeof code === 'string' &&
+    TRANSIENT_DB_CODES.includes(code as (typeof TRANSIENT_DB_CODES)[number])
+  );
 }
 
 /** Número de intentos totales (incluye el primero) */

@@ -119,15 +119,19 @@ export class ReportsService {
       inscriptions
         .filter(
           i =>
-            i.estado === EstadoInscripcion.INSCRITO ||
-            i.estado === EstadoInscripcion.EN_PROGRESO,
+            i.estudiante != null &&
+            (i.estado === EstadoInscripcion.INSCRITO ||
+              i.estado === EstadoInscripcion.EN_PROGRESO),
         )
         .map(i => i.estudiante.id),
     ).size;
 
     // Active Courses (Count of courses with at least one active inscription)
-    const activeCourses = new Set(inscriptions.map(i => i.capacitacion.id))
-      .size;
+    const activeCourses = new Set(
+      inscriptions
+        .filter(i => i.capacitacion != null)
+        .map(i => i.capacitacion.id),
+    ).size;
 
     // Average Satisfaction (Mocked for now as we don't have Resenas repository injected yet, or simple aggregation)
     const avgSatisfaction = 4.5; // Placeholder
@@ -151,6 +155,7 @@ export class ReportsService {
       { name: string; count: number; id: number; passed: number }
     >();
     inscriptions.forEach(i => {
+      if (i.capacitacion == null) return;
       const key = i.capacitacion.titulo;
       if (!courseMap.has(key)) {
         courseMap.set(key, {
@@ -257,6 +262,7 @@ export class ReportsService {
       }
     >();
     inscriptions.forEach(i => {
+      if (i.estudiante == null) return;
       if (!userMap.has(i.estudiante.id)) {
         userMap.set(i.estudiante.id, {
           userName: `${i.estudiante.nombres} ${i.estudiante.apellidos || ''}`,

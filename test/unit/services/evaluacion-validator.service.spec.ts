@@ -32,7 +32,9 @@ describe('EvaluacionValidatorService', () => {
       ],
     }).compile();
 
-    service = module.get<EvaluacionValidatorService>(EvaluacionValidatorService);
+    service = module.get<EvaluacionValidatorService>(
+      EvaluacionValidatorService,
+    );
     evaluacionRepository = module.get(getRepositoryToken(Evaluacion));
     capacitacionRepository = module.get(getRepositoryToken(Capacitacion));
   });
@@ -127,9 +129,9 @@ describe('EvaluacionValidatorService', () => {
       evaluacion.capacitacion = capacitacion;
       evaluacionRepository.findOne.mockResolvedValue(evaluacion);
 
-      await expect(
-        service.validateEvaluationNotLinked(1, 1),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.validateEvaluationNotLinked(1, 1)).rejects.toThrow(
+        BadRequestException,
+      );
     });
   });
 
@@ -162,10 +164,7 @@ describe('EvaluacionValidatorService', () => {
 
   describe('getEvaluacionesByCapacitacion', () => {
     it('should return list of evaluations for capacitacion', async () => {
-      const evaluaciones = [
-        new Evaluacion(),
-        new Evaluacion(),
-      ];
+      const evaluaciones = [new Evaluacion(), new Evaluacion()];
       evaluacionRepository.find.mockResolvedValue(evaluaciones);
 
       const result = await service.getEvaluacionesByCapacitacion(1);

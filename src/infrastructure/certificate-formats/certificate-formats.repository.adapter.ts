@@ -1,7 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { CertificateFormat, CertificateFormatType } from '@/entities/certificate-formats/certificate-format.entity';
+import {
+  CertificateFormat,
+  CertificateFormatType,
+} from '@/entities/certificate-formats/certificate-format.entity';
 import { CreateCertificateFormatDto } from '@/application/certificate-formats/dto/create-certificate-format.dto';
 import { UpdateCertificateFormatDto } from '@/application/certificate-formats/dto/update-certificate-format.dto';
 
@@ -31,10 +34,12 @@ export class CertificateFormatsRepositoryAdapter {
     });
   }
 
-  async findByType(tipo: CertificateFormatType): Promise<CertificateFormat | null> {
-    return await this.certificateFormatRepository.findOne({
-      where: { tipo, activo: true },
-    });
+  /** Devuelve el formato activo (el tipo se usa en el llamador para elegir config/fondo). */
+
+  async findByType(
+    _tipo: CertificateFormatType,
+  ): Promise<CertificateFormat | null> {
+    return await this.findActive();
   }
 
   async findActive(): Promise<CertificateFormat | null> {
@@ -57,39 +62,41 @@ export class CertificateFormatsRepositoryAdapter {
   }
 
   async updateBackgroundPath(
-    tipo: CertificateFormatType,
+    _tipo: CertificateFormatType,
     path: string,
   ): Promise<CertificateFormat> {
-    // Buscar o crear el formato para este tipo
-    let format = await this.findByType(tipo);
-    
+    let format = await this.findActive();
     if (!format) {
-      // Crear nuevo formato si no existe
       const newFormat = this.certificateFormatRepository.create({
-        tipo,
         activo: true,
       });
       format = await this.certificateFormatRepository.save(newFormat);
     }
-
-    // Actualizar la ruta correspondiente según el tipo
-    const updateData: Partial<CertificateFormat> = {};
-    switch (tipo) {
-      case CertificateFormatType.ALIMENTOS:
-        updateData.fondoAlimentosPath = path;
-        break;
-      case CertificateFormatType.SUSTANCIAS:
-        updateData.fondoSustanciasPath = path;
-        break;
-      case CertificateFormatType.OTROS:
-        updateData.fondoGeneralPath = path;
-        break;
-    }
-
-    await this.certificateFormatRepository.update(format.id, updateData);
+    await this.certificateFormatRepository.update(format.id, {
+      fondoPath: path,
+    });
     const updated = await this.findOne(format.id);
     if (!updated) {
-      throw new Error(`CertificateFormat with ID ${format.id} not found after update`);
+      throw new Error(
+        `CertificateFormat with ID ${format.id} not found after update`,
+      );
+    }
+    return updated;
+  }
+
+  /**
+   * Actualiza la ruta/URL del fondo de un formato por ID (un solo fondo por formato).
+   */
+  async updateFondoPathByFormatId(
+    formatId: number,
+    path: string,
+  ): Promise<CertificateFormat> {
+    await this.certificateFormatRepository.update(formatId, { fondoPath: path });
+    const updated = await this.findOne(formatId);
+    if (!updated) {
+      throw new Error(
+        `CertificateFormat with ID ${formatId} not found after update`,
+      );
     }
     return updated;
   }

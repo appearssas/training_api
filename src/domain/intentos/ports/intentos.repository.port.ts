@@ -15,7 +15,10 @@ export interface IIntentosRepository {
    * @param dto Datos para iniciar el intento
    * @returns Intento de evaluación creado
    */
-  startAttempt(evaluacionId: number, dto: StartIntentoDto): Promise<IntentoEvaluacion>;
+  startAttempt(
+    evaluacionId: number,
+    dto: StartIntentoDto,
+  ): Promise<IntentoEvaluacion>;
 
   /**
    * Guardar o actualizar una respuesta del estudiante
@@ -39,7 +42,10 @@ export interface IIntentosRepository {
    * @param inscripcionId ID de la inscripción del estudiante
    * @returns Lista de intentos
    */
-  getAttemptsByStudent(evaluacionId: number, inscripcionId: number): Promise<IntentoEvaluacion[]>;
+  getAttemptsByStudent(
+    evaluacionId: number,
+    inscripcionId: number,
+  ): Promise<IntentoEvaluacion[]>;
 
   /**
    * Obtener un intento específico por ID
@@ -54,7 +60,10 @@ export interface IIntentosRepository {
    * @param inscripcionId ID de la inscripción del estudiante
    * @returns true si tiene intentos disponibles, false en caso contrario
    */
-  hasAttemptsAvailable(evaluacionId: number, inscripcionId: number): Promise<boolean>;
+  hasAttemptsAvailable(
+    evaluacionId: number,
+    inscripcionId: number,
+  ): Promise<boolean>;
 
   /**
    * Obtener el número de intento siguiente para un estudiante
@@ -62,6 +71,8 @@ export interface IIntentosRepository {
    * @param inscripcionId ID de la inscripción del estudiante
    * @returns Número del siguiente intento
    */
-  getNextAttemptNumber(evaluacionId: number, inscripcionId: number): Promise<number>;
+  getNextAttemptNumber(
+    evaluacionId: number,
+    inscripcionId: number,
+  ): Promise<number>;
 }
-

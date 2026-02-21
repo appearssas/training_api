@@ -81,6 +81,71 @@ export class EmpresasCapacitacionesService {
   }
 
   /**
+   * Lista las asignaciones curso-empresa con el flag permiteDescargaCertificado (para admin y cliente institucional).
+   */
+  async getCapacitacionesByEmpresaWithPermiteDescarga(
+    empresaId: number,
+  ): Promise<
+    {
+      id: number;
+      capacitacionId: number;
+      permiteDescargaCertificado: boolean;
+      capacitacion?: { id: number; titulo: string };
+    }[]
+  > {
+    const rows = await this.capacitacionEmpresaRepository.find({
+      where: { empresaId },
+      relations: ['capacitacion'],
+      select: [
+        'id',
+        'empresaId',
+        'capacitacionId',
+        'permiteDescargaCertificado',
+      ],
+    });
+    return rows.map(r => ({
+      id: r.id,
+      capacitacionId: r.capacitacionId,
+      permiteDescargaCertificado: r.permiteDescargaCertificado ?? true,
+      capacitacion: r.capacitacion
+        ? { id: r.capacitacion.id, titulo: r.capacitacion.titulo }
+        : undefined,
+    }));
+  }
+
+  /**
+   * Obtiene la asignación empresa-capacitación para verificar si permite descarga de certificado.
+   */
+  async getByEmpresaAndCapacitacion(
+    empresaId: number,
+    capacitacionId: number,
+  ): Promise<CapacitacionEmpresa | null> {
+    return this.capacitacionEmpresaRepository.findOne({
+      where: { empresaId, capacitacionId },
+    });
+  }
+
+  /**
+   * Actualiza si la empresa permite descarga de certificados para un curso. Admin o CLIENTE/OPERADOR de esa empresa.
+   */
+  async updatePermiteDescargaCertificado(
+    empresaId: number,
+    capacitacionId: number,
+    permiteDescargaCertificado: boolean,
+  ): Promise<CapacitacionEmpresa> {
+    const ce = await this.capacitacionEmpresaRepository.findOne({
+      where: { empresaId, capacitacionId },
+    });
+    if (!ce) {
+      throw new NotFoundException(
+        `No existe asignación del curso ${capacitacionId} a la empresa ${empresaId}`,
+      );
+    }
+    ce.permiteDescargaCertificado = permiteDescargaCertificado;
+    return this.capacitacionEmpresaRepository.save(ce);
+  }
+
+  /**
    * Indica si una capacitación está asignada a una empresa (para validar inscripciones del cliente).
    */
   async isCapacitacionAssignedToEmpresa(

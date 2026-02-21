@@ -34,6 +34,14 @@ export class CapacitacionEmpresa {
   @JoinColumn({ name: 'capacitacion_id' })
   capacitacion: Capacitacion;
 
+  /** Si false, los alumnos de esta empresa no pueden descargar el PDF del certificado de este curso. */
+  @Column({
+    type: 'tinyint',
+    default: 1,
+    name: 'permite_descarga_certificado',
+  })
+  permiteDescargaCertificado: boolean;
+
   @CreateDateColumn({ name: 'fecha_asignacion' })
   fechaAsignacion: Date;
 }

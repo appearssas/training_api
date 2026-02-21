@@ -48,7 +48,9 @@ describe('InscripcionValidatorService', () => {
       ],
     }).compile();
 
-    service = module.get<InscripcionValidatorService>(InscripcionValidatorService);
+    service = module.get<InscripcionValidatorService>(
+      InscripcionValidatorService,
+    );
     capacitacionRepository = module.get(getRepositoryToken(Capacitacion));
     personaRepository = module.get(getRepositoryToken(Persona));
     pagoRepository = module.get(getRepositoryToken(Pago));
@@ -63,9 +65,9 @@ describe('InscripcionValidatorService', () => {
     it('should throw NotFoundException if capacitacion does not exist', async () => {
       capacitacionRepository.findOne.mockResolvedValue(null);
 
-      await expect(
-        service.validateCapacitacionDisponible(1),
-      ).rejects.toThrow(NotFoundException);
+      await expect(service.validateCapacitacionDisponible(1)).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('should throw BadRequestException if capacitacion is not in allowed state', async () => {
@@ -74,9 +76,9 @@ describe('InscripcionValidatorService', () => {
       capacitacion.estado = EstadoCapacitacion.BORRADOR;
       capacitacionRepository.findOne.mockResolvedValue(capacitacion);
 
-      await expect(
-        service.validateCapacitacionDisponible(1),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.validateCapacitacionDisponible(1)).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('should return capacitacion if it is PUBLICADA', async () => {
@@ -160,17 +162,13 @@ describe('InscripcionValidatorService', () => {
       (capacitacion as any).capacidadMaxima = undefined;
       capacitacionRepository.findOne.mockResolvedValue(capacitacion);
 
-      await expect(
-        service.validateCapacidadMaxima(1),
-      ).resolves.not.toThrow();
+      await expect(service.validateCapacidadMaxima(1)).resolves.not.toThrow();
     });
 
     it('should not throw if capacitacion does not exist', async () => {
       capacitacionRepository.findOne.mockResolvedValue(null);
 
-      await expect(
-        service.validateCapacidadMaxima(1),
-      ).resolves.not.toThrow();
+      await expect(service.validateCapacidadMaxima(1)).resolves.not.toThrow();
     });
 
     it('should throw BadRequestException if capacidadMaxima is reached', async () => {
@@ -186,9 +184,9 @@ describe('InscripcionValidatorService', () => {
         limit: 1000,
       });
 
-      await expect(
-        service.validateCapacidadMaxima(1),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.validateCapacidadMaxima(1)).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('should not throw if capacidadMaxima is not reached', async () => {
@@ -204,9 +202,7 @@ describe('InscripcionValidatorService', () => {
         limit: 1000,
       });
 
-      await expect(
-        service.validateCapacidadMaxima(1),
-      ).resolves.not.toThrow();
+      await expect(service.validateCapacidadMaxima(1)).resolves.not.toThrow();
     });
 
     it('should not count abandoned inscripciones', async () => {
@@ -227,9 +223,7 @@ describe('InscripcionValidatorService', () => {
         limit: 1000,
       });
 
-      await expect(
-        service.validateCapacidadMaxima(1),
-      ).resolves.not.toThrow();
+      await expect(service.validateCapacidadMaxima(1)).resolves.not.toThrow();
     });
   });
 

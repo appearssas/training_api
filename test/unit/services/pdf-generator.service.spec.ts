@@ -38,12 +38,18 @@ jest.mock('fs', () => ({
 // Mock svg-to-pdfkit
 // Este módulo se requiere dinámicamente, así que lo marcamos como virtual
 // para evitar que Jest intente resolverlo desde node_modules
-jest.mock('svg-to-pdfkit', () => {
-  return jest.fn((doc: any, svg: string, x: number, y: number, options?: any) => {
-    // Mock de la función SVGtoPDF - no hace nada en el test
-    return;
-  });
-}, { virtual: true });
+jest.mock(
+  'svg-to-pdfkit',
+  () => {
+    return jest.fn(
+      (doc: any, svg: string, x: number, y: number, options?: any) => {
+        // Mock de la función SVGtoPDF - no hace nada en el test
+        return;
+      },
+    );
+  },
+  { virtual: true },
+);
 
 describe('PdfGeneratorService', () => {
   let service: PdfGeneratorService;
@@ -52,7 +58,9 @@ describe('PdfGeneratorService', () => {
   beforeEach(async () => {
     qrGeneratorService = {
       generateQRCode: jest.fn().mockResolvedValue('data:image/png;base64,mock'),
-      generateVerificationUrlForQR: jest.fn().mockReturnValue('https://example.com/verify/token'),
+      generateVerificationUrlForQR: jest
+        .fn()
+        .mockReturnValue('https://example.com/verify/token'),
     } as any;
 
     const module: TestingModule = await Test.createTestingModule({

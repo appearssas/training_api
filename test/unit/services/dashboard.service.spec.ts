@@ -35,14 +35,12 @@ describe('DashboardService', () => {
       take: jest.fn().mockReturnThis(),
       setParameter: jest.fn().mockReturnThis(),
       setParameters: jest.fn().mockReturnThis(),
-      getRawOne: jest
-        .fn()
-        .mockResolvedValue({
-          count: '0',
-          total: '0',
-          completed: '0',
-          avg: '0',
-        }),
+      getRawOne: jest.fn().mockResolvedValue({
+        count: '0',
+        total: '0',
+        completed: '0',
+        avg: '0',
+      }),
       getRawMany: jest.fn().mockResolvedValue([]),
       getMany: jest.fn().mockResolvedValue([]),
       getCount: jest.fn().mockResolvedValue(0),

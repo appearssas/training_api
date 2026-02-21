@@ -1,6 +1,20 @@
 import { PartialType, OmitType } from '@nestjs/swagger';
-import { CreateEvaluacionDto, CreatePreguntaDto, CreateOpcionRespuestaDto } from './create-evaluacion.dto';
-import { IsOptional, IsInt, Min, IsString, IsBoolean, IsNumber, Length, ValidateNested, ArrayMinSize } from 'class-validator';
+import {
+  CreateEvaluacionDto,
+  CreatePreguntaDto,
+  CreateOpcionRespuestaDto,
+} from './create-evaluacion.dto';
+import {
+  IsOptional,
+  IsInt,
+  Min,
+  IsString,
+  IsBoolean,
+  IsNumber,
+  Length,
+  ValidateNested,
+  ArrayMinSize,
+} from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 
@@ -45,7 +59,8 @@ export class UpdateOpcionRespuestaDto {
   esCorrecta?: boolean;
 
   @ApiPropertyOptional({
-    description: 'Puntaje parcial para esta opción (útil en múltiple respuesta)',
+    description:
+      'Puntaje parcial para esta opción (útil en múltiple respuesta)',
     example: 0.5,
     minimum: 0,
   })
@@ -80,7 +95,8 @@ export class UpdatePreguntaDto {
   id?: number;
 
   @ApiPropertyOptional({
-    description: 'ID del tipo de pregunta (1: Única respuesta, 2: Múltiple, 3: Imagen, 4: Falso/Verdadero, 5: Sí/No)',
+    description:
+      'ID del tipo de pregunta (1: Única respuesta, 2: Múltiple, 3: Imagen, 4: Falso/Verdadero, 5: Sí/No)',
     example: 1,
   })
   @IsOptional()
@@ -152,11 +168,12 @@ export class UpdatePreguntaDto {
  * Las preguntas y opciones pueden incluir IDs para actualizar entidades existentes
  */
 export class UpdateEvaluacionDto extends PartialType(
-  OmitType(CreateEvaluacionDto, ['preguntas', 'capacitacionId'] as const)
+  OmitType(CreateEvaluacionDto, ['preguntas', 'capacitacionId'] as const),
 ) {
   @ApiPropertyOptional({
     type: [UpdatePreguntaDto],
-    description: 'Lista de preguntas de la evaluación. Si una pregunta tiene id, se actualiza; si no, se crea nueva.',
+    description:
+      'Lista de preguntas de la evaluación. Si una pregunta tiene id, se actualiza; si no, se crea nueva.',
   })
   @IsOptional()
   @ValidateNested({ each: true })

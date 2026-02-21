@@ -90,19 +90,14 @@ export class AceptarTerminosAdminSeeder extends BaseSeeder {
     console.log('\n📋 Resumen de aceptaciones:');
     console.log(`   Aceptaciones creadas: ${aceptacionesCreadas}`);
     console.log(`   Aceptaciones existentes: ${aceptacionesExistentes}`);
-    console.log(
-      `   Total documentos activos: ${documentosActivos.length}`,
-    );
+    console.log(`   Total documentos activos: ${documentosActivos.length}`);
 
     if (aceptacionesCreadas > 0) {
       console.log(
         '\n✅ Términos y condiciones aceptados para el usuario admin',
       );
     } else if (aceptacionesExistentes === documentosActivos.length) {
-      console.log(
-        '\n✅ El admin ya tiene todos los términos aceptados',
-      );
+      console.log('\n✅ El admin ya tiene todos los términos aceptados');
     }
   }
 }
-

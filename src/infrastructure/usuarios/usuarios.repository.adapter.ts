@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { IUsuariosRepository } from '@/domain/usuarios/ports/usuarios.repository.port';
 import { Usuario } from '@/entities/usuarios/usuario.entity';
 import { Rol } from '@/entities/roles/rol.entity';
+import { Instructor } from '@/entities/instructores/instructor.entity';
 import { UpdateUserDto } from '@/application/usuarios/dto/update-user.dto';
 import {
   UserSortField,
@@ -109,8 +110,8 @@ export class UsuariosRepositoryAdapter implements IUsuariosRepository {
       updatePayload.username = updateData.username;
     }
 
+    let rolAsignado: Rol | null = null;
     if (updateData.rolPrincipalId !== undefined) {
-      // Necesitamos cargar el rol primero
       const rol = await this.usuarioRepository.manager.findOne(Rol, {
         where: { id: updateData.rolPrincipalId },
       });
@@ -120,6 +121,7 @@ export class UsuariosRepositoryAdapter implements IUsuariosRepository {
         );
       }
       updatePayload.rolPrincipal = rol;
+      rolAsignado = rol;
     }
 
     if (updateData.habilitado !== undefined) {
@@ -135,6 +137,27 @@ export class UsuariosRepositoryAdapter implements IUsuariosRepository {
     }
 
     await this.usuarioRepository.update(id, updatePayload);
+
+    // Si se asignó el rol INSTRUCTOR, crear registro en tabla instructores si no existe (firma, Config > Docentes)
+    if (rolAsignado?.codigo === 'INSTRUCTOR') {
+      const usuario = await this.usuarioRepository.findOne({
+        where: { id },
+        relations: ['persona'],
+      });
+      if (usuario?.persona?.id) {
+        const instructorRepo =
+          this.usuarioRepository.manager.getRepository(Instructor);
+        const existe = await instructorRepo.findOne({
+          where: { persona: { id: usuario.persona.id } },
+        });
+        if (!existe) {
+          await instructorRepo.save({
+            persona: { id: usuario.persona.id },
+            activo: true,
+          });
+        }
+      }
+    }
 
     // Actualizar datos de persona si se proporcionan
     const personaUpdateData: any = {};

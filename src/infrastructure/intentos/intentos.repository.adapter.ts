@@ -53,7 +53,10 @@ export class IntentosRepositoryAdapter implements IIntentosRepository {
     private readonly createCertificadoUseCase: CreateCertificadoUseCase,
   ) {}
 
-  async startAttempt(evaluacionId: number, dto: StartIntentoDto): Promise<IntentoEvaluacion> {
+  async startAttempt(
+    evaluacionId: number,
+    dto: StartIntentoDto,
+  ): Promise<IntentoEvaluacion> {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -64,18 +67,25 @@ export class IntentosRepositoryAdapter implements IIntentosRepository {
         where: { id: evaluacionId },
       });
       if (!evaluacion) {
-        throw new NotFoundException(`Evaluación con ID ${evaluacionId} no encontrada`);
+        throw new NotFoundException(
+          `Evaluación con ID ${evaluacionId} no encontrada`,
+        );
       }
 
       const inscripcion = await queryRunner.manager.findOne(Inscripcion, {
         where: { id: dto.inscripcionId },
       });
       if (!inscripcion) {
-        throw new NotFoundException(`Inscripción con ID ${dto.inscripcionId} no encontrada`);
+        throw new NotFoundException(
+          `Inscripción con ID ${dto.inscripcionId} no encontrada`,
+        );
       }
 
       // Obtener número de intento
-      const numeroIntento = await this.getNextAttemptNumber(evaluacionId, dto.inscripcionId);
+      const numeroIntento = await this.getNextAttemptNumber(
+        evaluacionId,
+        dto.inscripcionId,
+      );
 
       // Crear intento
       const nuevoIntento = queryRunner.manager.create(IntentoEvaluacion, {
@@ -110,7 +120,9 @@ export class IntentosRepositoryAdapter implements IIntentosRepository {
         where: { id: intentoId },
       });
       if (!intento) {
-        throw new NotFoundException(`Intento con ID ${intentoId} no encontrado`);
+        throw new NotFoundException(
+          `Intento con ID ${intentoId} no encontrado`,
+        );
       }
 
       if (intento.estado !== EstadoIntento.EN_PROGRESO) {
@@ -120,18 +132,26 @@ export class IntentosRepositoryAdapter implements IIntentosRepository {
       }
 
       // Buscar respuesta existente para esta pregunta
-      let respuestaExistente = await queryRunner.manager.findOne(RespuestaEstudiante, {
-        where: {
-          intentoEvaluacion: { id: intentoId },
-          pregunta: { id: dto.preguntaId },
+      let respuestaExistente = await queryRunner.manager.findOne(
+        RespuestaEstudiante,
+        {
+          where: {
+            intentoEvaluacion: { id: intentoId },
+            pregunta: { id: dto.preguntaId },
+          },
+          relations: ['respuestasMultiples'],
         },
-        relations: ['respuestasMultiples'],
-      });
+      );
 
       if (respuestaExistente) {
         // Eliminar respuestas múltiples existentes
-        if (respuestaExistente.respuestasMultiples && respuestaExistente.respuestasMultiples.length > 0) {
-          await queryRunner.manager.remove(respuestaExistente.respuestasMultiples);
+        if (
+          respuestaExistente.respuestasMultiples &&
+          respuestaExistente.respuestasMultiples.length > 0
+        ) {
+          await queryRunner.manager.remove(
+            respuestaExistente.respuestasMultiples,
+          );
         }
       } else {
         // Crear nueva respuesta
@@ -144,7 +164,9 @@ export class IntentosRepositoryAdapter implements IIntentosRepository {
       // Actualizar respuesta según el tipo
       if (dto.opcionRespuestaId) {
         // Respuesta única
-        respuestaExistente.opcionRespuesta = { id: dto.opcionRespuestaId } as OpcionRespuesta;
+        respuestaExistente.opcionRespuesta = {
+          id: dto.opcionRespuestaId,
+        } as OpcionRespuesta;
         respuestaExistente.textoRespuesta = undefined as any;
       } else if (dto.opcionRespuestaIds && dto.opcionRespuestaIds.length > 0) {
         // Respuesta múltiple
@@ -156,11 +178,12 @@ export class IntentosRepositoryAdapter implements IIntentosRepository {
         respuestaExistente.textoRespuesta = dto.textoRespuesta;
       }
 
-      const respuestaGuardada = await queryRunner.manager.save(respuestaExistente);
+      const respuestaGuardada =
+        await queryRunner.manager.save(respuestaExistente);
 
       // Guardar respuestas múltiples si aplica
       if (dto.opcionRespuestaIds && dto.opcionRespuestaIds.length > 0) {
-        const respuestasMultiples = dto.opcionRespuestaIds.map((opcionId) =>
+        const respuestasMultiples = dto.opcionRespuestaIds.map(opcionId =>
           queryRunner.manager.create(RespuestaMultiple, {
             respuestaEstudiante: respuestaGuardada,
             opcionRespuesta: { id: opcionId } as OpcionRespuesta,
@@ -200,12 +223,15 @@ export class IntentosRepositoryAdapter implements IIntentosRepository {
       });
 
       if (!intento) {
-        throw new NotFoundException(`Intento con ID ${intentoId} no encontrado`);
+        throw new NotFoundException(
+          `Intento con ID ${intentoId} no encontrado`,
+        );
       }
 
       // TAREA 1.2: Validar tipo de capacitación antes de calificar (FAL-003)
       // Obtener tipo de capacitación desde la inscripción
-      const tipoCapacitacionCodigo = intento.inscripcion?.capacitacion?.tipoCapacitacion?.codigo?.toUpperCase();
+      const tipoCapacitacionCodigo =
+        intento.inscripcion?.capacitacion?.tipoCapacitacion?.codigo?.toUpperCase();
       const esEncuesta = tipoCapacitacionCodigo === 'SURVEY';
 
       console.log('=== VALIDACIÓN DE TIPO DE CAPACITACIÓN ===');
@@ -234,67 +260,77 @@ export class IntentosRepositoryAdapter implements IIntentosRepository {
       // Esto asegura que el cálculo sea consistente con las preguntas que realmente se evalúan
       // Si hay preguntas inactivas, no deben contar en el total para el cálculo del porcentaje
       const preguntasActivas = intento.evaluacion.preguntas.filter(
-        (p) => p.activo !== false, // Incluir preguntas activas (activo = true o null/undefined)
+        p => p.activo !== false, // Incluir preguntas activas (activo = true o null/undefined)
       );
 
       if (esEncuesta) {
-        console.log('⚠ Encuesta detectada: NO se calcularán puntajes ni se determinará aprobación');
+        console.log(
+          '⚠ Encuesta detectada: NO se calcularán puntajes ni se determinará aprobación',
+        );
         // Para encuestas, no calcular puntajes
         // Los valores se mantendrán como null
       } else {
         // Calcular puntaje total solo si NO es encuesta
         console.log('=== CÁLCULO DE PUNTAJE OBTENIDO ===');
         console.log('Total respuestas a evaluar:', respuestas.length);
-        console.log('Total preguntas en evaluación:', intento.evaluacion.preguntas.length);
+        console.log(
+          'Total preguntas en evaluación:',
+          intento.evaluacion.preguntas.length,
+        );
         console.log('Preguntas activas:', preguntasActivas.length);
-        
+
         // IMPORTANTE: Pasar solo las preguntas activas para el cálculo
         puntajeObtenido = this.scoringService.calculateTotalScore(
           respuestas,
           preguntasActivas, // Usar solo preguntas activas
         );
-        
+
         console.log('Puntaje obtenido calculado:', puntajeObtenido);
         console.log('=== FIN CÁLCULO DE PUNTAJE OBTENIDO ===');
       }
 
       // Solo calcular puntajes y porcentajes si NO es encuesta
       if (!esEncuesta) {
-
         console.log('=== DEBUG: Preguntas activas vs totales ===');
-        console.log('Total preguntas en evaluación:', intento.evaluacion.preguntas.length);
+        console.log(
+          'Total preguntas en evaluación:',
+          intento.evaluacion.preguntas.length,
+        );
         console.log('Preguntas activas:', preguntasActivas.length);
         console.log('Total respuestas recibidas:', respuestas.length);
 
         // Calcular el puntaje total real sumando solo las preguntas activas
         // Esto asegura consistencia incluso si el puntajeTotal de la evaluación no está actualizado
-        const puntajeTotalReal = preguntasActivas.reduce(
-          (sum, pregunta) => {
-            const puntaje = Number(pregunta.puntaje);
-            const puntajeValido = isNaN(puntaje) || puntaje <= 0 ? 0 : puntaje;
-            console.log(`  Pregunta activa ID ${pregunta.id}: puntaje = ${puntaje} (válido: ${puntajeValido})`);
-            return sum + puntajeValido;
-          },
-          0
-        );
-        
+        const puntajeTotalReal = preguntasActivas.reduce((sum, pregunta) => {
+          const puntaje = Number(pregunta.puntaje);
+          const puntajeValido = isNaN(puntaje) || puntaje <= 0 ? 0 : puntaje;
+          console.log(
+            `  Pregunta activa ID ${pregunta.id}: puntaje = ${puntaje} (válido: ${puntajeValido})`,
+          );
+          return sum + puntajeValido;
+        }, 0);
+
         console.log('=== CÁLCULO DE PUNTAJE TOTAL REAL ===');
         console.log('Preguntas activas encontradas:', preguntasActivas.length);
         console.log('Puntaje total real calculado:', puntajeTotalReal);
 
         // Validar que todas las preguntas requeridas tengan respuesta
-        const preguntasRequeridas = preguntasActivas.filter((p) => p.requerida !== false);
+        const preguntasRequeridas = preguntasActivas.filter(
+          p => p.requerida !== false,
+        );
         const preguntasRequeridasSinRespuesta = preguntasRequeridas.filter(
-          (pregunta) => !respuestas.some((resp) => resp.pregunta.id === pregunta.id),
+          pregunta =>
+            !respuestas.some(resp => resp.pregunta.id === pregunta.id),
         );
 
         if (preguntasRequeridasSinRespuesta.length > 0) {
-          console.warn('⚠️ Hay preguntas requeridas sin respuesta:', 
-            preguntasRequeridasSinRespuesta.map((p) => ({ 
-              id: p.id, 
+          console.warn(
+            '⚠️ Hay preguntas requeridas sin respuesta:',
+            preguntasRequeridasSinRespuesta.map(p => ({
+              id: p.id,
               enunciado: p.enunciado.substring(0, 50) + '...',
               puntaje: p.puntaje,
-            }))
+            })),
           );
           // No lanzar error, pero registrar la advertencia para debugging
         }
@@ -303,11 +339,13 @@ export class IntentosRepositoryAdapter implements IIntentosRepository {
         // Si es 0 o menor, significa que las preguntas no tienen puntaje configurado, usar el de la evaluación como fallback
         // IMPORTANTE: Priorizar siempre el puntajeTotalReal para evitar inconsistencias
         let puntajeTotalParaCalcular = puntajeTotalReal;
-        
+
         // Si el puntajeTotalReal es 0 o inválido, intentar usar el de la evaluación
         // pero solo si hay preguntas activas (para evitar usar un valor incorrecto)
         if (puntajeTotalParaCalcular <= 0 && preguntasActivas.length > 0) {
-          console.warn('⚠️ Puntaje total real es 0 o inválido, pero hay preguntas activas. Recalculando...');
+          console.warn(
+            '⚠️ Puntaje total real es 0 o inválido, pero hay preguntas activas. Recalculando...',
+          );
           // Recalcular sumando todos los puntajes, incluso si son 0
           puntajeTotalParaCalcular = preguntasActivas.reduce(
             (sum, pregunta) => {
@@ -315,40 +353,69 @@ export class IntentosRepositoryAdapter implements IIntentosRepository {
               console.log(`  Pregunta ${pregunta.id}: puntaje = ${puntaje}`);
               return sum + puntaje;
             },
-            0
+            0,
           );
         }
-        
+
         // Si aún es 0 o inválido, usar el de la evaluación como último recurso
         if (puntajeTotalParaCalcular <= 0) {
-          console.warn('⚠️ Usando puntajeTotal de evaluación como fallback:', intento.evaluacion.puntajeTotal);
-          puntajeTotalParaCalcular = Number(intento.evaluacion.puntajeTotal || 100);
+          console.warn(
+            '⚠️ Usando puntajeTotal de evaluación como fallback:',
+            intento.evaluacion.puntajeTotal,
+          );
+          puntajeTotalParaCalcular = Number(
+            intento.evaluacion.puntajeTotal || 100,
+          );
         }
 
         // Logs para debugging
         console.log('=== DEBUG FINISH ATTEMPT ===');
-        console.log('Preguntas totales en evaluación:', intento.evaluacion.preguntas.length);
+        console.log(
+          'Preguntas totales en evaluación:',
+          intento.evaluacion.preguntas.length,
+        );
         console.log('Preguntas activas:', preguntasActivas.length);
         console.log('Preguntas requeridas:', preguntasRequeridas.length);
-        console.log('Preguntas requeridas sin respuesta:', preguntasRequeridasSinRespuesta.length);
+        console.log(
+          'Preguntas requeridas sin respuesta:',
+          preguntasRequeridasSinRespuesta.length,
+        );
         console.log('Respuestas recibidas:', respuestas.length);
         console.log('Puntaje obtenido:', puntajeObtenido);
-        console.log('Puntaje total real (suma de preguntas activas):', puntajeTotalReal);
-        console.log('Puntaje total de evaluación (campo):', intento.evaluacion.puntajeTotal);
-        console.log('Puntaje total para calcular porcentaje:', puntajeTotalParaCalcular);
+        console.log(
+          'Puntaje total real (suma de preguntas activas):',
+          puntajeTotalReal,
+        );
+        console.log(
+          'Puntaje total de evaluación (campo):',
+          intento.evaluacion.puntajeTotal,
+        );
+        console.log(
+          'Puntaje total para calcular porcentaje:',
+          puntajeTotalParaCalcular,
+        );
         console.log('Minimo aprobacion:', intento.evaluacion.minimoAprobacion);
 
         // Calcular porcentaje usando el puntaje total real calculado (solo preguntas activas)
         // Asegurar que no haya división por cero
-        porcentaje = puntajeTotalParaCalcular > 0
-          ? this.scoringService.calculatePercentage(
-              puntajeObtenido,
-              puntajeTotalParaCalcular,
-            )
-          : 0;
+        porcentaje =
+          puntajeTotalParaCalcular > 0
+            ? this.scoringService.calculatePercentage(
+                puntajeObtenido,
+                puntajeTotalParaCalcular,
+              )
+            : 0;
 
         console.log('Porcentaje calculado:', porcentaje);
-        console.log('Fórmula: (', puntajeObtenido, '/', puntajeTotalParaCalcular, ') * 100 =', porcentaje, '%');
+        console.log(
+          'Fórmula: (',
+          puntajeObtenido,
+          '/',
+          puntajeTotalParaCalcular,
+          ') * 100 =',
+          porcentaje,
+          '%',
+        );
 
         // Determinar si aprobó
         aprobado = this.scoringService.isPassed(
@@ -361,28 +428,40 @@ export class IntentosRepositoryAdapter implements IIntentosRepository {
       } else {
         console.log('=== ENCUESTA: NO SE CALCULAN PUNTAJES ===');
         console.log('Las respuestas se guardarán sin calificación');
-        console.log('aprobado = null, puntajeObtenido = null, porcentaje = null');
+        console.log(
+          'aprobado = null, puntajeObtenido = null, porcentaje = null',
+        );
       }
 
       // Calcular tiempo utilizado
       const fechaInicio = intento.fechaInicio;
       const fechaFinalizacion = new Date();
-      const tiempoUtilizadoMs = fechaFinalizacion.getTime() - fechaInicio.getTime();
-      const tiempoUtilizadoMinutos = Math.round(tiempoUtilizadoMs / (1000 * 60));
+      const tiempoUtilizadoMs =
+        fechaFinalizacion.getTime() - fechaInicio.getTime();
+      const tiempoUtilizadoMinutos = Math.round(
+        tiempoUtilizadoMs / (1000 * 60),
+      );
 
       // Actualizar puntajes en respuestas individuales (solo si NO es encuesta)
       if (!esEncuesta) {
         for (const respuesta of respuestas) {
-          const pregunta = intento.evaluacion.preguntas.find((p) => p.id === respuesta.pregunta.id);
+          const pregunta = intento.evaluacion.preguntas.find(
+            p => p.id === respuesta.pregunta.id,
+          );
           if (pregunta) {
-            const puntajePregunta = this.scoringService.calculateQuestionScore(pregunta, respuesta);
+            const puntajePregunta = this.scoringService.calculateQuestionScore(
+              pregunta,
+              respuesta,
+            );
             respuesta.puntajeObtenido = puntajePregunta;
             await queryRunner.manager.save(respuesta);
           }
         }
       } else {
         // Para encuestas, no actualizar puntajes en respuestas individuales
-        console.log('Encuesta: No se actualizan puntajes en respuestas individuales');
+        console.log(
+          'Encuesta: No se actualizan puntajes en respuestas individuales',
+        );
       }
 
       // Actualizar intento
@@ -406,7 +485,10 @@ export class IntentosRepositoryAdapter implements IIntentosRepository {
         console.log('=== INICIO VERIFICACIÓN PARA CERTIFICADO ===');
         console.log('Intento aprobado:', aprobado);
         console.log('ID Inscripción:', intento.inscripcion.id);
-        console.log('ID Estudiante (desde intento):', intento.inscripcion?.estudiante?.id);
+        console.log(
+          'ID Estudiante (desde intento):',
+          intento.inscripcion?.estudiante?.id,
+        );
 
         // Actualizar inscripción con estado de aprobación
         const inscripcion = await queryRunner.manager.findOne(Inscripcion, {
@@ -419,13 +501,20 @@ export class IntentosRepositoryAdapter implements IIntentosRepository {
         });
 
         if (!inscripcion) {
-          console.error('ERROR: Inscripción no encontrada:', intento.inscripcion.id);
+          console.error(
+            'ERROR: Inscripción no encontrada:',
+            intento.inscripcion.id,
+          );
         } else {
           console.log('Inscripción encontrada:', inscripcion.id);
-          console.log('ID Estudiante (desde inscripción):', inscripcion.estudiante?.id);
+          console.log(
+            'ID Estudiante (desde inscripción):',
+            inscripcion.estudiante?.id,
+          );
           inscripcion.aprobado = true;
           // porcentaje no puede ser null aquí porque no es encuesta (validado en el if)
-          inscripcion.calificacionFinal = porcentaje !== null ? porcentaje : null;
+          inscripcion.calificacionFinal =
+            porcentaje !== null ? porcentaje : null;
           inscripcion.fechaFinalizacion = fechaFinalizacion;
           await queryRunner.manager.save(inscripcion);
           console.log('Inscripción actualizada con aprobado=true');
@@ -444,19 +533,26 @@ export class IntentosRepositoryAdapter implements IIntentosRepository {
             capacitacion.tipoCapacitacion.codigo === 'CERTIFIED' ||
             capacitacion.tipoCapacitacion.codigo === 'CERTIFICADA'
           ) {
-            console.log('✓ Capacitación es de tipo CERTIFIED, verificando certificado existente');
+            console.log(
+              '✓ Capacitación es de tipo CERTIFIED, verificando certificado existente',
+            );
 
             // Verificar si ya existe un certificado para esta inscripción
-            const existeCertificado = await queryRunner.manager.findOne(Certificado, {
-              where: { inscripcion: { id: inscripcion.id } },
-            });
+            const existeCertificado = await queryRunner.manager.findOne(
+              Certificado,
+              {
+                where: { inscripcion: { id: inscripcion.id } },
+              },
+            );
 
             if (existeCertificado) {
               console.log(
                 `⚠ Certificado ya existe para inscripción ${inscripcion.id}, no se generará otro`,
               );
             } else {
-              console.log('✓ No existe certificado previo, se generará después del commit');
+              console.log(
+                '✓ No existe certificado previo, se generará después del commit',
+              );
               inscripcionIdParaCertificado = inscripcion.id;
               debeGenerarCertificado = true;
             }
@@ -479,7 +575,10 @@ export class IntentosRepositoryAdapter implements IIntentosRepository {
           console.log(
             `Generando certificado para inscripción ${inscripcionIdParaCertificado} (después del commit)...`,
           );
-          console.log('🔍 IntentosRepositoryAdapter - inscripcionId que se enviará:', inscripcionIdParaCertificado);
+          console.log(
+            '🔍 IntentosRepositoryAdapter - inscripcionId que se enviará:',
+            inscripcionIdParaCertificado,
+          );
           await this.createCertificadoUseCase.execute({
             inscripcionId: inscripcionIdParaCertificado,
             esRetroactivo: false,
@@ -563,7 +662,10 @@ export class IntentosRepositoryAdapter implements IIntentosRepository {
     });
   }
 
-  async hasAttemptsAvailable(evaluacionId: number, inscripcionId: number): Promise<boolean> {
+  async hasAttemptsAvailable(
+    evaluacionId: number,
+    inscripcionId: number,
+  ): Promise<boolean> {
     const evaluacion = await this.evaluacionRepository.findOne({
       where: { id: evaluacionId },
     });
@@ -582,7 +684,10 @@ export class IntentosRepositoryAdapter implements IIntentosRepository {
     return intentosExistentes < evaluacion.intentosPermitidos;
   }
 
-  async getNextAttemptNumber(evaluacionId: number, inscripcionId: number): Promise<number> {
+  async getNextAttemptNumber(
+    evaluacionId: number,
+    inscripcionId: number,
+  ): Promise<number> {
     const ultimoIntento = await this.intentoRepository.findOne({
       where: {
         evaluacion: { id: evaluacionId },
@@ -596,4 +701,3 @@ export class IntentosRepositoryAdapter implements IIntentosRepository {
     return ultimoIntento ? ultimoIntento.numeroIntento + 1 : 1;
   }
 }
-

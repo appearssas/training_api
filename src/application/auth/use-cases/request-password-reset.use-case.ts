@@ -7,7 +7,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as crypto from 'crypto';
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+
 const bcrypt = require('bcryptjs');
 import { ConfigService } from '@nestjs/config';
 import { Usuario } from '@/entities/usuarios/usuario.entity';
@@ -121,9 +121,7 @@ export class RequestPasswordResetUseCase {
 
     const [domainName, tld] = domain.split('.');
     const censoredDomain =
-      domainName && domainName.length > 2
-        ? `${domainName[0]}***`
-        : '***';
+      domainName && domainName.length > 2 ? `${domainName[0]}***` : '***';
 
     return `${censoredUsername}@${censoredDomain}.${tld || 'com'}`;
   }

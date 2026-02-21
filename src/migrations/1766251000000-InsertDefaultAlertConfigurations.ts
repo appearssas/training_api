@@ -1,8 +1,6 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class InsertDefaultAlertConfigurations1766251000000
-  implements MigrationInterface
-{
+export class InsertDefaultAlertConfigurations1766251000000 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
     // Insertar configuraciones por defecto para alertas de vencimiento
     await queryRunner.query(`

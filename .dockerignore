@@ -55,6 +55,10 @@ Dockerfile.dev
 mysql/
 *.sql
 
+# Local storage (en producción usar S3 o disco persistente de Render)
+storage
+storage/**/*
+
 # Misc
 .DS_Store
 Thumbs.db

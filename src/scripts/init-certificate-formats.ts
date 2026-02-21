@@ -1,8 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from '../app.module';
 import { CertificateFormatsService } from '../infrastructure/certificate-formats/certificate-formats.service';
-import { CertificateFormatType } from '../entities/certificate-formats/certificate-format.entity';
-
 /**
  * Script para inicializar los valores por defecto de configuración de certificados en la base de datos
  */
@@ -10,7 +8,7 @@ async function bootstrap() {
   const app = await NestFactory.createApplicationContext(AppModule);
   const certificateFormatsService = app.get(CertificateFormatsService);
 
-  const configOtros = {
+  const config = {
     cursoNombre: {
       x: 396,
       y: 395,
@@ -107,19 +105,18 @@ async function bootstrap() {
   try {
     // Verificar si ya existe una configuración activa
     const existing = await certificateFormatsService.findActive();
-    
+
     if (existing) {
       console.log('✅ Ya existe una configuración activa. Actualizando...');
       await certificateFormatsService.update(existing.id, {
-        configOtros,
+        config,
         activo: true,
       });
       console.log('✅ Configuración actualizada exitosamente');
     } else {
       console.log('📝 Creando nueva configuración...');
       const created = await certificateFormatsService.create({
-        tipo: CertificateFormatType.OTROS,
-        configOtros,
+        config,
       });
       console.log('✅ Configuración creada exitosamente con ID:', created.id);
     }

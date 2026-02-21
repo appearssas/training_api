@@ -1,4 +1,9 @@
-import { Injectable, Inject, BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  Inject,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { IMaterialesRepository } from '@/domain/materiales/ports/materiales.repository.port';
 import { UpdateMaterialDto } from '@/application/materiales/dto/update-material.dto';
 import { MaterialCapacitacion } from '@/entities/materiales/material-capacitacion.entity';
@@ -42,7 +47,8 @@ export class UpdateMaterialUseCase {
       // Si el nuevo tipo es video y hay URL, validarla
       const tipoMaterialCodigo = tipoMaterial.codigo?.toUpperCase();
       if (
-        (tipoMaterialCodigo === 'VIDEO' || tipoMaterialCodigo === 'VIDEO_URL') &&
+        (tipoMaterialCodigo === 'VIDEO' ||
+          tipoMaterialCodigo === 'VIDEO_URL') &&
         updateMaterialDto.url
       ) {
         this.videoUrlValidator.validateVideoUrl(updateMaterialDto.url);
@@ -65,4 +71,3 @@ export class UpdateMaterialUseCase {
     return this.materialesRepository.update(id, updateMaterialDto);
   }
 }
-

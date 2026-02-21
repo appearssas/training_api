@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, BadRequestException, Inject } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  Inject,
+} from '@nestjs/common';
 import { IIntentosRepository } from '@/domain/intentos/ports/intentos.repository.port';
 import { EvaluationScoringService } from '@/infrastructure/shared/services/evaluation-scoring.service';
 import { IntentoEvaluacion } from '@/entities/evaluaciones/intento-evaluacion.entity';
@@ -36,33 +41,43 @@ export class FinishIntentoUseCase {
     }
 
     // Finalizar el intento (calcula puntaje automáticamente)
-    const intentoFinalizado = await this.intentosRepository.finishAttempt(intentoId);
-    
+    const intentoFinalizado =
+      await this.intentosRepository.finishAttempt(intentoId);
+
     // GENERACIÓN AUTOMÁTICA DE CERTIFICADO (RF-22)
     // Si aprobó, generar certificado automáticamente
     if (intentoFinalizado.aprobado) {
       try {
-        console.log(`🎓 Intento ${intentoId} aprobado. Verificando generación de certificado...`);
-        
+        console.log(
+          `🎓 Intento ${intentoId} aprobado. Verificando generación de certificado...`,
+        );
+
         // CORRECCIÓN: Usar intentoFinalizado que tiene las relaciones cargadas
         // Obtener inscripción ID desde el intento finalizado
         const inscripcionId = intentoFinalizado.inscripcion?.id;
-        
+
         if (inscripcionId) {
           // Verificar si ya existe certificado para evitar duplicados
-          const certificadosExistentes = await this.certificadosRepository.findByInscripcion(inscripcionId);
-          
+          const certificadosExistentes =
+            await this.certificadosRepository.findByInscripcion(inscripcionId);
+
           if (certificadosExistentes.length === 0) {
-            console.log(`✨ Generando certificado automático para inscripción ${inscripcionId}`);
+            console.log(
+              `✨ Generando certificado automático para inscripción ${inscripcionId}`,
+            );
             await this.createCertificadoUseCase.execute({
               inscripcionId,
               emitidoPor: 1, // System automated
             });
           } else {
-            console.log(`ℹ️ La inscripción ${inscripcionId} ya tiene certificado. Omitiendo generación.`);
+            console.log(
+              `ℹ️ La inscripción ${inscripcionId} ya tiene certificado. Omitiendo generación.`,
+            );
           }
         } else {
-          console.warn(`⚠️ No se pudo obtener inscripcionId del intento ${intentoId} para generar certificado.`);
+          console.warn(
+            `⚠️ No se pudo obtener inscripcionId del intento ${intentoId} para generar certificado.`,
+          );
         }
       } catch (error) {
         // No bloquear la finalización del intento si falla la generación del certificado
@@ -74,4 +89,3 @@ export class FinishIntentoUseCase {
     return intentoFinalizado;
   }
 }
-

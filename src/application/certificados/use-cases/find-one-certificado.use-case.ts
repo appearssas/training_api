@@ -22,4 +22,3 @@ export class FindOneCertificadoUseCase {
     return certificado;
   }
 }
-

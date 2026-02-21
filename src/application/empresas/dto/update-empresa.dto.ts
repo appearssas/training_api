@@ -13,4 +13,3 @@ export class UpdateEmpresaDto extends PartialType(CreateEmpresaDto) {
   @IsBoolean({ message: 'El estado activo debe ser un valor booleano' })
   activo?: boolean;
 }
-

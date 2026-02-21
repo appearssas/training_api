@@ -6,6 +6,7 @@ import {
   Res,
   BadRequestException,
   Query,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
 import { Response } from 'express';
@@ -18,6 +19,9 @@ import { PdfGeneratorService } from '../shared/services/pdf-generator.service';
 import { ICertificadosRepository } from '@/domain/certificados/ports/certificados.repository.port';
 import { Inject } from '@nestjs/common';
 import { Public } from '../shared/auth/decorators/public.decorator';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Capacitacion } from '@/entities/capacitacion/capacitacion.entity';
 
 /**
  * Controlador público de verificación de certificados
@@ -36,6 +40,8 @@ export class PublicCertificadosController {
     private readonly pdfGenerator: PdfGeneratorService,
     @Inject('ICertificadosRepository')
     private readonly certificadosRepository: ICertificadosRepository,
+    @InjectRepository(Capacitacion)
+    private readonly capacitacionRepo: Repository<Capacitacion>,
   ) {}
 
   @Public()
@@ -79,6 +85,70 @@ export class PublicCertificadosController {
           ? error.message
           : 'Error al generar el documento PDF';
       throw new BadRequestException(errorMessage);
+    }
+  }
+
+  @Public()
+  @Get('certificates/preview')
+  @ApiOperation({
+    summary: 'Vista previa de certificado con datos mock',
+    description:
+      'Genera un PDF de vista previa para el editor de formatos. Usa formatId y config; opcionalmente courseId para mostrar el nombre del curso.',
+  })
+  async previewCertificate(
+    @Res() res: Response,
+    @Query('formatId', ParseIntPipe) formatId: number,
+    @Query('config') configJson?: string,
+    @Query('courseId') courseIdStr?: string,
+  ) {
+    try {
+      let config: Record<string, unknown> | undefined;
+      if (configJson) {
+        try {
+          config = JSON.parse(decodeURIComponent(configJson)) as Record<
+            string,
+            unknown
+          >;
+        } catch {
+          config = undefined;
+        }
+      }
+      let courseName: string | undefined;
+      let capacitacion: Capacitacion | null = null;
+      if (courseIdStr) {
+        const courseId = parseInt(courseIdStr, 10);
+        if (!Number.isNaN(courseId)) {
+          capacitacion = await this.capacitacionRepo.findOne({
+            where: { id: courseId },
+            relations: [
+              'instructor',
+              'instructor.persona',
+              'enteCertificador',
+              'enteCertificador.representantes',
+            ],
+          });
+          if (capacitacion?.titulo) courseName = capacitacion.titulo;
+        }
+      }
+      const buffer = await this.pdfGenerator.generatePreviewPdf(
+        formatId,
+        config as any,
+        courseName,
+        capacitacion ?? undefined,
+      );
+      res.set({
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': 'inline; filename="preview-certificado.pdf"',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        Pragma: 'no-cache',
+        Expires: '0',
+      });
+      res.send(buffer);
+    } catch (error) {
+      console.error('Error generando preview:', error);
+      const message =
+        error instanceof Error ? error.message : 'Error al generar vista previa';
+      throw new BadRequestException(message);
     }
   }
 
@@ -183,6 +253,7 @@ export class PublicCertificadosController {
         found = true;
         break;
       } catch (e) {
+        console.error('Error accessing file:', e);
         continue;
       }
     }
@@ -250,8 +321,8 @@ export class PublicCertificadosController {
 
       // Extraer solo información pública (RF-34)
       const inscripcion = result.certificado.inscripcion as any;
-      const estudiante = inscripcion?.estudiante as any;
-      const capacitacion = inscripcion?.capacitacion as any;
+      const estudiante = inscripcion?.estudiante;
+      const capacitacion = inscripcion?.capacitacion;
 
       return {
         isValid: result.isValid,

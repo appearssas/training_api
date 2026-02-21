@@ -1,6 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { S3Client, PutObjectCommand, GetObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3';
+import {
+  S3Client,
+  PutObjectCommand,
+  GetObjectCommand,
+  HeadObjectCommand,
+} from '@aws-sdk/client-s3';
 import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
@@ -14,8 +19,10 @@ export class S3Service {
 
   constructor(private readonly configService: ConfigService) {
     this.region = this.configService.get<string>('AWS_REGION') || 'us-east-1';
-    this.bucketName = this.configService.get<string>('AWS_S3_BUCKET_NAME') || '';
-    this.cloudFrontUrl = this.configService.get<string>('AWS_CLOUDFRONT_URL') || '';
+    this.bucketName =
+      this.configService.get<string>('AWS_S3_BUCKET_NAME') || '';
+    this.cloudFrontUrl =
+      this.configService.get<string>('AWS_CLOUDFRONT_URL') || '';
 
     if (!this.bucketName) {
       throw new Error('AWS_S3_BUCKET_NAME debe estar configurado');
@@ -25,7 +32,8 @@ export class S3Service {
       region: this.region,
       credentials: {
         accessKeyId: this.configService.get<string>('AWS_ACCESS_KEY_ID') || '',
-        secretAccessKey: this.configService.get<string>('AWS_SECRET_ACCESS_KEY') || '',
+        secretAccessKey:
+          this.configService.get<string>('AWS_SECRET_ACCESS_KEY') || '',
       },
     });
   }
@@ -123,6 +131,32 @@ export class S3Service {
   }
 
   /**
+   * Sube un archivo a S3 con una key exacta (ej: catalogos/entes/1/logo.png).
+   * Retorna la URL pública (CloudFront o S3).
+   */
+  async uploadWithKey(file: Express.Multer.File, key: string): Promise<string> {
+    const contentType = file.mimetype || 'application/octet-stream';
+    try {
+      const command = new PutObjectCommand({
+        Bucket: this.bucketName,
+        Key: key,
+        Body: file.buffer,
+        ContentType: contentType,
+      });
+      await this.s3Client.send(command);
+      if (this.cloudFrontUrl) {
+        const baseUrl = this.cloudFrontUrl.replace(/\/$/, '');
+        return `${baseUrl}/${key}`;
+      }
+      return `https://${this.bucketName}.s3.${this.region}.amazonaws.com/${key}`;
+    } catch (error) {
+      throw new Error(
+        `Error al subir archivo a S3: ${error instanceof Error ? error.message : 'Error desconocido'}`,
+      );
+    }
+  }
+
+  /**
    * Verifica si un archivo existe en S3
    */
   async fileExists(key: string): Promise<boolean> {
@@ -135,7 +169,10 @@ export class S3Service {
       await this.s3Client.send(command);
       return true;
     } catch (error: any) {
-      if (error.name === 'NotFound' || error.$metadata?.httpStatusCode === 404) {
+      if (
+        error.name === 'NotFound' ||
+        error.$metadata?.httpStatusCode === 404
+      ) {
         return false;
       }
       throw error;
@@ -153,7 +190,7 @@ export class S3Service {
       });
 
       const response = await this.s3Client.send(command);
-      
+
       if (!response.Body) {
         throw new Error('El archivo está vacío');
       }
@@ -163,7 +200,7 @@ export class S3Service {
       for await (const chunk of response.Body as any) {
         chunks.push(chunk);
       }
-      
+
       return Buffer.concat(chunks);
     } catch (error) {
       throw new Error(
@@ -172,4 +209,3 @@ export class S3Service {
     }
   }
 }
-
