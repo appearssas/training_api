@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, SelectQueryBuilder } from 'typeorm';
 import { IUsuariosRepository } from '@/domain/usuarios/ports/usuarios.repository.port';
 import { Usuario } from '@/entities/usuarios/usuario.entity';
 import { Rol } from '@/entities/roles/rol.entity';
@@ -29,13 +29,59 @@ export class UsuariosRepositoryAdapter implements IUsuariosRepository {
     sortOrder: SortOrder;
     empresaId?: number; // Filtro por empresa (para usuarios CLIENTE)
   }): Promise<{ usuarios: Usuario[]; total: number }> {
-    const queryBuilder = this.usuarioRepository
+    const queryBuilder = this.createUsuarioListQueryBuilder();
+    this.applyUsuarioListFilters(queryBuilder, filters);
+
+    const sortField = this.getSortField(filters.sortBy);
+    queryBuilder.orderBy(sortField, filters.sortOrder);
+
+    const skip = (filters.page - 1) * filters.limit;
+    queryBuilder.skip(skip).take(filters.limit);
+
+    const [usuarios, total] = await queryBuilder.getManyAndCount();
+
+    return { usuarios, total };
+  }
+
+  async findAllForExportKeyset(
+    filters: {
+      search?: string;
+      role?: string;
+      habilitado?: boolean;
+      activo?: boolean;
+      empresaId?: number;
+    },
+    afterUsuarioId: number,
+    limit: number,
+  ): Promise<Usuario[]> {
+    const queryBuilder = this.createUsuarioListQueryBuilder();
+    this.applyUsuarioListFilters(queryBuilder, filters);
+    queryBuilder
+      .andWhere('usuario.id > :afterId', { afterId: afterUsuarioId })
+      .orderBy('usuario.id', 'ASC')
+      .take(limit);
+
+    return queryBuilder.getMany();
+  }
+
+  private createUsuarioListQueryBuilder(): SelectQueryBuilder<Usuario> {
+    return this.usuarioRepository
       .createQueryBuilder('usuario')
       .leftJoinAndSelect('usuario.persona', 'persona')
       .leftJoinAndSelect('persona.empresa', 'empresa')
       .leftJoinAndSelect('usuario.rolPrincipal', 'rolPrincipal');
+  }
 
-    // Filtro por búsqueda (username, email, número de documento)
+  private applyUsuarioListFilters(
+    queryBuilder: SelectQueryBuilder<Usuario>,
+    filters: {
+      search?: string;
+      role?: string;
+      habilitado?: boolean;
+      activo?: boolean;
+      empresaId?: number;
+    },
+  ): void {
     if (filters.search) {
       const searchTerm = `%${filters.search}%`;
       queryBuilder.andWhere(
@@ -44,49 +90,31 @@ export class UsuariosRepositoryAdapter implements IUsuariosRepository {
       );
     }
 
-    // Filtro por rol
     if (filters.role) {
       queryBuilder.andWhere('rolPrincipal.codigo = :role', {
         role: filters.role,
       });
     }
 
-    // Filtro por habilitado
     if (filters.habilitado !== undefined) {
       queryBuilder.andWhere('usuario.habilitado = :habilitado', {
         habilitado: filters.habilitado,
       });
     }
 
-    // Filtro por activo (solo mostrar usuarios activos por defecto, a menos que se especifique)
     if (filters.activo !== undefined) {
       queryBuilder.andWhere('usuario.activo = :activo', {
         activo: filters.activo,
       });
     } else {
-      // Por defecto, solo mostrar usuarios activos
       queryBuilder.andWhere('usuario.activo = :activo', { activo: true });
     }
 
-    // Filtro por empresa (para usuarios CLIENTE que solo deben ver usuarios de su empresa)
     if (filters.empresaId !== undefined) {
       queryBuilder.andWhere('persona.empresaId = :empresaId', {
         empresaId: filters.empresaId,
       });
     }
-
-    // Ordenamiento
-    const sortField = this.getSortField(filters.sortBy);
-    queryBuilder.orderBy(sortField, filters.sortOrder);
-
-    // Paginación
-    const skip = (filters.page - 1) * filters.limit;
-    queryBuilder.skip(skip).take(filters.limit);
-
-    // Obtener total y resultados
-    const [usuarios, total] = await queryBuilder.getManyAndCount();
-
-    return { usuarios, total };
   }
 
   async findById(id: number): Promise<Usuario | null> {

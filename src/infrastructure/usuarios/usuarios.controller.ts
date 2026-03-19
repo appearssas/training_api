@@ -13,7 +13,9 @@ import {
   HttpCode,
   HttpStatus,
   ParseIntPipe,
+  StreamableFile,
 } from '@nestjs/common';
+import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 import { InjectQueue } from '@nestjs/bullmq';
 import type { Queue } from 'bullmq';
 import type { QueueEvents } from 'bullmq';
@@ -38,6 +40,8 @@ import { ListUsersDto } from '@/application/usuarios/dto/list-users.dto';
 import { CompleteUserTrainingsResponseDto } from '@/application/usuarios/dto/complete-user-trainings-response.dto';
 import { CompleteUserTrainingsBulkRequestDto } from '@/application/usuarios/dto/complete-user-trainings-bulk-request.dto';
 import { CompleteUserTrainingsBulkResponseDto } from '@/application/usuarios/dto/complete-user-trainings-bulk-response.dto';
+import { ExportUsersQueryDto } from '@/application/usuarios/dto/export-users.query.dto';
+import { ExportUsersUseCase } from '@/application/usuarios/use-cases/export-users.use-case';
 import { COMPLETE_TRAININGS_QUEUE } from './complete-trainings.processor';
 import { UpdateUserDto } from '@/application/usuarios/dto/update-user.dto';
 import {
@@ -58,6 +62,7 @@ export class UsuariosController {
     private readonly deleteUserUseCase: DeleteUserUseCase,
     private readonly completeUserTrainingsUseCase: CompleteUserTrainingsUseCase,
     private readonly completeUserTrainingsBulkUseCase: CompleteUserTrainingsBulkUseCase,
+    private readonly exportUsersUseCase: ExportUsersUseCase,
     @Optional()
     @InjectQueue(COMPLETE_TRAININGS_QUEUE)
     private readonly completeTrainingsQueue: Queue | null,
@@ -160,6 +165,49 @@ export class UsuariosController {
     @GetUser() currentUser: Usuario,
   ): Promise<ListUsersResponseDto> {
     return await this.getUsersUseCase.execute(listUsersDto, currentUser);
+  }
+
+  @Get('export')
+  @Roles('ADMIN', 'CLIENTE')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Exportar usuarios (Excel o CSV)',
+    description: `Genera un archivo con los mismos criterios de visibilidad que el listado (CLIENTE solo ve su empresa).
+
+- **scope=all**: todos los registros que cumplan filtros; el servidor recorre por **ID ascendente** (orden estable, eficiente en BD). El listado en pantalla puede ordenarse distinto.
+- **scope=page**: una sola página; **page** y **limit** obligatorios (limit máximo 2000).
+
+Parámetros opcionales: search, role, habilitado, activo, sortBy, sortOrder.
+**format**: \`xlsx\` (defecto) o \`csv\`.`,
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Archivo binario (descarga)',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Parámetros inválidos (p. ej. page sin limit)',
+  })
+  @ApiResponse({
+    status: 413,
+    description: 'Demasiadas filas para una sola exportación (refinar filtros)',
+  })
+  @ApiResponse({
+    status: 429,
+    description: 'Demasiadas solicitudes de exportación (rate limit)',
+  })
+  @UseGuards(ThrottlerGuard)
+  @Throttle({ default: { limit: 25, ttl: 60000 } })
+  exportUsers(
+    @Query() query: ExportUsersQueryDto,
+    @GetUser() currentUser: Usuario,
+  ): StreamableFile {
+    const { stream, contentType, contentDisposition } =
+      this.exportUsersUseCase.execute(query, currentUser);
+    return new StreamableFile(stream, {
+      type: contentType,
+      disposition: contentDisposition,
+    });
   }
 
   @Get(':id')

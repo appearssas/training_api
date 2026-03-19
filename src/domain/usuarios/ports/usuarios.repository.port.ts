@@ -1,6 +1,5 @@
 import { Usuario } from '@/entities/usuarios/usuario.entity';
 import {
-  ListUsersDto,
   UserSortField,
   SortOrder,
 } from '@/application/usuarios/dto/list-users.dto';
@@ -24,6 +23,22 @@ export interface IUsuariosRepository {
     sortOrder: SortOrder;
     empresaId?: number; // Filtro por empresa (para usuarios CLIENTE)
   }): Promise<{ usuarios: Usuario[]; total: number }>;
+
+  /**
+   * Lotes para exportación masiva: mismo filtrado que findAll, orden estable por `usuario.id ASC`,
+   * cursor `afterUsuarioId` (0 = desde el principio). Evita OFFSET costoso en conjuntos grandes.
+   */
+  findAllForExportKeyset(
+    filters: {
+      search?: string;
+      role?: string;
+      habilitado?: boolean;
+      activo?: boolean;
+      empresaId?: number;
+    },
+    afterUsuarioId: number,
+    limit: number,
+  ): Promise<Usuario[]>;
 
   /**
    * Busca un usuario por su ID con todas las relaciones necesarias
