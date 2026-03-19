@@ -5,7 +5,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, QueryFailedError } from 'typeorm';
+import { Repository, QueryFailedError, SelectQueryBuilder } from 'typeorm';
 import {
   ICertificadosRepository,
   CertificadosUserContext,
@@ -76,6 +76,90 @@ export class CertificadosRepositoryAdapter implements ICertificadosRepository {
         });
         ente.representantes = representantes;
       }
+    }
+  }
+
+  private createListQueryBuilder(): SelectQueryBuilder<Certificado> {
+    return this.certificadoRepository
+      .createQueryBuilder('certificado')
+      .leftJoinAndSelect('certificado.inscripcion', 'inscripcion')
+      .leftJoinAndSelect('inscripcion.estudiante', 'estudiante')
+      .leftJoinAndSelect('inscripcion.capacitacion', 'capacitacion')
+      .leftJoinAndSelect('capacitacion.instructor', 'instructor')
+      .leftJoinAndSelect('instructor.persona', 'instructorPersona')
+      .leftJoinAndSelect('capacitacion.tipoCapacitacion', 'tipoCapacitacion');
+  }
+
+  private applyListFilters(
+    queryBuilder: SelectQueryBuilder<Certificado>,
+    pagination: PaginationDto,
+    userContext?: CertificadosUserContext,
+  ): void {
+    const { search, filters } = pagination;
+
+    const rol = userContext?.rol ?? '';
+    const personaId = userContext?.personaId ?? null;
+    const empresaId = userContext?.empresaId ?? null;
+    if (rol !== 'ADMIN' && personaId != null) {
+      if (rol === 'INSTRUCTOR') {
+        queryBuilder.andWhere('instructorPersona.id = :personaId', {
+          personaId,
+        });
+      } else if (
+        (rol === 'CLIENTE' || rol === 'OPERADOR') &&
+        empresaId != null
+      ) {
+        queryBuilder.andWhere('estudiante.empresaId = :empresaId', {
+          empresaId,
+        });
+      } else {
+        queryBuilder.andWhere('estudiante.id = :personaId', { personaId });
+      }
+    } else if (rol !== 'ADMIN' && personaId == null) {
+      queryBuilder.andWhere('1 = 0');
+    }
+
+    if (filters?.studentId) {
+      const studentId = parseInt(String(filters.studentId), 10);
+      if (!isNaN(studentId)) {
+        queryBuilder.andWhere('estudiante.id = :studentId', { studentId });
+      }
+    }
+
+    if (filters?.courseId) {
+      const courseId = parseInt(String(filters.courseId), 10);
+      if (!isNaN(courseId)) {
+        queryBuilder.andWhere('capacitacion.id = :courseId', { courseId });
+      }
+    }
+
+    const status = filters?.status
+      ? String(filters.status).toLowerCase().trim()
+      : '';
+    if (status) {
+      if (status === 'valid') {
+        queryBuilder.andWhere('certificado.activo = :activo', { activo: true });
+        queryBuilder.andWhere(
+          '(certificado.fechaVencimiento IS NULL OR certificado.fechaVencimiento > :now)',
+          { now: new Date() },
+        );
+      } else if (status === 'expired') {
+        const hoy = new Date();
+        hoy.setHours(23, 59, 59, 999);
+        queryBuilder.andWhere('certificado.fechaVencimiento IS NOT NULL');
+        queryBuilder.andWhere('certificado.fechaVencimiento <= :hoy', { hoy });
+      } else if (status === 'revoked') {
+        queryBuilder.andWhere('certificado.activo = :activo', {
+          activo: false,
+        });
+      }
+    }
+
+    if (search) {
+      queryBuilder.andWhere(
+        '(certificado.numeroCertificado LIKE :search OR estudiante.nombres LIKE :search OR estudiante.apellidos LIKE :search OR capacitacion.titulo LIKE :search)',
+        { search: `%${search}%` },
+      );
     }
   }
 
@@ -228,117 +312,11 @@ export class CertificadosRepositoryAdapter implements ICertificadosRepository {
     userContext?: CertificadosUserContext,
   ): Promise<any> {
     try {
-      const {
-        page = 1,
-        limit = 10,
-        search,
-        sortField,
-        sortOrder,
-        filters,
-      } = pagination;
+      const { page = 1, limit = 10, sortField, sortOrder } = pagination;
       const skip = (page - 1) * limit;
 
-      // IMPORTANTE: Usar QueryBuilder con leftJoinAndSelect para forzar la carga de relaciones
-      // y evitar problemas de caché de TypeORM
-      const queryBuilder = this.certificadoRepository
-        .createQueryBuilder('certificado')
-        .leftJoinAndSelect('certificado.inscripcion', 'inscripcion')
-        .leftJoinAndSelect('inscripcion.estudiante', 'estudiante')
-        .leftJoinAndSelect('inscripcion.capacitacion', 'capacitacion')
-        .leftJoinAndSelect('capacitacion.instructor', 'instructor')
-        .leftJoinAndSelect('instructor.persona', 'instructorPersona')
-        .leftJoinAndSelect('capacitacion.tipoCapacitacion', 'tipoCapacitacion');
-
-      // Control de visibilidad por rol: ADMIN ve todos; INSTRUCTOR solo sus cursos; ALUMNO solo los propios; CLIENTE/OPERADOR por empresa
-      const rol = userContext?.rol ?? '';
-      const personaId = userContext?.personaId ?? null;
-      const empresaId = userContext?.empresaId ?? null;
-      if (rol !== 'ADMIN' && personaId != null) {
-        if (rol === 'INSTRUCTOR') {
-          queryBuilder.andWhere('instructorPersona.id = :personaId', { personaId });
-          console.log(
-            `🔐 [findAll] Filtro INSTRUCTOR: instructor.id = ${personaId}`,
-          );
-        } else if (
-          (rol === 'CLIENTE' || rol === 'OPERADOR') &&
-          empresaId != null
-        ) {
-          // Certificados de conductores/estudiantes de su empresa
-          queryBuilder.andWhere('estudiante.empresaId = :empresaId', {
-            empresaId,
-          });
-          console.log(
-            `🔐 [findAll] Filtro ${rol}: estudiante.empresaId = ${empresaId}`,
-          );
-        } else {
-          // ALUMNO o CLIENTE/OPERADOR sin empresa: solo certificados donde el usuario es el estudiante
-          queryBuilder.andWhere('estudiante.id = :personaId', { personaId });
-          console.log(
-            `🔐 [findAll] Filtro ${rol}: estudiante.id = ${personaId}`,
-          );
-        }
-      } else if (rol !== 'ADMIN' && personaId == null) {
-        queryBuilder.andWhere('1 = 0');
-        console.log(`🔐 [findAll] Rol ${rol} sin personaId: sin resultados.`);
-      } else {
-        console.log(`🔐 [findAll] ADMIN: sin filtro por usuario.`);
-      }
-
-      // Filtro por estudiante (studentId)
-      if (filters?.studentId) {
-        const studentId = parseInt(String(filters.studentId), 10);
-        if (!isNaN(studentId)) {
-          queryBuilder.andWhere('estudiante.id = :studentId', { studentId });
-          console.log(`🔍 Filtrado por estudiante ID: ${studentId}`);
-        }
-      }
-
-      // Filtro por curso (courseId)
-      if (filters?.courseId) {
-        const courseId = parseInt(String(filters.courseId), 10);
-        if (!isNaN(courseId)) {
-          queryBuilder.andWhere('capacitacion.id = :courseId', { courseId });
-          console.log(`🔍 Filtrado por curso ID: ${courseId}`);
-        }
-      }
-
-      // Filtro por estado (status): normalizar a minúsculas por si llega con otro formato
-      const status = filters?.status
-        ? String(filters.status).toLowerCase().trim()
-        : '';
-      if (status) {
-        if (status === 'valid') {
-          queryBuilder.andWhere('certificado.activo = :activo', {
-            activo: true,
-          });
-          queryBuilder.andWhere(
-            '(certificado.fechaVencimiento IS NULL OR certificado.fechaVencimiento > :now)',
-            { now: new Date() },
-          );
-        } else if (status === 'expired') {
-          // Vencidos: fechaVencimiento no nula y ya pasada (usar fecha de hoy para evitar zonas horarias)
-          const hoy = new Date();
-          hoy.setHours(23, 59, 59, 999);
-          queryBuilder.andWhere('certificado.fechaVencimiento IS NOT NULL');
-          queryBuilder.andWhere('certificado.fechaVencimiento <= :hoy', {
-            hoy,
-          });
-        } else if (status === 'revoked') {
-          queryBuilder.andWhere('certificado.activo = :activo', {
-            activo: false,
-          });
-        }
-        console.log(`🔍 Filtrado por estado: ${status}`);
-      }
-
-      // Filtro de búsqueda general
-      if (search) {
-        queryBuilder.andWhere(
-          '(certificado.numeroCertificado LIKE :search OR estudiante.nombres LIKE :search OR estudiante.apellidos LIKE :search OR capacitacion.titulo LIKE :search)',
-          { search: `%${search}%` },
-        );
-        console.log(`🔍 Búsqueda: ${search}`);
-      }
+      const queryBuilder = this.createListQueryBuilder();
+      this.applyListFilters(queryBuilder, pagination, userContext);
 
       if (sortField) {
         queryBuilder.orderBy(`certificado.${sortField}`, sortOrder || 'ASC');
@@ -381,6 +359,25 @@ export class CertificadosRepositoryAdapter implements ICertificadosRepository {
         'Error al obtener los certificados',
       );
     }
+  }
+
+  async findAllForExportKeyset(
+    pagination: Omit<PaginationDto, 'page' | 'limit'>,
+    afterId: number,
+    limit: number,
+    userContext?: CertificadosUserContext,
+  ): Promise<Certificado[]> {
+    const queryBuilder = this.createListQueryBuilder();
+    this.applyListFilters(
+      queryBuilder,
+      pagination as PaginationDto,
+      userContext,
+    );
+    queryBuilder
+      .andWhere('certificado.id > :afterId', { afterId })
+      .orderBy('certificado.id', 'ASC')
+      .take(limit);
+    return queryBuilder.getMany();
   }
 
   async findOne(id: number): Promise<Certificado | null> {
