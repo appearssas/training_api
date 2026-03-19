@@ -17,6 +17,7 @@ import { VerifyCertificadoUseCase } from '@/application/certificados/use-cases/v
 import { UpdateCertificadoRetroactivoUseCase } from '@/application/certificados/use-cases/update-certificado-retroactivo.use-case';
 import { UpdateCertificadoUseCase } from '@/application/certificados/use-cases/update-certificado.use-case';
 import { RegenerateCertificatesUseCase } from '@/application/certificados/use-cases/regenerate-certificates.use-case';
+import { ExportCertificadosUseCase } from '@/application/certificados/use-cases/export-certificados.use-case';
 import { PdfGeneratorService } from '../shared/services/pdf-generator.service';
 import { QrGeneratorService } from '../shared/services/qr-generator.service';
 import { StorageModule } from '../shared/storage/storage.module';
@@ -52,6 +53,7 @@ import { EmpresasModule } from '../empresas/empresas.module';
     UpdateCertificadoRetroactivoUseCase,
     UpdateCertificadoUseCase,
     RegenerateCertificatesUseCase,
+    ExportCertificadosUseCase,
     PdfGeneratorService,
     QrGeneratorService,
     {

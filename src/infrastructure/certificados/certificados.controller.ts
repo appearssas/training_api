@@ -13,6 +13,7 @@ import {
   BadRequestException,
   NotFoundException,
   ForbiddenException,
+  StreamableFile,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -41,11 +42,14 @@ import { PaginationDto } from '@/application/shared/dto/pagination.dto';
 import * as fs from 'fs/promises';
 import { createReadStream } from 'fs';
 import { ConfigService } from '@nestjs/config';
+import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 
 import { PdfGeneratorService } from '@/infrastructure/shared/services/pdf-generator.service';
 import { StorageService } from '@/infrastructure/shared/services/storage.service';
 import { CertificadosRepositoryAdapter } from './certificados.repository.adapter';
 import { EmpresasCapacitacionesService } from '../empresas/empresas-capacitaciones.service';
+import { ExportCertificadosQueryDto } from '@/application/certificados/dto/export-certificados.query.dto';
+import { ExportCertificadosUseCase } from '@/application/certificados/use-cases/export-certificados.use-case';
 
 /**
  * Controlador de Certificados
@@ -70,6 +74,7 @@ export class CertificadosController {
     private readonly storageService: StorageService,
     private readonly certificadosRepository: CertificadosRepositoryAdapter,
     private readonly empresasCapacitacionesService: EmpresasCapacitacionesService,
+    private readonly exportCertificadosUseCase: ExportCertificadosUseCase,
   ) {}
 
   @Post('generate')
@@ -165,6 +170,39 @@ export class CertificadosController {
       empresaId: empresaId ?? undefined,
     };
     return this.findAllCertificadosUseCase.execute(pagination, userContext);
+  }
+
+  @Get('export')
+  @Roles('ADMIN', 'ALUMNO', 'CLIENTE', 'INSTRUCTOR', 'OPERADOR')
+  @UseGuards(ThrottlerGuard)
+  @Throttle({ default: { limit: 25, ttl: 60000 } })
+  @ApiOperation({
+    summary: 'Exportar certificados (CSV/XLSX)',
+    description:
+      'Permite exportar certificados filtrados en modo página o todos los resultados (lotes internos).',
+  })
+  export(
+    @Query() query: ExportCertificadosQueryDto,
+    @GetUser() user: any,
+  ): StreamableFile {
+    const rol = user?.rolPrincipal?.codigo ?? '';
+    const personaId = user?.persona?.id ?? null;
+    const empresaId =
+      rol === 'CLIENTE' || rol === 'OPERADOR'
+        ? (user?.persona?.empresaId ?? user?.persona?.empresa?.id ?? null)
+        : null;
+
+    const { stream, contentType, contentDisposition } =
+      this.exportCertificadosUseCase.execute(query, {
+        rol,
+        personaId,
+        empresaId: empresaId ?? undefined,
+      });
+
+    return new StreamableFile(stream, {
+      type: contentType,
+      disposition: contentDisposition,
+    });
   }
 
   @Post('estudiante/:estudianteId')

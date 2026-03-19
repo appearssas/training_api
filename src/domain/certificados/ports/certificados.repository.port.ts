@@ -27,6 +27,12 @@ export interface ICertificadosRepository {
     pagination: PaginationDto,
     userContext?: CertificadosUserContext,
   ): Promise<any>;
+  findAllForExportKeyset(
+    pagination: Omit<PaginationDto, 'page' | 'limit'>,
+    afterId: number,
+    limit: number,
+    userContext?: CertificadosUserContext,
+  ): Promise<Certificado[]>;
   findOne(id: number): Promise<Certificado | null>;
   findByInscripcion(inscripcionId: number): Promise<Certificado[]>;
   findByEstudiante(
