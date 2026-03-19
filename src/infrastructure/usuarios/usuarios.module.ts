@@ -18,6 +18,7 @@ import { UpdateUserUseCase } from '@/application/usuarios/use-cases/update-user.
 import { DeleteUserUseCase } from '@/application/usuarios/use-cases/delete-user.use-case';
 import { CompleteUserTrainingsUseCase } from '@/application/usuarios/use-cases/complete-user-trainings.use-case';
 import { CompleteUserTrainingsBulkUseCase } from '@/application/usuarios/use-cases/complete-user-trainings-bulk.use-case';
+import { ExportUsersUseCase } from '@/application/usuarios/use-cases/export-users.use-case';
 import { IntentosModule } from '../intentos/intentos.module';
 import { InscripcionesModule } from '../inscripciones/inscripciones.module';
 import { CapacitacionesModule } from '../capacitaciones/capacitaciones.module';
@@ -69,6 +70,7 @@ const redisEnabled = process.env.REDIS_ENABLED === 'true';
     DeleteUserUseCase,
     CompleteUserTrainingsUseCase,
     CompleteUserTrainingsBulkUseCase,
+    ExportUsersUseCase,
   ],
   exports: ['IUsuariosRepository'],
 })
