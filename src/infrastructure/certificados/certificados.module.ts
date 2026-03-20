@@ -1,5 +1,6 @@
 import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { CertificadosExportController } from './certificados-export.controller';
 import { CertificadosController } from './certificados.controller';
 import { PublicCertificadosController } from './public-certificados.controller';
 import { CertificadosRepositoryAdapter } from './certificados.repository.adapter';
@@ -29,7 +30,11 @@ import { EmpresasModule } from '../empresas/empresas.module';
  * RF-22 a RF-34: Gestión completa de certificados
  */
 @Module({
-  controllers: [CertificadosController, PublicCertificadosController],
+  controllers: [
+    CertificadosExportController,
+    CertificadosController,
+    PublicCertificadosController,
+  ],
   imports: [
     StorageModule,
     forwardRef(() => CertificateFormatsModule),
