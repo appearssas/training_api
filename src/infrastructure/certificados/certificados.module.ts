@@ -1,5 +1,6 @@
 import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { CertificadosExportController } from './certificados-export.controller';
 import { CertificadosController } from './certificados.controller';
 import { PublicCertificadosController } from './public-certificados.controller';
 import { CertificadosRepositoryAdapter } from './certificados.repository.adapter';
@@ -17,6 +18,7 @@ import { VerifyCertificadoUseCase } from '@/application/certificados/use-cases/v
 import { UpdateCertificadoRetroactivoUseCase } from '@/application/certificados/use-cases/update-certificado-retroactivo.use-case';
 import { UpdateCertificadoUseCase } from '@/application/certificados/use-cases/update-certificado.use-case';
 import { RegenerateCertificatesUseCase } from '@/application/certificados/use-cases/regenerate-certificates.use-case';
+import { ExportCertificadosUseCase } from '@/application/certificados/use-cases/export-certificados.use-case';
 import { PdfGeneratorService } from '../shared/services/pdf-generator.service';
 import { QrGeneratorService } from '../shared/services/qr-generator.service';
 import { StorageModule } from '../shared/storage/storage.module';
@@ -28,7 +30,11 @@ import { EmpresasModule } from '../empresas/empresas.module';
  * RF-22 a RF-34: Gestión completa de certificados
  */
 @Module({
-  controllers: [CertificadosController, PublicCertificadosController],
+  controllers: [
+    CertificadosExportController,
+    CertificadosController,
+    PublicCertificadosController,
+  ],
   imports: [
     StorageModule,
     forwardRef(() => CertificateFormatsModule),
@@ -52,6 +58,7 @@ import { EmpresasModule } from '../empresas/empresas.module';
     UpdateCertificadoRetroactivoUseCase,
     UpdateCertificadoUseCase,
     RegenerateCertificatesUseCase,
+    ExportCertificadosUseCase,
     PdfGeneratorService,
     QrGeneratorService,
     {

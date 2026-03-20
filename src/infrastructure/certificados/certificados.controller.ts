@@ -41,12 +41,10 @@ import { PaginationDto } from '@/application/shared/dto/pagination.dto';
 import * as fs from 'fs/promises';
 import { createReadStream } from 'fs';
 import { ConfigService } from '@nestjs/config';
-
 import { PdfGeneratorService } from '@/infrastructure/shared/services/pdf-generator.service';
 import { StorageService } from '@/infrastructure/shared/services/storage.service';
 import { CertificadosRepositoryAdapter } from './certificados.repository.adapter';
 import { EmpresasCapacitacionesService } from '../empresas/empresas-capacitaciones.service';
-
 /**
  * Controlador de Certificados
  * RF-22 a RF-24: Generación y gestión de certificados
